@@ -155,3 +155,13 @@
 ## [2026-10-05] — SCOPE UNFREEZE (keputusan user)
 - RC1 freeze dicabut atas perintah eksplisit user. Urutan ekspansi: ML Fase 8 → Apriori → API/OAuth/scraping → shadcn+ECharts.
 - Gate manusia (R/SPSS, beta, prod) tetap berjalan paralel sebagai tanggung jawab manusia.
+
+## [2026-10-05] — ML Fase 8 DONE (feature/ml-v8, RC1 core utuh)
+- Git policy aktif: main=RC1 (tag rc1-core-freeze); kerja di feature/ml-v8
+- Klasifikasi 5 algo (NB/LR/DT/RF/SVM): stratified split, acc/P/R/F1 macro, per-class, confusion, ROC-AUC biner+OvR, 5-fold CV, feature importance, hyperparams + seed eksplisit, kurva ROC ECharts-ready
+- Clustering K-Means + Hierarchical Ward: sizes, inertia, silhouette, centroids, scatter2d ECharts-ready
+- Teks: TF-IDF/BoW (top terms) + LDA (topik, perplexity) — sklearn saja, tanpa download eksternal
+- Grafik PNG: confusion, roc, cluster, dendrogram, topics, topterms (untuk PDF; ECharts konsumsi JSON nanti)
+- UI: 4 metode di dropdown + 6 tipe chart baru; registry + method-spec terisi
+- Insiden: factory lambda belum dipanggil (AttributeError) → diperbaiki + rebuild
+- Verified: pytest 34 (27 RC1 hijau + 7 ML), tsc bersih, E2E + 4 grafik 200; komit 8c026ce
