@@ -1,0 +1,65 @@
+# DDEV local env — academic MVP.
+# - db + redis dari DDEV (postgres:15, redis addon). Host di dalam network: db, redis.
+# - backend/frontend/worker didefinisikan di sini (parity dengan ../compose.yml untuk VPS prod).
+# - MinIO/S3 DINONAKTIFKAN di DDEV local (registry 401/pull-denied); dev pakai filesystem, prod pakai compose.yml.
+# - Jalankan: ddev start  →  https://academic.ddev.site (web), backend :8000, frontend :3000 via web_extra_exposed_ports.
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: ddev-academic-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql+psycopg://db:db@db:5432/db
+      - REDIS_URL=redis://redis:6379/0
+      - BACKEND_CORS_ORIGINS=http://localhost:3000,http://localhost:3100
+      - BACKEND_CORS_REGEX=http://(127\.0\.0\.1|localhost):\d+
+      # S3/MinIO nonaktif di local DDEV (registry minio diblokir, 401/pull denied).
+      # Dev gunakan filesystem volume; S3 aktif di VPS prod via compose.yml (perlu docker login).
+      # - S3_ENDPOINT=http://minio:9000
+      - S3_ACCESS_KEY=minioadmin
+      - S3_SECRET_KEY=minioadmin123
+      - S3_BUCKET=academic-datasets
+      - S3_REGION=us-east-1
+      - JWT_SECRET=local_only_change_me_64char______________________
+      - SOFTWARE_VERSION=0.1.0+mvp
+      - MAX_UPLOAD_MB=50
+      - STORAGE_DIR=/code/storage
+    ports:
+      - "8100:8000"
+    volumes:
+      - backend_storage:/code/storage
+    external_links:
+      - ddev-academic-db:db
+      - ddev-academic-redis:redis
+    labels:
+      com.ddev.site-name: academic
+      com.ddev.approot: $DDEV_APPROOT
+
+  # Frontend TIDAK di Docker (keputusan dev): jalankan lokal via Node.js:
+  #   cd frontend && npm install && NEXT_PUBLIC_API_URL=http://localhost:8100 npm run dev -- -p 3100
+  # (port 3100 dikosongkan untuk npm dev; lihat README.)
+
+  worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: ddev-academic-worker
+    restart: unless-stopped
+    command: celery -A app.core.queue:celery_app worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql+psycopg://db:db@db:5432/db
+      - REDIS_URL=redis://redis:6379/0
+      - STORAGE_DIR=/code/storage
+    external_links:
+      - ddev-academic-db:db
+      - ddev-academic-redis:redis
+    volumes:
+      - backend_storage:/code/storage
+    labels:
+      com.ddev.site-name: academic
+      com.ddev.approot: $DDEV_APPROOT
+
+volumes:
+  backend_storage:

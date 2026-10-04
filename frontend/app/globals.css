@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+img.chart {
+  max-width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+}
+
+@media print {
+  nav,
+  button,
+  select,
+  input,
+  textarea {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  main {
+    max-width: 100%;
+    padding: 0;
+  }
+}

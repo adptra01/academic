@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.uv/
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Env & secrets — JANGAN COMMIT (SECURITY.md)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Data & storage (jangan commit dataset user)
+data/
+volumes/
+minio-data/
+*.csv
+*.xlsx
+*.xls
+*.sav
+*.json
+!**/fixtures/*.csv
+!**/fixtures/*.json
+
+# Build & logs
+dist/
+build/
+*.log
+logs/
+
+# OS & editor
+.DS_Store
+.vscode/
+.idea/
+
+# Docker
+.docker/

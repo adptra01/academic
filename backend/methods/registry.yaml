@@ -1,0 +1,31 @@
+methods:
+  - id: descriptive
+    name: Descriptive Statistics
+  - id: normality
+    name: Normality Test (Shapiro-Wilk + Kolmogorov-Smirnov)
+  - id: pearson
+    name: Pearson Correlation
+  - id: spearman
+    name: Spearman Correlation
+  - id: ttest_1samp
+    name: One-Sample t-Test
+  - id: ttest_ind
+    name: Independent Samples t-Test
+  - id: ttest_paired
+    name: Paired Samples t-Test
+  - id: anova_oneway
+    name: One-Way ANOVA
+  - id: chi2_independence
+    name: Chi-Square Independence
+  - id: chi2_gof
+    name: Chi-Square Goodness of Fit
+  - id: mannwhitney
+    name: Mann-Whitney U
+  - id: wilcoxon
+    name: Wilcoxon Signed-Rank
+  - id: kruskal
+    name: Kruskal-Wallis
+  - id: linreg_simple
+    name: Simple Linear Regression
+  - id: linreg_multiple
+    name: Multiple Linear Regression
