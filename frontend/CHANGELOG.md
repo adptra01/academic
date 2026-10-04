@@ -31,3 +31,8 @@
 - Preview: Prev/Next (limit 10, offset) + counter "Baris X–Y dari N"; reset saat ganti dataset/version
 - Chart: param `column` override (histogram/boxplot/qq) + dropdown kolom di UI untuk descriptive multi-kolom; 422 kolom tak ada
 - Verified: chart override 200, offset ok, pytest 25 passed, tsc bersih
+
+## [2026-10-05] — Apriori DONE (feature/apriori dari master, RC1 utuh)
+- Modul `stats/apriori.py` mandiri (tanpa dep baru): one-hot otomatis, kandidat level-wise + pruning, support/confidence/lift, filter min_support/confidence/lift + max_length, traceability penuh
+- Grafik `rules` (bar lift top-15 + garis lift=1); registry/spec/UI terisi
+- Verified: pytest 30 (27 RC1 + 3 Apriori hitung-manual), tsc bersih, E2E 22 rules + chart 200
