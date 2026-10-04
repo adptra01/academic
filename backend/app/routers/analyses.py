@@ -29,6 +29,7 @@ METHOD_VARIABLES_SPEC = {
     "kruskal": {"column": "str", "group": "str ≥3 grup"},
     "linreg_simple": {"x": "str numerik", "y": "str numerik"},
     "linreg_multiple": {"xs": "list[str] ≥2 numerik", "y": "str numerik"},
+    "apriori": {"columns": "list[str] item/biner/kategorikal", "min_support": "0<s≤1", "min_confidence": "0..1", "min_lift": "≥0"},
 }
 
 

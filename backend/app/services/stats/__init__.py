@@ -13,6 +13,8 @@ METHOD_IDS = [
     "ttest_1samp", "ttest_ind", "ttest_paired", "anova_oneway",
     "chi2_independence", "chi2_gof", "mannwhitney", "wilcoxon", "kruskal",
     "linreg_simple", "linreg_multiple",
+    # Phase 2 (di luar RC1 freeze — lihat CHANGELOG scope unfreeze):
+    "apriori",
 ]
 
 METHOD_NAMES = {
@@ -31,6 +33,7 @@ METHOD_NAMES = {
     "kruskal": "Kruskal-Wallis Test",
     "linreg_simple": "Simple Linear Regression",
     "linreg_multiple": "Multiple Linear Regression",
+    "apriori": "Association Rules (Apriori)",
 }
 
 
@@ -96,7 +99,7 @@ def run_analysis(df: pd.DataFrame, method: str, variables: dict, params: dict) -
     alpha = float(params.get("alpha", 0.05))
     if not 0 < alpha < 1:
         raise ValueError("alpha harus di antara 0 dan 1")
-    from app.services.stats import descriptive, normality, correlation, ttest, anova, chi2, nonparam, regression
+    from app.services.stats import descriptive, normality, correlation, ttest, anova, chi2, nonparam, regression, apriori
 
     table = {
         "descriptive": descriptive.run,
@@ -114,5 +117,6 @@ def run_analysis(df: pd.DataFrame, method: str, variables: dict, params: dict) -
         "kruskal": nonparam.run_kruskal,
         "linreg_simple": regression.run_simple,
         "linreg_multiple": regression.run_multiple,
+        "apriori": apriori.run,
     }
     return table[method](df, variables, alpha, params)

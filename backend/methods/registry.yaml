@@ -29,3 +29,5 @@ methods:
     name: Simple Linear Regression
   - id: linreg_multiple
     name: Multiple Linear Regression
+  - id: apriori
+    name: Association Rules Apriori (Phase 2)

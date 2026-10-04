@@ -11,7 +11,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-CHART_TYPES = {"histogram", "boxplot", "scatter", "bar", "residual", "qq"}
+CHART_TYPES = {"histogram", "boxplot", "scatter", "bar", "residual", "qq", "rules"}
 
 DEFAULT_CHART = {
     "descriptive": "histogram", "normality": "histogram",
@@ -20,6 +20,7 @@ DEFAULT_CHART = {
     "anova_oneway": "boxplot", "chi2_independence": "bar", "chi2_gof": "bar",
     "mannwhitney": "boxplot", "wilcoxon": "boxplot", "kruskal": "boxplot",
     "linreg_simple": "scatter", "linreg_multiple": "residual",
+    "apriori": "rules",
 }
 
 
@@ -172,4 +173,20 @@ def make_chart(df: pd.DataFrame, method: str, variables: dict, result: dict, cha
     if ct == "qq":
         col = v.get("column") or v.get("y") or v.get("x")
         return qq(df, col, title, dpi), ct
+    if ct == "rules":
+        return rules_chart(result, title, dpi), ct
     raise ValueError("unreachable")
+
+
+def rules_chart(result: dict, title: str, dpi: int) -> bytes:
+    st = result.get("statistics") or {}
+    rules = st.get("rules") or []
+    if not rules:
+        raise ValueError("tidak ada rule untuk digrafikkan (longgarkan filter)")
+    top = rules[:15]
+    labels = [f"{{{','.join(r['antecedent'])}}}→{{{','.join(r['consequent'])}}}" for r in top]
+    lifts = [r["lift"] for r in top]
+    fig, ax = _fig(title or f"Top Rules by Lift (n={len(rules)})", "Lift", "Rule")
+    ax.barh(labels[::-1], lifts[::-1], color="#4a4a4a")
+    ax.axvline(1.0, color="black", linestyle="--", linewidth=1)
+    return _png(fig, dpi)
