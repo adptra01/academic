@@ -116,3 +116,15 @@ def list_exports(project_id: uuid.UUID, db: Session = Depends(get_db), user: Use
         .order_by(Export.created_at.desc()).all()
     )
     return [{"analysis_uid": a.analysis_uid, "method": a.method, "format": e.format, "created_at": e.created_at.isoformat() if e.created_at else None} for e, a in rows]
+
+
+@router.get("/analyses/{uid}/viz")
+def viz(uid: str, type: str | None = Query(default=None), db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
+    """ECharts-ready visualization dataset. LAPISAN VISUAL — angka dari engine, tak menghitung."""
+    from app.services import vizdata
+
+    a, res, ds, base, log, df = _load(uid, user, db)
+    try:
+        return vizdata.build(df, a.method, a.variables, res.result, base.version_number, type, uid)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))

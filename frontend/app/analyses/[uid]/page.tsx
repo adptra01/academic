@@ -2,7 +2,11 @@
 import { useEffect, useState } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
+import dynamic from "next/dynamic";
 import { api, apiUrl, apaStyle, authHeaders, downloadExport } from "../../../lib/api";
+import type { Viz } from "../../../components/EChartView";
+
+const EChartView = dynamic(() => import("../../../components/EChartView"), { ssr: false });
 
 type Detail = {
   analysis_uid: string; method: string; variables: Record<string, unknown>; params: Record<string, unknown>;
@@ -60,6 +64,9 @@ export default function AnalysisPage({ params }: { params: { uid: string } }) {
   const [chartType, setChartType] = useState("");
   const [chartCol, setChartCol] = useState("");
   const [chartUrl, setChartUrl] = useState("");
+  const [vizMode, setVizMode] = useState<"png" | "echarts">("png");
+  const [viz, setViz] = useState<Viz | null>(null);
+  const [vizErr, setVizErr] = useState("");
   const [rerunMsg, setRerunMsg] = useState("");
   const [err, setErr] = useState("");
   const [copied, setCopied] = useState(false);
@@ -67,6 +74,7 @@ export default function AnalysisPage({ params }: { params: { uid: string } }) {
     api<Detail>(`/api/v1/analyses/${uid}`).then(setD).catch((e: unknown) => setErr(e instanceof Error ? e.message : "Gagal"));
   }, [uid]);
   useEffect(() => {
+    if (vizMode !== "png") return;
     let url = "";
     const qs = new URLSearchParams();
     if (chartType) qs.set("type", chartType);
@@ -77,7 +85,17 @@ export default function AnalysisPage({ params }: { params: { uid: string } }) {
       .then((blob) => { url = URL.createObjectURL(blob); setChartUrl(url); })
       .catch(() => setChartUrl(""));
     return () => { if (url) URL.revokeObjectURL(url); };
-  }, [uid, chartType, chartCol]);
+  }, [uid, chartType, chartCol, vizMode]);
+  useEffect(() => {
+    if (vizMode !== "echarts") return;
+    setVizErr("");
+    const qs = new URLSearchParams();
+    if (chartType) qs.set("type", chartType);
+    if (chartCol) qs.set("column", chartCol);
+    api<Viz>(`/api/v1/analyses/${uid}/viz${qs.toString() ? `?${qs.toString()}` : ""}`)
+      .then(setViz)
+      .catch((e: unknown) => setVizErr(e instanceof Error ? e.message : "Viz gagal"));
+  }, [uid, chartType, chartCol, vizMode]);
   if (err) return <p className="text-sm text-red-700">{err}</p>;
   if (!d) return <p className="text-slate-500">Memuat...</p>;
   const r = d.result;
@@ -137,6 +155,10 @@ export default function AnalysisPage({ params }: { params: { uid: string } }) {
       )}
       <div className={`${card} mt-4`}>
         <h3 className={h3}>Grafik akademik</h3>
+        <div className="mt-2 flex gap-2">
+          <button className={vizMode === "png" ? btn2 : `${btn2} opacity-60`} onClick={() => setVizMode("png")}>Statis (PNG)</button>
+          <button className={vizMode === "echarts" ? btn2 : `${btn2} opacity-60`} onClick={() => setVizMode("echarts")}>Interaktif</button>
+        </div>
         <select className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={chartType} onChange={(e) => setChartType(e.target.value)}>
           <option value="">Default</option>
           {["histogram", "boxplot", "scatter", "bar", "residual", "qq"].map((t) => <option key={t} value={t}>{t}</option>)}
@@ -148,8 +170,16 @@ export default function AnalysisPage({ params }: { params: { uid: string } }) {
           </select>
         )}
         <div className="mt-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {chartUrl ? <img className="chart" src={chartUrl} alt="chart" /> : <p className="text-xs text-slate-500">Memuat grafik...</p>}
+          {vizMode === "png" ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {chartUrl ? <img className="chart" src={chartUrl} alt="chart" /> : <p className="text-xs text-slate-500">Memuat grafik...</p>}
+            </>
+          ) : viz ? (
+            <EChartView viz={viz} />
+          ) : (
+            <p className="text-xs text-slate-500">{vizErr || "Memuat grafik interaktif..."}</p>
+          )}
         </div>
         {chartUrl && <a className="mt-2 inline-block text-sm text-blue-700 hover:underline" href={chartUrl} download={`${uid}.png`}>Unduh PNG grafik</a>}
       </div>
