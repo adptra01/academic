@@ -29,3 +29,11 @@ methods:
     name: Simple Linear Regression
   - id: linreg_multiple
     name: Multiple Linear Regression
+  - id: ml_classify
+    name: ML Classification (Phase 2)
+  - id: ml_cluster
+    name: ML Clustering (Phase 2)
+  - id: text_tfidf
+    name: Text Vectorization TF-IDF/BoW (Phase 2)
+  - id: text_lda
+    name: Topic Modeling LDA (Phase 2)

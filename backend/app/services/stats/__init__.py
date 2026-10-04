@@ -13,6 +13,8 @@ METHOD_IDS = [
     "ttest_1samp", "ttest_ind", "ttest_paired", "anova_oneway",
     "chi2_independence", "chi2_gof", "mannwhitney", "wilcoxon", "kruskal",
     "linreg_simple", "linreg_multiple",
+    # Phase 2 (di luar RC1 freeze — lihat CHANGELOG scope unfreeze):
+    "ml_classify", "ml_cluster", "text_tfidf", "text_lda",
 ]
 
 METHOD_NAMES = {
@@ -31,6 +33,10 @@ METHOD_NAMES = {
     "kruskal": "Kruskal-Wallis Test",
     "linreg_simple": "Simple Linear Regression",
     "linreg_multiple": "Multiple Linear Regression",
+    "ml_classify": "ML Classification",
+    "ml_cluster": "ML Clustering",
+    "text_tfidf": "Text Vectorization (TF-IDF/BoW)",
+    "text_lda": "Topic Modeling (LDA)",
 }
 
 
@@ -96,7 +102,7 @@ def run_analysis(df: pd.DataFrame, method: str, variables: dict, params: dict) -
     alpha = float(params.get("alpha", 0.05))
     if not 0 < alpha < 1:
         raise ValueError("alpha harus di antara 0 dan 1")
-    from app.services.stats import descriptive, normality, correlation, ttest, anova, chi2, nonparam, regression
+    from app.services.stats import descriptive, normality, correlation, ttest, anova, chi2, nonparam, regression, ml_classify, ml_cluster, text_mining
 
     table = {
         "descriptive": descriptive.run,
@@ -114,5 +120,9 @@ def run_analysis(df: pd.DataFrame, method: str, variables: dict, params: dict) -
         "kruskal": nonparam.run_kruskal,
         "linreg_simple": regression.run_simple,
         "linreg_multiple": regression.run_multiple,
+        "ml_classify": ml_classify.run,
+        "ml_cluster": ml_cluster.run,
+        "text_tfidf": text_mining.run_tfidf,
+        "text_lda": text_mining.run_lda,
     }
     return table[method](df, variables, alpha, params)

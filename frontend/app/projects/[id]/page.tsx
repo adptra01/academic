@@ -10,7 +10,7 @@ type Variable = { id: string; name: string; var_type: string; var_role: string }
 type Profile = { rows: number; cols: number; missing_pct: number; duplicate_rows: number; columns: { name: string; detected_type: string; missing_count: number; unique_count: number }[] };
 type Diff = { from: number; to: number; rows_from: number; rows_to: number; rows_delta: number; columns_added: string[]; columns_removed: string[]; numeric_drift: { column: string; mean_from: number | null; mean_to: number | null; missing_from: number; missing_to: number }[] };
 
-const METHODS = ["descriptive", "normality", "pearson", "spearman", "ttest_1samp", "ttest_ind", "ttest_paired", "anova_oneway", "chi2_independence", "chi2_gof", "mannwhitney", "wilcoxon", "kruskal", "linreg_simple", "linreg_multiple"];
+const METHODS = ["descriptive", "normality", "pearson", "spearman", "ttest_1samp", "ttest_ind", "ttest_paired", "anova_oneway", "chi2_independence", "chi2_gof", "mannwhitney", "wilcoxon", "kruskal", "linreg_simple", "linreg_multiple", "ml_classify", "ml_cluster", "text_tfidf", "text_lda"];
 const OPS = ["drop_missing", "fill_missing", "remove_outlier_iqr", "scale_standard", "scale_minmax", "transform_log", "transform_sqrt", "mapping", "onehot", "rename", "drop_columns", "text_lowercase", "text_remove_punct", "text_remove_stopwords", "remove_duplicates"];
 const VTYPES = ["Numerical", "Ordinal", "Nominal", "Binary", "Text", "Datetime", "ID"];
 const VROLES = ["Independent", "Dependent", "Control", "Grouping", "ID", "Ignore"];

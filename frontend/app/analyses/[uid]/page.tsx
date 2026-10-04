@@ -139,7 +139,7 @@ export default function AnalysisPage({ params }: { params: { uid: string } }) {
         <h3 className={h3}>Grafik akademik</h3>
         <select className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={chartType} onChange={(e) => setChartType(e.target.value)}>
           <option value="">Default</option>
-          {["histogram", "boxplot", "scatter", "bar", "residual", "qq"].map((t) => <option key={t} value={t}>{t}</option>)}
+          {["histogram", "boxplot", "scatter", "bar", "residual", "qq", "confusion", "roc", "cluster", "dendrogram", "topics", "topterms"].map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
         {d.method === "descriptive" && Array.isArray((d.variables as Record<string, unknown>).columns) && ((d.variables as Record<string, unknown>).columns as unknown[]).length > 1 && (
           <select aria-label="Kolom grafik" className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={chartCol} onChange={(e) => setChartCol(e.target.value)}>

@@ -29,6 +29,10 @@ METHOD_VARIABLES_SPEC = {
     "kruskal": {"column": "str", "group": "str ≥3 grup"},
     "linreg_simple": {"x": "str numerik", "y": "str numerik"},
     "linreg_multiple": {"xs": "list[str] ≥2 numerik", "y": "str numerik"},
+    "ml_classify": {"features": "list[str] numerik", "target": "str kategorikal", "algorithm": "naive_bayes|logistic_regression|decision_tree|random_forest|svm"},
+    "ml_cluster": {"features": "list[str] numerik", "algorithm": "kmeans|hierarchical", "n_clusters": "int 2..20"},
+    "text_tfidf": {"column": "str teks", "mode": "tfidf|bow"},
+    "text_lda": {"column": "str teks", "n_topics": "int 2..10"},
 }
 
 
