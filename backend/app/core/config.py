@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     max_upload_mb: int = 50
     backend_cors_origins: str = "http://localhost:3000"
     backend_cors_regex: str = ""  # mis. http://127\.0\.0\.1:\d+ untuk port dinamis DDEV (mendukung credentials)
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    frontend_url: str = "http://localhost:3100"
     cookie_secure: bool = False  # WAJIB True di prod (HTTPS)
 
     class Config:

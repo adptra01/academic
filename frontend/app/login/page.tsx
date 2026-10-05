@@ -12,6 +12,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [apiUrlVal, setApiUrlVal] = useState("");
   const [err, setErr] = useState("");
+  async function googleLogin() {
+    setErr("");
+    try {
+      const { api } = await import("../../lib/api");
+      const j = await api<{ url: string }>(`/api/v1/auth/google/url`);
+      window.location.href = j.url;
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Login Google gagal dimulai");
+    }
+  }
   useEffect(() => {
     setApiUrlVal(window.localStorage.getItem("api_url") || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8100");
   }, []);
@@ -54,6 +64,10 @@ export default function LoginPage() {
             {err && <Alert variant="destructive">{err}</Alert>}
             <Button type="submit">Login</Button>
           </form>
+          <div className="mt-3 border-t border-slate-200 pt-3 text-center">
+            <Button variant="outline" onClick={() => void googleLogin()}>Login dengan Google</Button>
+            <p className="mt-1 text-[11px] text-slate-400">Butuh konfigurasi admin (Google Cloud client).</p>
+          </div>
         </CardContent>
       </Card>
     </div>
