@@ -165,3 +165,8 @@
 - UI: 4 metode di dropdown + 6 tipe chart baru; registry + method-spec terisi
 - Insiden: factory lambda belum dipanggil (AttributeError) → diperbaiki + rebuild
 - Verified: pytest 34 (27 RC1 hijau + 7 ML), tsc bersih, E2E + 4 grafik 200; komit 8c026ce
+## [2026-10-05] — ECharts DONE (feature/echarts dari master, core utuh)
+- `services/vizdata.py` (di luar stats/): histogram bins, boxplot five-number, scatter sample (cap 2000, seed 42) + trend dari result, bar kontingensi, passthrough confusion/roc/cluster/topics/topterms/rules — payload {type,data,metadata}
+- `GET /analyses/{uid}/viz?type=` (422 tipe salah); frontend echarts-for-react + toggle Statis/Interaktif
+- Insiden: braket `]` vs `}` di bar() (tertangkap sebelum import — file belum pernah dipakai); 2 edit whitespace merusak def (diperbaiki); pelajaran ditegakkan
+- Verified: pytest 33 (27 RC1 + 6 viz), tsc bersih, /viz scatter + 422, screenshot ECharts titik data asli
