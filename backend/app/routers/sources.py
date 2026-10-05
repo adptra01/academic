@@ -14,6 +14,7 @@ from app.services.dataset_service import profile_dataframe
 from app.services.connectors.base import get_connector, sanitize_config
 from app.services.connectors import http_api as _http  # noqa: F401 (registrasi)
 from app.services.connectors import scraper as _scr  # noqa: F401 (registrasi)
+from app.services.connectors import youtube as _yt  # noqa: F401 (registrasi)
 from app.services.connectors import base as _base
 from app.services.connectors.oauth import decrypt_token, encrypt_token
 
@@ -33,6 +34,12 @@ class OAuthStoreIn(BaseModel):
     access_token: str = Field(min_length=1)
     refresh_token: str | None = None
     meta: dict = Field(default_factory=dict)
+
+
+class OAuthRefreshIn(BaseModel):
+    token_endpoint: str
+    client_id: str
+    client_secret: str
 
 
 @router.get("/data-sources/connectors")
@@ -119,6 +126,31 @@ def delete_oauth(provider: str, db: Session = Depends(get_db), user: User = Depe
     db.delete(oc)
     db.commit()
     return None
+
+
+@router.post("/oauth/connections/{provider}/refresh")
+def refresh_oauth(provider: str, body: OAuthRefreshIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
+    from app.services.connectors.oauth import refresh_access_token
+
+    oc = db.query(OAuthConnection).filter(OAuthConnection.user_id == user.id, OAuthConnection.provider == provider).first()
+    if not oc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Koneksi tidak ditemukan")
+    try:
+        tok = decrypt_token(oc.encrypted_token)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e} — hapus koneksi dan hubungkan ulang")
+    rt = tok.get("refresh_token") if isinstance(tok, dict) else None
+    if not rt:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Tidak ada refresh_token tersimpan — hubungkan ulang")
+    try:
+        new_tok = refresh_access_token(body.token_endpoint, body.client_id, body.client_secret, rt)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+    blob, fallback = encrypt_token(new_tok if isinstance(new_tok, dict) else {"access_token": new_tok})
+    oc.encrypted_token = blob
+    oc.meta = {**(oc.meta or {}), "token_endpoint": body.token_endpoint, "dev_key_fallback": fallback}
+    db.commit()
+    return {"provider": provider, "refreshed": True}
 
 
 @router.get("/projects/{project_id}/data-sources")

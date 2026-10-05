@@ -11,6 +11,7 @@ import os
 import urllib.parse
 import urllib.request
 from cryptography.fernet import Fernet, InvalidToken
+from requests_oauthlib import OAuth2Session
 
 
 def _fernet() -> tuple[Fernet, bool]:
@@ -69,3 +70,15 @@ def client_credentials(token_endpoint: str, client_id: str, client_secret: str, 
         if resp.status >= 400:
             raise ValueError(f"Token HTTP {resp.status}")
         return json.loads(resp.read())
+
+
+def refresh_access_token(token_endpoint: str, client_id: str, client_secret: str, refresh_token: str, timeout: int = 15) -> dict:
+    """Refresh via requests-oauthlib (pustaka standar, bukan hand-rolled)."""
+    sess = OAuth2Session(client_id=client_id)
+    try:
+        token = sess.refresh_token(token_endpoint, refresh_token=refresh_token, client_secret=client_secret, timeout=timeout)
+    except Exception as e:
+        raise ValueError(f"Refresh gagal: {e}")
+    if "access_token" not in token:
+        raise ValueError("Respons refresh tanpa access_token")
+    return token

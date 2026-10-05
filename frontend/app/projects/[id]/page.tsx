@@ -318,6 +318,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="generic_rest">API generik (REST JSON)</SelectItem>
+                <SelectItem value="youtube">YouTube Data API (OAuth/API key)</SelectItem>
                 <SelectItem value="html_table">Scraper tabel HTML (allowlist)</SelectItem>
               </SelectContent>
             </Select>

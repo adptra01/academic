@@ -88,3 +88,57 @@ def test_oauth_roundtrip():
     blob, _ = encrypt_token({"access_token": "abc123"})
     assert decrypt_token(blob) == {"access_token": "abc123"}
     assert "abc123" not in blob
+
+
+def test_oauthlib_refresh_mock(monkeypatch):
+    import app.services.connectors.oauth as o
+
+    class FakeSession:
+        def __init__(self, *a, **k):
+            pass
+
+        def refresh_token(self, url, refresh_token=None, client_secret=None, timeout=None):
+            assert url == "https://x.test/token" and refresh_token == "RT"
+            return {"access_token": "NEW", "refresh_token": "RT2"}
+
+    monkeypatch.setattr(o, "OAuth2Session", FakeSession)
+    out = o.refresh_access_token("https://x.test/token", "cid", "sec", "RT")
+    assert out["access_token"] == "NEW"
+
+
+def test_youtube_mock(monkeypatch):
+    import app.services.connectors.youtube as yt
+
+    class _Ex:
+        def __init__(self, payload):
+            self._p = payload
+
+        def execute(self):
+            return self._p
+
+    class _Search:
+        def list(self, **k):
+            return _Ex({"items": [{"id": {"videoId": "v1"}}, {"id": {"videoId": "v2"}}]})
+
+    class _Videos:
+        def list(self, **k):
+            return _Ex({"items": [
+                {"id": "v1", "snippet": {"title": "T1", "channelTitle": "C1", "channelId": "c1", "publishedAt": "2024-01-01", "description": "d"}, "statistics": {"viewCount": "10", "likeCount": "2", "commentCount": "1"}},
+                {"id": "v2", "snippet": {"title": "T2", "channelTitle": "C2", "channelId": "c2", "publishedAt": "2024-01-02", "description": "e"}, "statistics": {"viewCount": "20", "likeCount": "3", "commentCount": "0"}},
+            ]})
+
+    class FakeSvc:
+        def search(self):
+            return _Search()
+
+        def videos(self):
+            return _Videos()
+
+    monkeypatch.setattr(yt, "_build", lambda api_key=None, token=None: FakeSvc())
+    c = yt.YouTubeConnector()
+    res = c.fetch({"query": "uji", "api_key": "K"})
+    assert res.provenance["record_count"] == 2
+    assert res.records[0]["views"] == 10 and res.records[1]["channel"] == "C2"
+    with pytest.raises(ValueError, match="query"):
+        c.fetch({"api_key": "K"})
+
