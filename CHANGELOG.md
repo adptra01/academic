@@ -184,3 +184,7 @@
 - Docs: scraping-policy (7 aturan mengikat)
 - Insiden: edit whitespace merusak models (diperbaiki via python + ast check)
 - Verified: pytest 34 (27 RC1 + 7 connectors mocked), E2E fetch 5 rows + OAuth roundtrip + deny, screenshot UI
+## [2026-10-05] — Synthetic beta DONE (feature/synthetic-beta, core utuh)
+- `scripts/synthetic-beta/run.py` (stdlib): 5 persona × workflow penuh (register→project→upload→variables→preprocess→2 metode→chart→export→rerun→log) + probe (isolasi antar-user, exe ditolak, konkurensi 10/10, async 15k rows)
+- Hasil: 74/74 PASS (11.0s); evidence di docs/beta-synthetic/
+- Insiden: fixture tanpa kolom `post` → 1 FAIL; diperbaiki, rerun hijau. Bukan pengganti beta manusia.
