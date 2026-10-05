@@ -188,3 +188,9 @@
 - `scripts/synthetic-beta/run.py` (stdlib): 5 persona × workflow penuh (register→project→upload→variables→preprocess→2 metode→chart→export→rerun→log) + probe (isolasi antar-user, exe ditolak, konkurensi 10/10, async 15k rows)
 - Hasil: 74/74 PASS (11.0s); evidence di docs/beta-synthetic/
 - Insiden: fixture tanpa kolom `post` → 1 FAIL; diperbaiki, rerun hijau. Bukan pengganti beta manusia.
+
+## [2026-10-05] — INTEGRASI: 6 branch → master (20 metode, 50 tests)
+- Merge berurutan dengan resolusi union: ml-v8 → apriori → echarts → shadcn → connectors → synthetic-beta
+- Konflik tersulit: halaman project/analysis (Tabs shadcn × dropdown ML/Apriori × toggle viz) — diselesaikan: Tabs dipertahankan + semua metode + toggle + kartu Import shadcn
+- Pelajaran merge: file yang ditulis-ulang total (vs edit) paling aman direset via `git checkout --theirs` + aplikasikan delta kecil; JANGAN hapus blok via anchor samar
+- Verified: pytest 50 (27+7+3+6+7), tsc bersih, /methods = 20, UI terintegrasi (Tabs + Import + semua metode)
