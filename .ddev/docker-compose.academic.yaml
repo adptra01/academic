@@ -15,6 +15,9 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - BACKEND_CORS_ORIGINS=http://localhost:3000,http://localhost:3100
       - BACKEND_CORS_REGEX=http://(127\.0\.0\.1|localhost):\d+
+      # DEV ONLY: ganti di prod via secrets (lihat docs/runbook-prod.md)
+      - OAUTH_ENCRYPTION_KEY=jqKn1bmE1dTH0vLBFhVLAMpvlnCgfQXzUDQbX11H2LQ=
+      - SCRAPER_ALLOWLIST=
       # S3/MinIO nonaktif di local DDEV (registry minio diblokir, 401/pull denied).
       # Dev gunakan filesystem volume; S3 aktif di VPS prod via compose.yml (perlu docker login).
       # - S3_ENDPOINT=http://minio:9000

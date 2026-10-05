@@ -26,6 +26,9 @@ const td = "border border-slate-200 px-2 py-1.5 text-sm";
 export default function ProjectPage({ params }: { params: { id: string } }) {
   const id = params.id;
   const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [sources, setSources] = useState<{ id: string; kind: string; provider: string; record_count: number | null; dataset_id: string | null; created_at: string }[]>([]);
+  const [srcProvider, setSrcProvider] = useState("generic_rest");
+  const [srcConfig, setSrcConfig] = useState('{\n  "url": "https://.../records",\n  "params": {"limit": 100},\n  "records_path": "data.items",\n  "mapping": {"kolom_tujuan": "path.sumber"}\n}');
   const [analyses, setAnalyses] = useState<AnalysisItem[]>([]);
   const [exports, setExports] = useState<ExportItem[]>([]);
   const [uploadPct, setUploadPct] = useState<number | null>(null);
@@ -55,6 +58,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
       if (!sel && ds[0]) setSel(ds[0].id);
       setAnalyses(await api<AnalysisItem[]>(`/api/v1/projects/${id}/analyses`));
       setExports(await api<ExportItem[]>(`/api/v1/projects/${id}/exports`));
+      setSources(await api(`/api/v1/projects/${id}/data-sources`));
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Gagal memuat");
     }
@@ -196,6 +200,22 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     }
   }
 
+  async function fetchSource(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(""); setMsg("");
+    try {
+      const config = JSON.parse(srcConfig);
+      const kind = srcProvider === "html_table" ? "scraper" : "api";
+      const j = await api<{ dataset_id: string; profile: { rows: number; cols: number } }>(`/api/v1/projects/${id}/data-sources/fetch`, {
+        method: "POST", body: JSON.stringify({ kind, provider: srcProvider, config }),
+      });
+      setMsg(`Import OK: ${j.profile.rows} rows → dataset ${j.dataset_id.slice(0, 8)} (provenance tersimpan)`);
+      await load();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Fetch gagal");
+    }
+  }
+
   async function removeDataset(dsid: string, filename: string) {
     if (!window.confirm(`Hapus dataset ${filename}? Ditolak jika sudah ada analysis.`)) return;
     setErr(""); setMsg("");
@@ -259,6 +279,32 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
             </p>
           ))}
         </div>
+      </div>
+      <div className={`${card} mt-4`}>
+        <h3 className={h3}>Import via API / Scraper</h3>
+        <form onSubmit={fetchSource} className="mt-2 space-y-2">
+          <select className={input} value={srcProvider} onChange={(e) => setSrcProvider(e.target.value)}>
+            <option value="generic_rest">API generik (REST JSON)</option>
+            <option value="html_table">Scraper tabel HTML (allowlist)</option>
+          </select>
+          <textarea className={input} rows={6} value={srcConfig} onChange={(e) => setSrcConfig(e.target.value)} />
+          <button type="submit" className={btn}>Fetch → dataset versioned</button>
+        </form>
+        {sources.length > 0 && (
+          <table className="mt-2 w-full border-collapse text-sm">
+            <thead><tr><th className={th}>Sumber</th><th className={th}>Records</th><th className={th}>Dataset</th><th className={th}>Waktu</th></tr></thead>
+            <tbody>
+              {sources.map((s) => (
+                <tr key={s.id}>
+                  <td className={td}>{s.kind}:{s.provider}</td>
+                  <td className={td}>{s.record_count ?? "-"}</td>
+                  <td className={`${td} text-xs text-slate-400`}>{s.dataset_id?.slice(0, 8) || "-"}</td>
+                  <td className={`${td} text-xs text-slate-400`}>{s.created_at}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
       {selDs && (
         <>

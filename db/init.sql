@@ -110,3 +110,30 @@ CREATE TABLE IF NOT EXISTS feedback_reports (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_feedback_user ON feedback_reports(user_id);
+
+CREATE TABLE IF NOT EXISTS oauth_connections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,
+  encrypted_token TEXT NOT NULL,
+  meta JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, provider)
+);
+
+CREATE TABLE IF NOT EXISTS data_sources (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  config JSONB NOT NULL,
+  raw_hash TEXT,
+  record_count INT,
+  dataset_id UUID REFERENCES datasets(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE datasets ADD COLUMN IF NOT EXISTS source_kind TEXT;
+ALTER TABLE datasets ADD COLUMN IF NOT EXISTS source_meta JSONB;
