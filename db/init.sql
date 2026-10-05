@@ -137,3 +137,12 @@ CREATE TABLE IF NOT EXISTS data_sources (
 
 ALTER TABLE datasets ADD COLUMN IF NOT EXISTS source_kind TEXT;
 ALTER TABLE datasets ADD COLUMN IF NOT EXISTS source_meta JSONB;
+
+CREATE TABLE IF NOT EXISTS shared_links (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  analysis_id UUID NOT NULL REFERENCES analyses(id) ON DELETE CASCADE UNIQUE,
+  token TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ,
+  revoked BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

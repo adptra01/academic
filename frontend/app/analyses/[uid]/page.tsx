@@ -64,6 +64,8 @@ function Formula({ latex }: { latex?: string }) {
 export default function AnalysisPage({ params }: { params: { uid: string } }) {
   const uid = params.uid;
   const [d, setD] = useState<Detail | null>(null);
+  const [shareTok, setShareTok] = useState<string | null>(null);
+  const [shareMsg, setShareMsg] = useState("");
   const [fbCat, setFbCat] = useState("statistical_result");
   const [fbDesc, setFbDesc] = useState("");
   const [fbMsg, setFbMsg] = useState("");
@@ -108,6 +110,28 @@ export default function AnalysisPage({ params }: { params: { uid: string } }) {
   const reject = r.decision?.text === "Tolak H0";
   const descCols = d.method === "descriptive" && Array.isArray((d.variables as Record<string, unknown>).columns)
     ? ((d.variables as Record<string, unknown>).columns as unknown[]).map(String) : [];
+  useEffect(() => {
+    api<{ token: string }>(`/api/v1/analyses/${uid}/share`).then((s) => setShareTok(s.token)).catch(() => setShareTok(null));
+  }, [uid]);
+  async function makeShare() {
+    setShareMsg("Membuat link...");
+    try {
+      const j = await api<{ token: string }>(`/api/v1/analyses/${uid}/share`, { method: "POST", body: JSON.stringify({ expires_days: 30 }) });
+      setShareTok(j.token);
+      setShareMsg("Link aktif 30 hari. Bagikan URL di bawah.");
+    } catch (e: unknown) {
+      setShareMsg(e instanceof Error ? e.message : "Gagal");
+    }
+  }
+  async function revokeShare() {
+    try {
+      await api(`/api/v1/analyses/${uid}/share`, { method: "DELETE" });
+      setShareTok(null);
+      setShareMsg("Link dicabut.");
+    } catch (e: unknown) {
+      setShareMsg(e instanceof Error ? e.message : "Gagal");
+    }
+  }
   async function rerun() {
     setRerunMsg("Menjalankan ulang...");
     try {
@@ -245,6 +269,20 @@ export default function AnalysisPage({ params }: { params: { uid: string } }) {
           <Card>
             <CardHeader><CardTitle>Reproducibility</CardTitle></CardHeader>
             <CardContent>
+              <h4 className="text-sm font-semibold">Bagikan publik</h4>
+              {shareTok ? (
+                <>
+                  <p className="mt-1 break-all text-sm text-blue-700">{typeof window !== "undefined" ? `${window.location.origin}/shared/${shareTok}` : `/shared/${shareTok}`}</p>
+                  <div className="mt-2 flex gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => { void navigator.clipboard.writeText(`${window.location.origin}/shared/${shareTok}`); }}>Salin link</Button>
+                    <Button variant="secondary" size="sm" onClick={() => void revokeShare()}>Cabut</Button>
+                  </div>
+                </>
+              ) : (
+                <Button variant="secondary" size="sm" onClick={() => void makeShare()}>Buat link publik (30 hari)</Button>
+              )}
+              {shareMsg && <p className="mt-2 text-sm text-slate-700">{shareMsg}</p>}
+              <h4 className="mt-4 text-sm font-semibold">Rerun</h4>
               <Button variant="secondary" size="sm" onClick={() => void rerun()}>Rerun (verifikasi identik)</Button>
               {rerunMsg && <p className="mt-2 text-sm text-slate-700">{rerunMsg}</p>}
               <p className="mt-1 text-xs text-slate-500">hash: {d.result_hash.slice(0, 16)}… · {d.software_version} · {d.timestamp}</p>
