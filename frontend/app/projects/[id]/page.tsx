@@ -63,6 +63,9 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   const [diffTo, setDiffTo] = useState("2");
   const [diff, setDiff] = useState<Diff | null>(null);
   const [delTarget, setDelTarget] = useState<Dataset | null>(null);
+  const [sources, setSources] = useState<{ id: string; kind: string; provider: string; record_count: number | null; dataset_id: string | null; created_at: string }[]>([]);
+  const [srcProvider, setSrcProvider] = useState("generic_rest");
+  const [srcConfig, setSrcConfig] = useState('{\n  "url": "https://.../records",\n  "params": {"limit": 100},\n  "records_path": "data.items",\n  "mapping": {"kolom_tujuan": "path.sumber"}\n}');
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
 
@@ -73,6 +76,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
       if (!sel && ds[0]) setSel(ds[0].id);
       setAnalyses(await api<AnalysisItem[]>(`/api/v1/projects/${id}/analyses`));
       setExports(await api<ExportItem[]>(`/api/v1/projects/${id}/exports`));
+      setSources(await api(`/api/v1/projects/${id}/data-sources`));
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Gagal memuat");
     }
@@ -214,6 +218,22 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     }
   }
 
+  async function fetchSource(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(""); setMsg("");
+    try {
+      const config = JSON.parse(srcConfig);
+      const kind = srcProvider === "html_table" ? "scraper" : "api";
+      const j = await api<{ dataset_id: string; profile: { rows: number; cols: number } }>(`/api/v1/projects/${id}/data-sources/fetch`, {
+        method: "POST", body: JSON.stringify({ kind, provider: srcProvider, config }),
+      });
+      setMsg(`Import OK: ${j.profile.rows} rows → dataset ${j.dataset_id.slice(0, 8)} (provenance tersimpan)`);
+      await load();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Fetch gagal");
+    }
+  }
+
   async function removeDataset() {
     if (!delTarget) return;
     setErr(""); setMsg("");
@@ -290,6 +310,37 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Card className="mt-4">
+        <CardHeader><CardTitle>Import via API / Scraper</CardTitle></CardHeader>
+        <CardContent>
+          <form onSubmit={fetchSource} className="space-y-2">
+            <Select value={srcProvider} onValueChange={setSrcProvider}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="generic_rest">API generik (REST JSON)</SelectItem>
+                <SelectItem value="html_table">Scraper tabel HTML (allowlist)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Textarea rows={6} value={srcConfig} onChange={(e) => setSrcConfig(e.target.value)} />
+            <Button type="submit">Fetch → dataset versioned</Button>
+          </form>
+          {sources.length > 0 && (
+            <Table>
+              <TableHeader><TableRow><TableHead>Sumber</TableHead><TableHead>Records</TableHead><TableHead>Dataset</TableHead><TableHead>Waktu</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {sources.map((x) => (
+                  <TableRow key={x.id}>
+                    <TableCell>{x.kind}:{x.provider}</TableCell>
+                    <TableCell>{x.record_count ?? "-"}</TableCell>
+                    <TableCell className="text-xs text-slate-400">{x.dataset_id?.slice(0, 8) || "-"}</TableCell>
+                    <TableCell className="text-xs text-slate-400">{x.created_at}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
       {selDs && (
         <Tabs defaultValue="dataset" className="mt-4">
           <TabsList>
