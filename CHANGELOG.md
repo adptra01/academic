@@ -200,3 +200,8 @@
 - Medsos sesuai arahan (auth dulu, pustaka resmi): requests-oauthlib (refresh) + google-api-python-client (YouTube: search→videos, quota-note, api_key/OAuth); endpoint refresh + matriks docs/social-acquisition.md; scraping langsung medsos tetap DITOLAK
 - Insiden: wiring sharing hilang (re-apply); decrypt beda-kunci → 409 jelas (bukan 500); duplikat test (dedupe)
 - Verified: pytest 55, tsc bersih, E2E share→anon→revoke, registry 3 connectors
+
+## [2026-10-05] — Wizard scraping tanpa JSON (feature/scrape-wizard)
+- Backend: refactor scraper (guard_url/download_guarded/list_tables/inspect_url) — fetch() perilaku identik; endpoint presets + inspect (tanpa simpan)
+- UI: preset select + URL + Cek tabel → pilih tabel visual (bentuk/kolom/contoh) → Fetch; advanced JSON tetap ada sebagai toggle
+- Verified: pytest 12 connectors, E2E deny allowlist + pesan merah jelas di UI, screenshot wizard
