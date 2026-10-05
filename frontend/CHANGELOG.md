@@ -36,3 +36,9 @@
 - Modul `stats/apriori.py` mandiri (tanpa dep baru): one-hot otomatis, kandidat level-wise + pruning, support/confidence/lift, filter min_support/confidence/lift + max_length, traceability penuh
 - Grafik `rules` (bar lift top-15 + garis lift=1); registry/spec/UI terisi
 - Verified: pytest 30 (27 RC1 + 3 Apriori hitung-manual), tsc bersih, E2E 22 rules + chart 200
+
+## [2026-10-05] — Login dengan Google (feature/social-login)
+- GET /auth/google/url + POST /auth/google/callback: tukar code, verifikasi ID token (google-auth resmi), auto-link hanya email_verified, sesi JWT internal sama; tanpa config → 501 jelas
+- Keamanan: password_hash marker oauth:google (login password selalu gagal), token Google tak disimpan, rate-limit 10/mnt
+- UI: tombol di login + halaman /auth/callback; docs/social-login.md (setup Cloud + redirect URI dev/prod)
+- Verified: pytest 58 (55 + 3 mocked), tsc bersih; E2E penuh butuh kredensial Google asli (milik user)
