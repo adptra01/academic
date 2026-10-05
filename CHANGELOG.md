@@ -155,3 +155,11 @@
 ## [2026-10-05] — SCOPE UNFREEZE (keputusan user)
 - RC1 freeze dicabut atas perintah eksplisit user. Urutan ekspansi: ML Fase 8 → Apriori → API/OAuth/scraping → shadcn+ECharts.
 - Gate manusia (R/SPSS, beta, prod) tetap berjalan paralel sebagai tanggung jawab manusia.
+
+## [2026-10-05] — shadcn foundation + migrasi (feature/shadcn)
+- 11 primitif gaya shadcn (button, input+textarea, card, badge+alert, table, label, select/dialog/tabs/progress/tooltip Radix, lucide) + cn()
+- Project → Tabs (Dataset/Variables/Preprocess/Diff/Analysis/Log/Export, sesuai konsep PRD); delete via Dialog; upload via Progress; Badge/Alert/Select di semua form
+- Analysis → Tabs (Hasil/Grafik/Formula/Export/Repro/Lapor) + Badge keputusan/asumsi + Select chart
+- Dashboard: Card + Dialog hapus + Badge; login/register: Card + Label + Alert
+- Insiden: DB container stopped pasca-restart (500 login) → `ddev start`; Radix Select larang value "" (sudah ditangani sentinel)
+- Verified: pytest 27 (core utuh), tsc bersih, screenshot Tabs + Variables shadcn
