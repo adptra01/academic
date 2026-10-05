@@ -1,6 +1,17 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api, apiUrl, authHeaders, downloadExport } from "../../../lib/api";
+import { Button } from "../../../components/ui/button";
+import { Input, Textarea } from "../../../components/ui/input";
+import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui/card";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../../components/ui/table";
+import { Badge } from "../../../components/ui/badge";
+import { Alert } from "../../../components/ui/badge";
+import { Progress } from "../../../components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../../components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/tabs";
+import { Select, SelectValue, SelectTrigger, SelectContent, SelectItem } from "../../../components/ui/select";
+import { Label } from "../../../components/ui/label";
 
 type Version = { version_number: number };
 type Dataset = { id: string; filename: string; file_type: string; rows_count: number; cols_count: number; versions: Version[] };
@@ -15,13 +26,19 @@ const OPS = ["drop_missing", "fill_missing", "remove_outlier_iqr", "scale_standa
 const VTYPES = ["Numerical", "Ordinal", "Nominal", "Binary", "Text", "Datetime", "ID"];
 const VROLES = ["Independent", "Dependent", "Control", "Grouping", "ID", "Ignore"];
 
-const card = "rounded-xl border border-slate-200 bg-white p-5 shadow-sm";
-const h3 = "text-base font-semibold";
-const input = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none";
-const btn = "rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800";
-const btn2 = "rounded-lg bg-slate-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700";
-const th = "border border-slate-200 bg-slate-100 px-2 py-1.5 text-left text-xs font-semibold";
-const td = "border border-slate-200 px-2 py-1.5 text-sm";
+function FieldSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
+  return (
+    <div className="space-y-1">
+      <Label>{label}</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
 
 export default function ProjectPage({ params }: { params: { id: string } }) {
   const id = params.id;
@@ -45,6 +62,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   const [diffFrom, setDiffFrom] = useState("1");
   const [diffTo, setDiffTo] = useState("2");
   const [diff, setDiff] = useState<Diff | null>(null);
+  const [delTarget, setDelTarget] = useState<Dataset | null>(null);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
 
@@ -196,20 +214,22 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     }
   }
 
-  async function removeDataset(dsid: string, filename: string) {
-    if (!window.confirm(`Hapus dataset ${filename}? Ditolak jika sudah ada analysis.`)) return;
+  async function removeDataset() {
+    if (!delTarget) return;
     setErr(""); setMsg("");
     try {
-      const res = await fetch(`${apiUrl()}/api/v1/datasets/${dsid}`, { method: "DELETE", headers: { ...authHeaders() } });
+      const res = await fetch(`${apiUrl()}/api/v1/datasets/${delTarget.id}`, { method: "DELETE", headers: { ...authHeaders() } });
       if (res.status !== 204) {
         const j = await res.json().catch(() => ({}));
         throw new Error((j as { detail?: string }).detail || `HTTP ${res.status}`);
       }
-      setMsg(`Dataset ${filename} dihapus`);
-      if (sel === dsid) { setSel(""); setPreview(null); setProfile(null); setVariables([]); }
+      setMsg(`Dataset ${delTarget.filename} dihapus`);
+      if (sel === delTarget.id) { setSel(""); setPreview(null); setProfile(null); setVariables([]); }
+      setDelTarget(null);
       await load();
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Hapus gagal");
+      setDelTarget(null);
     }
   }
 
@@ -233,187 +253,246 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   return (
     <>
       <h2 className="text-2xl font-bold">Project</h2>
-      {err && <p className="mt-2 text-sm text-red-700">{err}</p>}
-      {msg && <p className="mt-2 text-sm font-medium text-green-700">{msg}</p>}
-      <div className={`${card} mt-4`}>
-        <h3 className={h3}>Upload dataset (CSV/XLSX/XLS/SAV/JSON ≤50MB)</h3>
-        <form onSubmit={upload} className="mt-2 flex items-center gap-2">
-          <input type="file" name="file" className="text-sm" />
-          <button type="submit" className={btn}>Upload</button>
-        </form>
-        {uploadPct != null && (
-          <div className="mt-2 h-2 w-full rounded bg-slate-200">
-            <div className="h-2 rounded bg-blue-700 transition-all" style={{ width: `${uploadPct}%` }} />
-          </div>
-        )}
-      </div>
-      <div className={`${card} mt-4`}>
-        <h3 className={h3}>Datasets ({datasets.length})</h3>
-        <div className="mt-2 space-y-1">
+      {err && <Alert variant="destructive" className="mt-2">{err}</Alert>}
+      {msg && <Alert variant="success" className="mt-2">{msg}</Alert>}
+      <Card className="mt-4">
+        <CardHeader><CardTitle>Upload dataset (CSV/XLSX/XLS/SAV/JSON ≤50MB)</CardTitle></CardHeader>
+        <CardContent>
+          <form onSubmit={upload} className="flex items-center gap-2">
+            <Input type="file" name="file" />
+            <Button type="submit">Upload</Button>
+          </form>
+          {uploadPct != null && <Progress value={uploadPct} className="mt-2" />}
+        </CardContent>
+      </Card>
+      <Card className="mt-4">
+        <CardHeader><CardTitle>Datasets ({datasets.length})</CardTitle></CardHeader>
+        <CardContent className="space-y-1">
           {datasets.map((d) => (
             <p key={d.id} className="text-sm">
-              <button className={btn2} onClick={() => { setSel(d.id); setVer(1); setPreviewOff(0); }}>{d.filename}</button>{" "}
+              <Button size="sm" variant="secondary" onClick={() => { setSel(d.id); setVer(1); setPreviewOff(0); }}>{d.filename}</Button>{" "}
               {d.rows_count}×{d.cols_count} · v{d.versions.map((v) => v.version_number).join(",")}{" "}
               <span className="text-xs text-slate-400">{d.id.slice(0, 8)}</span>{" "}
-              <button className={btn2} onClick={() => void removeDataset(d.id, d.filename)}>Hapus</button>
+              <Button size="sm" variant="secondary" onClick={() => setDelTarget(d)}>Hapus</Button>
             </p>
           ))}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+      <Dialog open={!!delTarget} onOpenChange={(o) => { if (!o) setDelTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hapus dataset?</DialogTitle>
+            <DialogDescription>{delTarget?.filename} beserta semua versinya akan dihapus. Ditolak server jika sudah ada analysis.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDelTarget(null)}>Batal</Button>
+            <Button variant="destructive" onClick={() => void removeDataset()}>Hapus</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {selDs && (
-        <>
-          <div className={`${card} mt-4`}>
-            <h3 className={h3}>Preview — {selDs.filename} (v{ver})</h3>
-            <p className="mt-2 text-sm">
-              <span className="text-slate-500">Version: </span>
-              {selDs.versions.map((v) => (
-                <button key={v.version_number} className={`${btn2} mr-1`} onClick={() => { setVer(v.version_number); setPreviewOff(0); }}>v{v.version_number}</button>
-              ))}{" "}
-              <button className={btn2} onClick={() => void downloadVersion()}>Unduh CSV v{ver}</button>
-            </p>
-            {preview && (
-              <>
-                <div className="mt-2 overflow-x-auto">
-                  <table className="w-full border-collapse text-sm">
-                    <thead><tr>{preview.columns.map((c) => <th key={c} className={th}>{c}</th>)}</tr></thead>
-                    <tbody>
-                      {preview.rows.map((r, i) => <tr key={i}>{preview.columns.map((c) => <td key={c} className={td}>{String(r[c] ?? "")}</td>)}</tr>)}
-                    </tbody>
-                  </table>
-                </div>
-                <p className="mt-1 text-xs text-slate-500">
-                  Baris {previewOff + 1}–{previewOff + preview.rows.length} dari {preview.total_rows}{" "}
-                  <button className={btn2} disabled={previewOff === 0} onClick={() => { const n = Math.max(0, previewOff - 10); setPreviewOff(n); void loadDetail(sel, ver, n); }}>← Prev</button>{" "}
-                  <button className={btn2} disabled={previewOff + 10 >= preview.total_rows} onClick={() => { const n = previewOff + 10; setPreviewOff(n); void loadDetail(sel, ver, n); }}>Next →</button>
+        <Tabs defaultValue="dataset" className="mt-4">
+          <TabsList>
+            <TabsTrigger value="dataset">Dataset</TabsTrigger>
+            <TabsTrigger value="variables">Variables</TabsTrigger>
+            <TabsTrigger value="preprocess">Preprocess</TabsTrigger>
+            <TabsTrigger value="diff">Diff</TabsTrigger>
+            <TabsTrigger value="analysis">Analysis</TabsTrigger>
+            <TabsTrigger value="log">Log</TabsTrigger>
+            <TabsTrigger value="exports">Export</TabsTrigger>
+          </TabsList>
+          <TabsContent value="dataset">
+            <Card>
+              <CardHeader><CardTitle>Preview — {selDs.filename} (v{ver})</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-sm">
+                  <span className="text-slate-500">Version: </span>
+                  {selDs.versions.map((v) => (
+                    <Button key={v.version_number} size="sm" variant="secondary" className="mr-1" onClick={() => { setVer(v.version_number); setPreviewOff(0); }}>v{v.version_number}</Button>
+                  ))}{" "}
+                  <Button size="sm" variant="secondary" onClick={() => void downloadVersion()}>Unduh CSV v{ver}</Button>
                 </p>
-              </>
-            )}
-            {profile && (
-              <>
-                <h3 className={`${h3} mt-4`}>Profil</h3>
-                <p className="text-xs text-slate-500">rows {profile.rows} · cols {profile.cols} · missing {profile.missing_pct}% · duplikat {profile.duplicate_rows}</p>
-                <table className="mt-2 w-full border-collapse text-sm">
-                  <thead><tr><th className={th}>Kolom</th><th className={th}>Tipe</th><th className={th}>Missing</th><th className={th}>Unik</th></tr></thead>
-                  <tbody>
-                    {profile.columns.map((c) => <tr key={c.name}><td className={td}>{c.name}</td><td className={td}>{c.detected_type}</td><td className={td}>{c.missing_count}</td><td className={td}>{c.unique_count}</td></tr>)}
-                  </tbody>
-                </table>
-              </>
-            )}
-          </div>
-          <div className={`${card} mt-4`}>
-            <h3 className={h3}>Variables (v{ver})</h3>
-            <table className="mt-2 w-full border-collapse text-sm">
-              <thead><tr><th className={th}>Nama</th><th className={th}>Type</th><th className={th}>Role</th></tr></thead>
-              <tbody>
-                {variables.map((v) => (
-                  <tr key={v.id}>
-                    <td className={td}>{v.name}</td>
-                    <td className={td}><select className={input} value={v.var_type} onChange={(e) => void saveVar(v, { var_type: e.target.value })}>{VTYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></td>
-                    <td className={td}><select className={input} value={v.var_role} onChange={(e) => void saveVar(v, { var_role: e.target.value })}>{VROLES.map((t) => <option key={t} value={t}>{t}</option>)}</select></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className={`${card} mt-4`}>
-            <h3 className={h3}>Preprocessing → version baru</h3>
-            <form onSubmit={addOp} className="mt-2 flex gap-2">
-              <select aria-label="Operasi" className={input} value={op} onChange={(e) => setOp(e.target.value)}>{OPS.map((o) => <option key={o} value={o}>{o}</option>)}</select>
-              <input aria-label="Kolom" className={input} placeholder="kolom" value={opCol} onChange={(e) => setOpCol(e.target.value)} />
-              <button type="submit" className={btn2}>Tambah</button>
-            </form>
-            <input aria-label="Params JSON" className={`${input} mt-2`} placeholder='params JSON, mis. {"strategy":"median"}' value={opParams} onChange={(e) => setOpParams(e.target.value)} />
-            {chain.length > 0 && (
-              <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm">
-                {chain.map((c, i) => (
-                  <li key={i}>{String(c.op)}{c.column ? `(${String(c.column)})` : ""}{" "}
-                    <button className="text-red-700 hover:underline" onClick={() => setChain((x) => x.filter((_, j) => j !== i))}>hapus</button>
-                  </li>
-                ))}
-              </ol>
-            )}
-            <form onSubmit={runPreprocess} className="mt-2">
-              <button type="submit" className={btn}>Jalankan {chain.length} operasi (base v{ver})</button>
-            </form>
-          </div>
-        </>
+                {preview && (
+                  <>
+                    <Table>
+                      <TableHeader><TableRow>{preview.columns.map((c) => <TableHead key={c}>{c}</TableHead>)}</TableRow></TableHeader>
+                      <TableBody>
+                        {preview.rows.map((r, i) => <TableRow key={i}>{preview.columns.map((c) => <TableCell key={c}>{String(r[c] ?? "")}</TableCell>)}</TableRow>)}
+                      </TableBody>
+                    </Table>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Baris {previewOff + 1}–{previewOff + preview.rows.length} dari {preview.total_rows}{" "}
+                      <Button size="sm" variant="secondary" disabled={previewOff === 0} onClick={() => { const n = Math.max(0, previewOff - 10); setPreviewOff(n); void loadDetail(sel, ver, n); }}>← Prev</Button>{" "}
+                      <Button size="sm" variant="secondary" disabled={previewOff + 10 >= preview.total_rows} onClick={() => { const n = previewOff + 10; setPreviewOff(n); void loadDetail(sel, ver, n); }}>Next →</Button>
+                    </p>
+                  </>
+                )}
+                {profile && (
+                  <>
+                    <h3 className="mt-4 text-base font-semibold">Profil</h3>
+                    <p className="text-xs text-slate-500">rows {profile.rows} · cols {profile.cols} · missing {profile.missing_pct}% · duplikat {profile.duplicate_rows}</p>
+                    <Table>
+                      <TableHeader><TableRow><TableHead>Kolom</TableHead><TableHead>Tipe</TableHead><TableHead>Missing</TableHead><TableHead>Unik</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {profile.columns.map((c) => <TableRow key={c.name}><TableCell>{c.name}</TableCell><TableCell><Badge>{c.detected_type}</Badge></TableCell><TableCell>{c.missing_count}</TableCell><TableCell>{c.unique_count}</TableCell></TableRow>)}
+                      </TableBody>
+                    </Table>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="variables">
+            <Card>
+              <CardHeader><CardTitle>Variables (v{ver})</CardTitle></CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader><TableRow><TableHead>Nama</TableHead><TableHead>Type</TableHead><TableHead>Role</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {variables.map((v) => (
+                      <TableRow key={v.id}>
+                        <TableCell>{v.name}</TableCell>
+                        <TableCell>
+                          <Select value={v.var_type} onValueChange={(x) => void saveVar(v, { var_type: x })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{VTYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Select value={v.var_role} onValueChange={(x) => void saveVar(v, { var_role: x })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{VROLES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="preprocess">
+            <Card>
+              <CardHeader><CardTitle>Preprocessing → version baru</CardTitle></CardHeader>
+              <CardContent>
+                <form onSubmit={addOp} className="flex gap-2">
+                  <Select value={op} onValueChange={setOp}>
+                    <SelectTrigger aria-label="Operasi"><SelectValue /></SelectTrigger>
+                    <SelectContent>{OPS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Input aria-label="Kolom" placeholder="kolom" value={opCol} onChange={(e) => setOpCol(e.target.value)} />
+                  <Button type="submit" variant="secondary">Tambah</Button>
+                </form>
+                <Input aria-label="Params JSON" className="mt-2" placeholder='params JSON, mis. {"strategy":"median"}' value={opParams} onChange={(e) => setOpParams(e.target.value)} />
+                {chain.length > 0 && (
+                  <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm">
+                    {chain.map((c, i) => (
+                      <li key={i}>{String(c.op)}{c.column ? `(${String(c.column)})` : ""}{" "}
+                        <button className="text-red-700 hover:underline" onClick={() => setChain((x) => x.filter((_, j) => j !== i))}>hapus</button>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+                <form onSubmit={runPreprocess} className="mt-2">
+                  <Button type="submit">Jalankan {chain.length} operasi (base v{ver})</Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="diff">
+            <Card>
+              <CardHeader><CardTitle>Bandingkan version (diff)</CardTitle></CardHeader>
+              <CardContent>
+                <form onSubmit={showDiff} className="flex gap-2">
+                  <Input aria-label="Dari version" value={diffFrom} onChange={(e) => setDiffFrom(e.target.value)} />
+                  <Input aria-label="Ke version" value={diffTo} onChange={(e) => setDiffTo(e.target.value)} />
+                  <Button type="submit">Bandingkan</Button>
+                </form>
+                {diff && (
+                  <div className="mt-2 text-sm">
+                    <p>Baris: {diff.rows_from} → {diff.rows_to} (Δ {diff.rows_delta >= 0 ? "+" : ""}{diff.rows_delta})</p>
+                    <p>Kolom tambah: {diff.columns_added.join(", ") || "-"}</p>
+                    <p>Kolom hilang: {diff.columns_removed.join(", ") || "-"}</p>
+                    <Table>
+                      <TableHeader><TableRow><TableHead>Kolom</TableHead><TableHead>Mean awal</TableHead><TableHead>Mean akhir</TableHead><TableHead>Missing</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {diff.numeric_drift.map((d) => (
+                          <TableRow key={d.column}><TableCell>{d.column}</TableCell><TableCell>{d.mean_from ?? "-"}</TableCell><TableCell>{d.mean_to ?? "-"}</TableCell><TableCell>{d.missing_from}→{d.missing_to}</TableCell></TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="analysis">
+            <Card>
+              <CardHeader><CardTitle>Run analysis (base v{ver})</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                <form onSubmit={runAnalysis} className="space-y-2">
+                  <Select value={method} onValueChange={setMethod}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                  </Select>
+                  {methodSpec?.variables && (
+                    <p className="text-xs text-slate-500">Butuh: {Object.entries(methodSpec.variables).map(([k, v]) => `${k} (${v})`).join(", ")}</p>
+                  )}
+                  <Textarea rows={3} value={varsJson} onChange={(e) => setVarsJson(e.target.value)} />
+                  <Button type="submit">Run</Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="log">
+            <Card>
+              <CardHeader><CardTitle>Research Log ({analyses.length})</CardTitle></CardHeader>
+              <CardContent>
+                <Button variant="secondary" onClick={downloadLogCsv}>Unduh Log CSV</Button>
+                <Table>
+                  <TableHeader><TableRow><TableHead>Analysis ID</TableHead><TableHead>Method</TableHead><TableHead>Ver</TableHead><TableHead>Hash</TableHead><TableHead>Waktu</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {analyses.map((a) => (
+                      <TableRow key={a.analysis_uid}>
+                        <TableCell><a className="text-blue-700 hover:underline" href={`/analyses/${a.analysis_uid}`}>{a.analysis_uid}</a></TableCell>
+                        <TableCell><Badge variant="info">{a.method}</Badge></TableCell>
+                        <TableCell>v{a.dataset_version_number ?? "-"}</TableCell>
+                        <TableCell className="text-xs text-slate-400">{a.result_hash || "-"}</TableCell>
+                        <TableCell className="text-xs text-slate-400">{a.created_at}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="exports">
+            <Card>
+              <CardHeader><CardTitle>Pusat Export ({exports.length})</CardTitle></CardHeader>
+              <CardContent>
+                {exports.length === 0 ? (
+                  <p className="text-sm text-slate-500">Belum ada file. Export dari halaman hasil analisis.</p>
+                ) : (
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Analysis</TableHead><TableHead>Method</TableHead><TableHead>Format</TableHead><TableHead>Waktu</TableHead><TableHead>Aksi</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {exports.map((x, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="text-xs"><a className="text-blue-700 hover:underline" href={`/analyses/${x.analysis_uid}`}>{x.analysis_uid}</a></TableCell>
+                          <TableCell>{x.method}</TableCell>
+                          <TableCell><Badge>{x.format.toUpperCase()}</Badge></TableCell>
+                          <TableCell className="text-xs text-slate-400">{x.created_at}</TableCell>
+                          <TableCell><Button size="sm" variant="secondary" onClick={() => void downloadExport(x.analysis_uid, x.format)}>Unduh</Button></TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       )}
-      <div className={`${card} mt-4`}>
-        <h3 className={h3}>Bandingkan version (diff)</h3>
-        <form onSubmit={showDiff} className="mt-2 flex gap-2">
-          <input aria-label="Dari version" className={input} value={diffFrom} onChange={(e) => setDiffFrom(e.target.value)} />
-          <input aria-label="Ke version" className={input} value={diffTo} onChange={(e) => setDiffTo(e.target.value)} />
-          <button type="submit" className={btn}>Bandingkan</button>
-        </form>
-        {diff && (
-          <div className="mt-2 text-sm">
-            <p>Baris: {diff.rows_from} → {diff.rows_to} (Δ {diff.rows_delta >= 0 ? "+" : ""}{diff.rows_delta})</p>
-            <p>Kolom tambah: {diff.columns_added.join(", ") || "-"}</p>
-            <p>Kolom hilang: {diff.columns_removed.join(", ") || "-"}</p>
-            <table className="mt-2 w-full border-collapse">
-              <thead><tr><th className={th}>Kolom</th><th className={th}>Mean awal</th><th className={th}>Mean akhir</th><th className={th}>Missing</th></tr></thead>
-              <tbody>
-                {diff.numeric_drift.map((d) => (
-                  <tr key={d.column}><td className={td}>{d.column}</td><td className={td}>{d.mean_from ?? "-"}</td><td className={td}>{d.mean_to ?? "-"}</td><td className={td}>{d.missing_from}→{d.missing_to}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-      <div className={`${card} mt-4`}>
-        <h3 className={h3}>Run analysis (base v{ver})</h3>
-        <form onSubmit={runAnalysis} className="mt-2 space-y-2">
-          <select className={input} value={method} onChange={(e) => setMethod(e.target.value)}>
-            {METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
-          </select>
-          {methodSpec?.variables && (
-            <p className="text-xs text-slate-500">Butuh: {Object.entries(methodSpec.variables).map(([k, v]) => `${k} (${v})`).join(", ")}</p>
-          )}
-          <textarea className={input} rows={3} value={varsJson} onChange={(e) => setVarsJson(e.target.value)} />
-          <button type="submit" className={btn}>Run</button>
-        </form>
-      </div>
-      <div className={`${card} mt-4`}>
-        <h3 className={h3}>Pusat Export ({exports.length})</h3>
-        {exports.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">Belum ada file. Export dari halaman hasil analisis.</p>
-        ) : (
-          <table className="mt-2 w-full border-collapse text-sm">
-            <thead><tr><th className={th}>Analysis</th><th className={th}>Method</th><th className={th}>Format</th><th className={th}>Waktu</th><th className={th}>Aksi</th></tr></thead>
-            <tbody>
-              {exports.map((x, i) => (
-                <tr key={i}>
-                  <td className={`${td} text-xs`}><a className="text-blue-700 hover:underline" href={`/analyses/${x.analysis_uid}`}>{x.analysis_uid}</a></td>
-                  <td className={td}>{x.method}</td>
-                  <td className={td}>{x.format.toUpperCase()}</td>
-                  <td className={`${td} text-xs text-slate-400`}>{x.created_at}</td>
-                  <td className={td}><button className={btn2} onClick={() => void downloadExport(x.analysis_uid, x.format)}>Unduh</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-      <div className={`${card} mt-4`}>
-        <h3 className={h3}>Research Log ({analyses.length})</h3>
-        <button className={`${btn2} mt-2`} onClick={downloadLogCsv}>Unduh Log CSV</button>
-        <table className="mt-2 w-full border-collapse text-sm">
-          <thead><tr><th className={th}>Analysis ID</th><th className={th}>Method</th><th className={th}>Ver</th><th className={th}>Hash</th><th className={th}>Waktu</th></tr></thead>
-          <tbody>
-            {analyses.map((a) => (
-              <tr key={a.analysis_uid}>
-                <td className={td}><a className="text-blue-700 hover:underline" href={`/analyses/${a.analysis_uid}`}>{a.analysis_uid}</a></td>
-                <td className={td}>{a.method}</td>
-                <td className={td}>v{a.dataset_version_number ?? "-"}</td>
-                <td className={`${td} text-xs text-slate-400`}>{a.result_hash || "-"}</td>
-                <td className={`${td} text-xs text-slate-400`}>{a.created_at}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </>
   );
 }

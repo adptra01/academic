@@ -1,9 +1,11 @@
 "use client";
 import { useState } from "react";
 import { apiUrl } from "../../lib/api";
-
-const input = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none";
-const btn = "rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Card, CardContent } from "../../components/ui/card";
+import { Alert } from "../../components/ui/badge";
+import { Label } from "../../components/ui/label";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -30,13 +32,26 @@ export default function RegisterPage() {
   return (
     <div className="mx-auto max-w-md">
       <h2 className="text-2xl font-bold">Register</h2>
-      <form onSubmit={submit} className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <input className={input} placeholder="Nama" aria-label="Nama" value={name} onChange={(e) => setName(e.target.value)} />
-        <input className={input} placeholder="Email" aria-label="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input className={input} placeholder="Password (min 8)" aria-label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        {err && <p className="text-sm text-red-700">{err}</p>}
-        <button type="submit" className={btn}>Register</button>
-      </form>
+      <Card className="mt-4">
+        <CardContent className="pt-5">
+          <form onSubmit={submit} className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="name">Nama</Label>
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="password">Password (min 8)</Label>
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+            {err && <Alert variant="destructive">{err}</Alert>}
+            <Button type="submit">Register</Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

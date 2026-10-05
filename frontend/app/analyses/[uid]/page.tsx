@@ -7,6 +7,14 @@ import { api, apiUrl, apaStyle, authHeaders, downloadExport } from "../../../lib
 import type { Viz } from "../../../components/EChartView";
 
 const EChartView = dynamic(() => import("../../../components/EChartView"), { ssr: false });
+import { Button } from "../../../components/ui/button";
+import { Textarea } from "../../../components/ui/input";
+import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui/card";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../../components/ui/table";
+import { Badge } from "../../../components/ui/badge";
+import { Alert } from "../../../components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/tabs";
+import { Select, SelectValue, SelectTrigger, SelectContent, SelectItem } from "../../../components/ui/select";
 
 type Detail = {
   analysis_uid: string; method: string; variables: Record<string, unknown>; params: Record<string, unknown>;
@@ -15,11 +23,9 @@ type Detail = {
   result_hash: string; software_version: string; timestamp: string;
 };
 
-const card = "rounded-xl border border-slate-200 bg-white p-5 shadow-sm";
-const h3 = "text-base font-semibold";
-const th = "border border-slate-200 bg-slate-100 px-2 py-1.5 text-left text-xs font-semibold";
-const td = "border border-slate-200 px-2 py-1.5 text-sm";
-const btn2 = "rounded-lg bg-slate-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700";
+const CHARTS = ["histogram", "boxplot", "scatter", "bar", "residual", "qq", "confusion", "roc", "cluster", "dendrogram", "topics", "topterms", "rules"];
+const FBCATS = [["statistical_result", "Hasil statistik"], ["assumption", "Asumsi"], ["formula", "Formula"], ["data_processing", "Data processing"], ["export", "Export"], ["ui", "UI"], ["other", "Lainnya"]];
+const EXPORTS = ["csv", "xlsx", "pdf", "docx", "tex", "json"] as const;
 
 function flatten(obj: unknown, prefix = ""): [string, string][] {
   if (obj == null) return [[prefix, "-"]];
@@ -36,12 +42,12 @@ function flatten(obj: unknown, prefix = ""): [string, string][] {
 
 function StatTable({ data }: { data: unknown }) {
   return (
-    <table className="mt-2 w-full border-collapse text-sm">
-      <thead><tr><th className={th}>Key</th><th className={th}>Value</th></tr></thead>
-      <tbody>
-        {flatten(data).map(([k, v]) => <tr key={k}><td className={td}><code>{k}</code></td><td className={td}>{v}</td></tr>)}
-      </tbody>
-    </table>
+    <Table>
+      <TableHeader><TableRow><TableHead>Key</TableHead><TableHead>Value</TableHead></TableRow></TableHeader>
+      <TableBody>
+        {flatten(data).map(([k, v]) => <TableRow key={k}><TableCell><code>{k}</code></TableCell><TableCell>{v}</TableCell></TableRow>)}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -61,8 +67,8 @@ export default function AnalysisPage({ params }: { params: { uid: string } }) {
   const [fbCat, setFbCat] = useState("statistical_result");
   const [fbDesc, setFbDesc] = useState("");
   const [fbMsg, setFbMsg] = useState("");
-  const [chartType, setChartType] = useState("");
-  const [chartCol, setChartCol] = useState("");
+  const [chartType, setChartType] = useState("default");
+  const [chartCol, setChartCol] = useState("all");
   const [chartUrl, setChartUrl] = useState("");
   const [vizMode, setVizMode] = useState<"png" | "echarts">("png");
   const [viz, setViz] = useState<Viz | null>(null);
@@ -77,8 +83,8 @@ export default function AnalysisPage({ params }: { params: { uid: string } }) {
     if (vizMode !== "png") return;
     let url = "";
     const qs = new URLSearchParams();
-    if (chartType) qs.set("type", chartType);
-    if (chartCol) qs.set("column", chartCol);
+    if (chartType && chartType !== "default") qs.set("type", chartType);
+    if (chartCol && chartCol !== "all") qs.set("column", chartCol);
     const q = qs.toString() ? `?${qs.toString()}` : "";
     fetch(`${apiUrl()}/api/v1/analyses/${uid}/chart${q}`, { headers: { ...authHeaders() } })
       .then((res) => { if (!res.ok) throw new Error(`Chart HTTP ${res.status}`); return res.blob(); })
@@ -90,16 +96,18 @@ export default function AnalysisPage({ params }: { params: { uid: string } }) {
     if (vizMode !== "echarts") return;
     setVizErr("");
     const qs = new URLSearchParams();
-    if (chartType) qs.set("type", chartType);
-    if (chartCol) qs.set("column", chartCol);
+    if (chartType && chartType !== "default") qs.set("type", chartType);
+    if (chartCol && chartCol !== "all") qs.set("column", chartCol);
     api<Viz>(`/api/v1/analyses/${uid}/viz${qs.toString() ? `?${qs.toString()}` : ""}`)
       .then(setViz)
       .catch((e: unknown) => setVizErr(e instanceof Error ? e.message : "Viz gagal"));
   }, [uid, chartType, chartCol, vizMode]);
-  if (err) return <p className="text-sm text-red-700">{err}</p>;
+  if (err) return <Alert variant="destructive">{err}</Alert>;
   if (!d) return <p className="text-slate-500">Memuat...</p>;
   const r = d.result;
   const reject = r.decision?.text === "Tolak H0";
+  const descCols = d.method === "descriptive" && Array.isArray((d.variables as Record<string, unknown>).columns)
+    ? ((d.variables as Record<string, unknown>).columns as unknown[]).map(String) : [];
   async function rerun() {
     setRerunMsg("Menjalankan ulang...");
     try {
@@ -124,99 +132,145 @@ export default function AnalysisPage({ params }: { params: { uid: string } }) {
     <>
       <h2 className="text-2xl font-bold">{r.method_name || d.method} <span className="text-sm font-normal text-slate-400">{d.analysis_uid}</span></h2>
       <p className="mt-1 text-xs text-slate-500">Dataset: {d.dataset_filename || "-"} · version v{d.dataset_version_number ?? "-"} · {d.software_version} · {d.timestamp}</p>
-      <div className={`${card} mt-4`}>
-        <p className="text-sm">Keputusan: <strong className={reject ? "text-red-700" : "text-green-700"}>{r.decision?.text || "-"}</strong> <span className="text-xs text-slate-500">(α = {r.decision?.alpha ?? "-"})</span></p>
-        <p className="mt-2 text-sm leading-6">{r.interpretation}</p>
-        <button className={`${btn2} mt-2`} onClick={() => { void navigator.clipboard.writeText(apaStyle(r as unknown as Record<string, unknown>)); setCopied(true); }}>
-          {copied ? "Tersalin!" : "Copy APA-style"}
-        </button>
-      </div>
-      <div className={`${card} mt-4`}>
-        <h3 className={h3}>Tabel statistik (n = {String(r.n ?? "-")})</h3>
-        <StatTable data={r.statistics} />
-        {r.effect_size && (<><h3 className={`${h3} mt-4`}>Effect size</h3><StatTable data={r.effect_size} /></>)}
-      </div>
-      {(r.assumptions || []).length > 0 && (
-        <div className={`${card} mt-4`}>
-          <h3 className={h3}>Asumsi</h3>
-          <table className="mt-2 w-full border-collapse text-sm">
-            <thead><tr><th className={th}>Asumsi</th><th className={th}>Status</th><th className={th}>Catatan</th></tr></thead>
-            <tbody>
-              {(r.assumptions || []).map((a, i) => (
-                <tr key={i}>
-                  <td className={td}>{a.name}{a.p_value != null ? ` (p=${Number(a.p_value).toFixed(4)})` : ""}</td>
-                  <td className={td}>{a.passed == null ? <span className="text-slate-400">cek manual</span> : a.passed ? <strong className="text-green-700">PASS</strong> : <strong className="text-red-700">FAIL</strong>}</td>
-                  <td className={`${td} text-xs text-slate-500`}>{a.note || ""}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <div className={`${card} mt-4`}>
-        <h3 className={h3}>Grafik akademik</h3>
-        <div className="mt-2 flex gap-2">
-          <button className={vizMode === "png" ? btn2 : `${btn2} opacity-60`} onClick={() => setVizMode("png")}>Statis (PNG)</button>
-          <button className={vizMode === "echarts" ? btn2 : `${btn2} opacity-60`} onClick={() => setVizMode("echarts")}>Interaktif</button>
-        </div>
-        <select className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={chartType} onChange={(e) => setChartType(e.target.value)}>
-          <option value="">Default</option>
-          {["histogram", "boxplot", "scatter", "bar", "residual", "qq", "confusion", "roc", "cluster", "dendrogram", "topics", "topterms", "rules"].map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
-        {d.method === "descriptive" && Array.isArray((d.variables as Record<string, unknown>).columns) && ((d.variables as Record<string, unknown>).columns as unknown[]).length > 1 && (
-          <select aria-label="Kolom grafik" className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={chartCol} onChange={(e) => setChartCol(e.target.value)}>
-            <option value="">Semua (kolom pertama)</option>
-            {((d.variables as Record<string, unknown>).columns as unknown[]).map((c) => <option key={String(c)} value={String(c)}>{String(c)}</option>)}
-          </select>
-        )}
-        <div className="mt-2">
-          {vizMode === "png" ? (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {chartUrl ? <img className="chart" src={chartUrl} alt="chart" /> : <p className="text-xs text-slate-500">Memuat grafik...</p>}
-            </>
-          ) : viz ? (
-            <EChartView viz={viz} />
-          ) : (
-            <p className="text-xs text-slate-500">{vizErr || "Memuat grafik interaktif..."}</p>
+      <Card className="mt-4">
+        <CardContent className="pt-5">
+          <p className="text-sm">Keputusan: <Badge variant={reject ? "destructive" : "success"}>{r.decision?.text || "-"}</Badge> <span className="text-xs text-slate-500">(α = {r.decision?.alpha ?? "-"})</span></p>
+          <p className="mt-2 text-sm leading-6">{r.interpretation}</p>
+          <Button variant="secondary" size="sm" className="mt-2" onClick={() => { void navigator.clipboard.writeText(apaStyle(r as unknown as Record<string, unknown>)); setCopied(true); }}>
+            {copied ? "Tersalin!" : "Copy APA-style"}
+          </Button>
+        </CardContent>
+      </Card>
+      <Tabs defaultValue="hasil" className="mt-4">
+        <TabsList>
+          <TabsTrigger value="hasil">Hasil</TabsTrigger>
+          <TabsTrigger value="grafik">Grafik</TabsTrigger>
+          <TabsTrigger value="formula">Formula</TabsTrigger>
+          <TabsTrigger value="export">Export</TabsTrigger>
+          <TabsTrigger value="repro">Repro</TabsTrigger>
+          <TabsTrigger value="lapor">Lapor</TabsTrigger>
+        </TabsList>
+        <TabsContent value="hasil">
+          <Card>
+            <CardHeader><CardTitle>Tabel statistik (n = {String(r.n ?? "-")})</CardTitle></CardHeader>
+            <CardContent>
+              <StatTable data={r.statistics} />
+              {r.effect_size && (<><h3 className="mt-4 text-base font-semibold">Effect size</h3><StatTable data={r.effect_size} /></>)}
+            </CardContent>
+          </Card>
+          {(r.assumptions || []).length > 0 && (
+            <Card className="mt-4">
+              <CardHeader><CardTitle>Asumsi</CardTitle></CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader><TableRow><TableHead>Asumsi</TableHead><TableHead>Status</TableHead><TableHead>Catatan</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {(r.assumptions || []).map((a, i) => (
+                      <TableRow key={i}>
+                        <TableCell>{a.name}{a.p_value != null ? ` (p=${Number(a.p_value).toFixed(4)})` : ""}</TableCell>
+                        <TableCell>{a.passed == null ? <span className="text-slate-400">cek manual</span> : <Badge variant={a.passed ? "success" : "destructive"}>{a.passed ? "PASS" : "FAIL"}</Badge>}</TableCell>
+                        <TableCell className="text-xs text-slate-500">{a.note || ""}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
-        </div>
-        {chartUrl && <a className="mt-2 inline-block text-sm text-blue-700 hover:underline" href={chartUrl} download={`${uid}.png`}>Unduh PNG grafik</a>}
-      </div>
-      <div className={`${card} mt-4`}>
-        <h3 className={h3}>Formula</h3>
-        <Formula latex={r.formula_latex} />
-        <h3 className={`${h3} mt-4`}>Parameters & variables</h3>
-        <pre className="mt-2 overflow-x-auto rounded bg-slate-100 p-3 text-xs">{JSON.stringify({ variables: d.variables, params: d.params }, null, 2)}</pre>
-        <h3 className={`${h3} mt-4`}>Calculation</h3>
-        <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm">{(r.calculation || []).map((c, i) => <li key={i}>{c}</li>)}</ol>
-        {(r.warnings || []).length > 0 && <><h3 className={`${h3} mt-4`}>Warnings</h3><ul className="mt-1 list-disc space-y-1 pl-5 text-sm">{r.warnings!.map((w, i) => <li key={i}>{w}</li>)}</ul></>}
-      </div>
-      <div className={`${card} mt-4`}>
-        <h3 className={h3}>Report a Problem</h3>
-        <p className="mt-1 text-xs text-slate-500">Terkirim bersama {d.analysis_uid} · dataset v{d.dataset_version_number ?? "-"} — tim dapat mereproduksi langsung.</p>
-        <form onSubmit={sendFeedback} className="mt-2 space-y-2">
-          <select aria-label="Kategori" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={fbCat} onChange={(e) => setFbCat(e.target.value)}>
-            {[["statistical_result", "Hasil statistik"], ["assumption", "Asumsi"], ["formula", "Formula"], ["data_processing", "Data processing"], ["export", "Export"], ["ui", "UI"], ["other", "Lainnya"]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-          <textarea aria-label="Deskripsi masalah" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" rows={3} placeholder="Jelaskan masalahnya (min 10 karakter)..." value={fbDesc} onChange={(e) => setFbDesc(e.target.value)} />
-          <button type="submit" className={btn2}>Kirim laporan</button>
-        </form>
-        {fbMsg && <p className="mt-2 text-sm text-slate-700">{fbMsg}</p>}
-      </div>
-      <div className={`${card} mt-4`}>
-        <h3 className={h3}>Export</h3>        <div className="mt-2 flex flex-wrap gap-2">
-          {(["csv", "xlsx", "pdf", "docx", "tex", "json"] as const).map((f) => (
-            <button key={f} className={btn2} onClick={() => void downloadExport(uid, f)}>Unduh {f.toUpperCase()}</button>
-          ))}
-        </div>
-      </div>
-      <div className={`${card} mt-4`}>
-        <h3 className={h3}>Reproducibility</h3>
-        <button className={`${btn2} mt-2`} onClick={() => void rerun()}>Rerun (verifikasi identik)</button>
-        {rerunMsg && <p className="mt-2 text-sm text-slate-700">{rerunMsg}</p>}
-        <p className="mt-1 text-xs text-slate-500">hash: {d.result_hash.slice(0, 16)}… · {d.software_version} · {d.timestamp}</p>
-      </div>
+        </TabsContent>
+        <TabsContent value="grafik">
+          <Card>
+            <CardHeader><CardTitle>Grafik akademik</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex gap-2">
+                <Button size="sm" variant={vizMode === "png" ? "default" : "secondary"} onClick={() => setVizMode("png")}>Statis (PNG)</Button>
+                <Button size="sm" variant={vizMode === "echarts" ? "default" : "secondary"} onClick={() => setVizMode("echarts")}>Interaktif</Button>
+              </div>
+              <Select value={chartType} onValueChange={setChartType}>
+                <SelectTrigger><SelectValue placeholder="Default" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Default</SelectItem>
+                  {CHARTS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {descCols.length > 1 && (
+                <Select value={chartCol} onValueChange={setChartCol}>
+                  <SelectTrigger aria-label="Kolom grafik"><SelectValue placeholder="Semua (kolom pertama)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua (kolom pertama)</SelectItem>
+                    {descCols.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+              {vizMode === "png" ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {chartUrl ? <img className="chart" src={chartUrl} alt="chart" /> : <p className="text-xs text-slate-500">Memuat grafik...</p>}
+                </>
+              ) : viz ? (
+                <EChartView viz={viz} />
+              ) : (
+                <p className="text-xs text-slate-500">{vizErr || "Memuat grafik interaktif..."}</p>
+              )}
+              {chartUrl && <a className="inline-block text-sm text-blue-700 hover:underline" href={chartUrl} download={`${uid}.png`}>Unduh PNG grafik</a>}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="formula">
+          <Card>
+            <CardHeader><CardTitle>Formula</CardTitle></CardHeader>
+            <CardContent>
+              <Formula latex={r.formula_latex} />
+              <h3 className="mt-4 text-base font-semibold">Parameters & variables</h3>
+              <pre className="mt-2 overflow-x-auto rounded bg-slate-100 p-3 text-xs">{JSON.stringify({ variables: d.variables, params: d.params }, null, 2)}</pre>
+              <h3 className="mt-4 text-base font-semibold">Calculation</h3>
+              <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm">{(r.calculation || []).map((c, i) => <li key={i}>{c}</li>)}</ol>
+              {(r.warnings || []).length > 0 && <><h3 className="mt-4 text-base font-semibold">Warnings</h3><ul className="mt-1 list-disc space-y-1 pl-5 text-sm">{r.warnings!.map((w, i) => <li key={i}>{w}</li>)}</ul></>}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="export">
+          <Card>
+            <CardHeader><CardTitle>Export</CardTitle></CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {EXPORTS.map((f) => (
+                  <Button key={f} variant="secondary" size="sm" onClick={() => void downloadExport(uid, f)}>Unduh {f.toUpperCase()}</Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="repro">
+          <Card>
+            <CardHeader><CardTitle>Reproducibility</CardTitle></CardHeader>
+            <CardContent>
+              <Button variant="secondary" size="sm" onClick={() => void rerun()}>Rerun (verifikasi identik)</Button>
+              {rerunMsg && <p className="mt-2 text-sm text-slate-700">{rerunMsg}</p>}
+              <p className="mt-1 text-xs text-slate-500">hash: {d.result_hash.slice(0, 16)}… · {d.software_version} · {d.timestamp}</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="lapor">
+          <Card>
+            <CardHeader><CardTitle>Report a Problem</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-xs text-slate-500">Terkirim bersama {d.analysis_uid} · dataset v{d.dataset_version_number ?? "-"} — tim dapat mereproduksi langsung.</p>
+              <form onSubmit={sendFeedback} className="mt-2 space-y-2">
+                <Select value={fbCat} onValueChange={setFbCat}>
+                  <SelectTrigger aria-label="Kategori"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[["statistical_result", "Hasil statistik"], ["assumption", "Asumsi"], ["formula", "Formula"], ["data_processing", "Data processing"], ["export", "Export"], ["ui", "UI"], ["other", "Lainnya"]].map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Textarea aria-label="Deskripsi masalah" rows={3} placeholder="Jelaskan masalahnya (min 10 karakter)..." value={fbDesc} onChange={(e) => setFbDesc(e.target.value)} />
+                <Button type="submit" variant="secondary" size="sm">Kirim laporan</Button>
+              </form>
+              {fbMsg && <p className="mt-2 text-sm text-slate-700">{fbMsg}</p>}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </>
   );
 }

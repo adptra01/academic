@@ -170,3 +170,10 @@
 - `GET /analyses/{uid}/viz?type=` (422 tipe salah); frontend echarts-for-react + toggle Statis/Interaktif
 - Insiden: braket `]` vs `}` di bar() (tertangkap sebelum import — file belum pernah dipakai); 2 edit whitespace merusak def (diperbaiki); pelajaran ditegakkan
 - Verified: pytest 33 (27 RC1 + 6 viz), tsc bersih, /viz scatter + 422, screenshot ECharts titik data asli
+## [2026-10-05] — shadcn foundation + migrasi (feature/shadcn)
+- 11 primitif gaya shadcn (button, input+textarea, card, badge+alert, table, label, select/dialog/tabs/progress/tooltip Radix, lucide) + cn()
+- Project → Tabs (Dataset/Variables/Preprocess/Diff/Analysis/Log/Export, sesuai konsep PRD); delete via Dialog; upload via Progress; Badge/Alert/Select di semua form
+- Analysis → Tabs (Hasil/Grafik/Formula/Export/Repro/Lapor) + Badge keputusan/asumsi + Select chart
+- Dashboard: Card + Dialog hapus + Badge; login/register: Card + Label + Alert
+- Insiden: DB container stopped pasca-restart (500 login) → `ddev start`; Radix Select larang value "" (sudah ditangani sentinel)
+- Verified: pytest 27 (core utuh), tsc bersih, screenshot Tabs + Variables shadcn
