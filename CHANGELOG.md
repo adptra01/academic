@@ -155,3 +155,8 @@
 ## [2026-10-05] — SCOPE UNFREEZE (keputusan user)
 - RC1 freeze dicabut atas perintah eksplisit user. Urutan ekspansi: ML Fase 8 → Apriori → API/OAuth/scraping → shadcn+ECharts.
 - Gate manusia (R/SPSS, beta, prod) tetap berjalan paralel sebagai tanggung jawab manusia.
+
+## [2026-10-05] — Synthetic beta DONE (feature/synthetic-beta, core utuh)
+- `scripts/synthetic-beta/run.py` (stdlib): 5 persona × workflow penuh (register→project→upload→variables→preprocess→2 metode→chart→export→rerun→log) + probe (isolasi antar-user, exe ditolak, konkurensi 10/10, async 15k rows)
+- Hasil: 74/74 PASS (11.0s); evidence di docs/beta-synthetic/
+- Insiden: fixture tanpa kolom `post` → 1 FAIL; diperbaiki, rerun hijau. Bukan pengganti beta manusia.
