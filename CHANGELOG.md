@@ -194,3 +194,9 @@
 - Konflik tersulit: halaman project/analysis (Tabs shadcn × dropdown ML/Apriori × toggle viz) — diselesaikan: Tabs dipertahankan + semua metode + toggle + kartu Import shadcn
 - Pelajaran merge: file yang ditulis-ulang total (vs edit) paling aman direset via `git checkout --theirs` + aplikasikan delta kecil; JANGAN hapus blok via anchor samar
 - Verified: pytest 50 (27+7+3+6+7), tsc bersih, /methods = 20, UI terintegrasi (Tabs + Import + semua metode)
+
+## [2026-10-05] — Share publik + medsos via OAuth/API resmi (feature/sharing)
+- Share: shared_links (migrasi + stamp), POST/GET/DELETE + GET /public/shared (anon, tanpa identitas), halaman /shared/[token], UI kartu Bagikan + 3 tests
+- Medsos sesuai arahan (auth dulu, pustaka resmi): requests-oauthlib (refresh) + google-api-python-client (YouTube: search→videos, quota-note, api_key/OAuth); endpoint refresh + matriks docs/social-acquisition.md; scraping langsung medsos tetap DITOLAK
+- Insiden: wiring sharing hilang (re-apply); decrypt beda-kunci → 409 jelas (bukan 500); duplikat test (dedupe)
+- Verified: pytest 55, tsc bersih, E2E share→anon→revoke, registry 3 connectors
