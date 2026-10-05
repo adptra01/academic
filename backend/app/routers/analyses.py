@@ -33,6 +33,7 @@ METHOD_VARIABLES_SPEC = {
     "ml_cluster": {"features": "list[str] numerik", "algorithm": "kmeans|hierarchical", "n_clusters": "int 2..20"},
     "text_tfidf": {"column": "str teks", "mode": "tfidf|bow"},
     "text_lda": {"column": "str teks", "n_topics": "int 2..10"},
+    "apriori": {"columns": "list[str] item/biner/kategorikal", "min_support": "0<s≤1", "min_confidence": "0..1", "min_lift": "≥0"},
 }
 
 

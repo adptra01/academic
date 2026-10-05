@@ -15,6 +15,7 @@ METHOD_IDS = [
     "linreg_simple", "linreg_multiple",
     # Phase 2 (di luar RC1 freeze — lihat CHANGELOG scope unfreeze):
     "ml_classify", "ml_cluster", "text_tfidf", "text_lda",
+    "apriori",
 ]
 
 METHOD_NAMES = {
@@ -37,6 +38,7 @@ METHOD_NAMES = {
     "ml_cluster": "ML Clustering",
     "text_tfidf": "Text Vectorization (TF-IDF/BoW)",
     "text_lda": "Topic Modeling (LDA)",
+    "apriori": "Association Rules (Apriori)",
 }
 
 
@@ -102,7 +104,7 @@ def run_analysis(df: pd.DataFrame, method: str, variables: dict, params: dict) -
     alpha = float(params.get("alpha", 0.05))
     if not 0 < alpha < 1:
         raise ValueError("alpha harus di antara 0 dan 1")
-    from app.services.stats import descriptive, normality, correlation, ttest, anova, chi2, nonparam, regression, ml_classify, ml_cluster, text_mining
+    from app.services.stats import descriptive, normality, correlation, ttest, anova, chi2, nonparam, regression, ml_classify, ml_cluster, text_mining, apriori
 
     table = {
         "descriptive": descriptive.run,
@@ -124,5 +126,6 @@ def run_analysis(df: pd.DataFrame, method: str, variables: dict, params: dict) -
         "ml_cluster": ml_cluster.run,
         "text_tfidf": text_mining.run_tfidf,
         "text_lda": text_mining.run_lda,
+        "apriori": apriori.run,
     }
     return table[method](df, variables, alpha, params)

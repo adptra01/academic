@@ -37,3 +37,5 @@ methods:
     name: Text Vectorization TF-IDF/BoW (Phase 2)
   - id: text_lda
     name: Topic Modeling LDA (Phase 2)
+  - id: apriori
+    name: Association Rules Apriori (Phase 2)

@@ -11,7 +11,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-CHART_TYPES = {"histogram", "boxplot", "scatter", "bar", "residual", "qq", "confusion", "roc", "cluster", "dendrogram", "topics", "topterms"}
+CHART_TYPES = {"histogram", "boxplot", "scatter", "bar", "residual", "qq", "confusion", "roc", "cluster", "dendrogram", "topics", "topterms", "rules"}
 
 DEFAULT_CHART = {
     "descriptive": "histogram", "normality": "histogram",
@@ -22,6 +22,7 @@ DEFAULT_CHART = {
     "linreg_simple": "scatter", "linreg_multiple": "residual",
     "ml_classify": "confusion", "ml_cluster": "cluster",
     "text_tfidf": "topterms", "text_lda": "topics",
+    "apriori": "rules",
 }
 
 
@@ -189,6 +190,8 @@ def make_chart(df: pd.DataFrame, method: str, variables: dict, result: dict, cha
         return topics(result, title, dpi), ct
     if ct == "topterms":
         return topterms(result, title, dpi), ct
+    if ct == "rules":
+        return rules_chart(result, title, dpi), ct
     raise ValueError("unreachable")
 
 
@@ -291,4 +294,18 @@ def topterms(result: dict, title: str, dpi: int) -> bytes:
     vals = [t["weight"] for t in top[:15]]
     fig, ax = _fig(title or "Top Terms", "Bobot", "Term")
     ax.barh(terms[::-1], vals[::-1], color="#4a4a4a")
+    return _png(fig, dpi)
+
+
+def rules_chart(result: dict, title: str, dpi: int) -> bytes:
+    st = result.get("statistics") or {}
+    rules = st.get("rules") or []
+    if not rules:
+        raise ValueError("tidak ada rule untuk digrafikkan (longgarkan filter)")
+    top = rules[:15]
+    labels = [f"{{{','.join(r['antecedent'])}}}→{{{','.join(r['consequent'])}}}" for r in top]
+    lifts = [r["lift"] for r in top]
+    fig, ax = _fig(title or f"Top Rules by Lift (n={len(rules)})", "Lift", "Rule")
+    ax.barh(labels[::-1], lifts[::-1], color="#4a4a4a")
+    ax.axvline(1.0, color="black", linestyle="--", linewidth=1)
     return _png(fig, dpi)
