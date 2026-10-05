@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiUrl } from "../../lib/api";
+import { apiUrl } from "../../../lib/api";
 import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
 import { Alert } from "../../../components/ui/badge";
