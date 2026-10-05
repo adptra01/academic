@@ -155,3 +155,11 @@
 ## [2026-10-05] — SCOPE UNFREEZE (keputusan user)
 - RC1 freeze dicabut atas perintah eksplisit user. Urutan ekspansi: ML Fase 8 → Apriori → API/OAuth/scraping → shadcn+ECharts.
 - Gate manusia (R/SPSS, beta, prod) tetap berjalan paralel sebagai tanggung jawab manusia.
+
+## [2026-10-05] — API/OAuth/Scraping DONE (feature/connectors dari master, core utuh)
+- Abstraksi DataConnector (authenticate/fetch/normalize/metadata) + registry; GenericREST (GET/POST, mapping, paginasi, timeout/retry, https-only); OAuth terenkripsi Fernet (tak pernah di log/dataset, fallback DEV jujur dilaporkan); Scraper guardrail (allowlist, robots, tolak 401/403/paywall, rate-limit, hash, request-log, dedup)
+- DB: oauth_connections + data_sources + datasets.source_* (migrasi c2d3e4f5a6b7, stamp setelah init.sql hook); provenance + config tersanitasi di setiap fetch
+- UI: kartu Import via API/Scraper + tabel sumber; env dev OAUTH_ENCRYPTION_KEY + SCRAPER_ALLOWLIST
+- Docs: scraping-policy (7 aturan mengikat)
+- Insiden: edit whitespace merusak models (diperbaiki via python + ast check)
+- Verified: pytest 34 (27 RC1 + 7 connectors mocked), E2E fetch 5 rows + OAuth roundtrip + deny, screenshot UI
