@@ -15,6 +15,99 @@ import pandas as pd
 from .base import DataConnector, FetchResult, raw_hash, register, utcnow
 
 _last_hit: dict[str, float] = {}
+
+PRESETS = [
+    {"id": "wikipedia", "name": "Tabel artikel Wikipedia", "description": "Tempel URL artikel Wikipedia, pilih tabelnya.",
+     "example_url": "https://en.wikipedia.org/wiki/List_of_countries_by_population", "table_index": 0},
+    {"id": "first-table", "name": "Tabel pertama halaman mana pun", "description": "Ambil tabel pertama yang ditemukan di URL allowlisted.",
+     "example_url": "", "table_index": 0},
+    {"id": "bps-statik", "name": "Tabel publik BPS/statistik", "description": "Tempel URL tabel publik (mis. Badan Pusat Statistik).",
+     "example_url": "", "table_index": 0},
+]
+
+
+def guard_url(url: str):
+    """Allowlist + robots check. Mengembalikan urlparse parts."""
+    import os
+
+    parts = urllib.parse.urlparse(url)
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        raise ScraperError("URL tidak valid")
+    allow = [d.strip() for d in os.getenv("SCRAPER_ALLOWLIST", "").split(",") if d.strip()]
+    if not _allowlisted(parts.hostname, allow):
+        raise ScraperError(f"Domain '{parts.hostname}' tidak di allowlist (SCRAPER_ALLOWLIST)")
+    try:
+        rp = urllib.robotparser.RobotFileParser()
+        rp.set_url(f"{parts.scheme}://{parts.hostname}/robots.txt")
+        rp.read()
+        if not rp.can_fetch("AcademicResearchBot", url):
+            raise ScraperError("robots.txt melarang path ini — scraping DITOLAK")
+    except ScraperError:
+        raise
+    except Exception as e:
+        raise ScraperError(f"robots.txt tak terbaca, batal demi aman: {e}")
+    return parts
+
+
+def download_guarded(url: str, config: dict) -> tuple[str, str, bytes]:
+    """Download dengan rate-limit/timeout/retry + tolak login/paywall."""
+    import os  # noqa
+
+    parts = urllib.parse.urlparse(url)
+    min_interval = float(config.get("min_interval", 2.0))
+    now = time.time()
+    if now - _last_hit.get(parts.hostname or "", 0) < min_interval:
+        time.sleep(min_interval - (now - _last_hit[parts.hostname or ""]))
+    timeout = int(config.get("timeout", 15))
+    retries = int(config.get("max_retries", 2))
+    raw: bytes | None = None
+    last: Exception | None = None
+    final_url = url
+    for _ in range(retries + 1):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "AcademicResearchBot/0.1 (+research; rate-limited)"})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                if resp.status in (401, 403):
+                    raise ScraperError(f"HTTP {resp.status}: halaman butuh auth — JANGAN bypass")
+                raw = resp.read()
+                final_url = resp.geturl()
+            break
+        except ScraperError:
+            raise
+        except Exception as e:
+            last = e
+            time.sleep(1)
+    if raw is None:
+        raise ScraperError(f"Gagal fetch: {last}")
+    _last_hit[parts.hostname or ""] = time.time()
+    text = raw.decode("utf-8", errors="replace")
+    lowered = text.lower()
+    if any(x in lowered for x in ("name=\"password\"", "type=\"password\"", "paywall", "subscribe to continue")):
+        raise ScraperError("Halaman tampak login/paywall — scraping DITOLAK")
+    return text, final_url, raw
+
+
+def list_tables(text: str) -> list:
+    try:
+        tables = pd.read_html(text)
+    except ValueError as e:
+        raise ScraperError(f"Tidak ada tabel HTML: {e}")
+    return [t.dropna(how="all").drop_duplicates() for t in tables]
+
+
+def inspect_url(url: str, config: dict) -> dict:
+    """Pratinjau tanpa menyimpan: daftar tabel (bentuk, kolom, 3 baris contoh)."""
+    guard_url(url)
+    text, final_url, raw = download_guarded(url, config)
+    tables = list_tables(text)
+    out = []
+    for i, df in enumerate(tables):
+        cols = [str(c) for c in df.columns]
+        sample = df.head(3).astype(object).where(df.head(3).notna(), None).to_dict(orient="records")
+        out.append({"index": i, "rows": int(len(df)), "cols": int(len(df.columns)), "columns": cols[:20], "sample": sample})
+    return {"url": url, "final_url": final_url, "raw_hash": raw_hash(raw), "tables": out}
+
+
 REQUEST_LOG: list[dict] = []
 
 
@@ -38,59 +131,11 @@ class HTMLTableScraper(DataConnector):
         return {"note": "scraper publik tanpa auth; halaman login/paywall DITOLAK"}
 
     def fetch(self, config: dict) -> FetchResult:
-        import os
-
         url = config.get("url", "")
-        parts = urllib.parse.urlparse(url)
-        if parts.scheme not in ("http", "https") or not parts.hostname:
-            raise ScraperError("URL tidak valid")
-        allow = [d.strip() for d in os.getenv("SCRAPER_ALLOWLIST", "").split(",") if d.strip()]
-        if not _allowlisted(parts.hostname, allow):
-            raise ScraperError(f"Domain '{parts.hostname}' tidak di allowlist (SCRAPER_ALLOWLIST)")
-        try:
-            rp = urllib.robotparser.RobotFileParser()
-            rp.set_url(f"{parts.scheme}://{parts.hostname}/robots.txt")
-            rp.read()
-            if not rp.can_fetch("AcademicResearchBot", url):
-                raise ScraperError("robots.txt melarang path ini — scraping DITOLAK")
-        except ScraperError:
-            raise
-        except Exception as e:
-            raise ScraperError(f"robots.txt tak terbaca, batal demi aman: {e}")
-        min_interval = float(config.get("min_interval", 2.0))
-        now = time.time()
-        if now - _last_hit.get(parts.hostname, 0) < min_interval:
-            time.sleep(min_interval - (now - _last_hit[parts.hostname]))
-        timeout = int(config.get("timeout", 15))
-        retries = int(config.get("max_retries", 2))
+        guard_url(url)
         table_index = int(config.get("table_index", 0))
-        raw: bytes | None = None
-        last: Exception | None = None
-        for _ in range(retries + 1):
-            try:
-                req = urllib.request.Request(url, headers={"User-Agent": "AcademicResearchBot/0.1 (+research; rate-limited)"})
-                with urllib.request.urlopen(req, timeout=timeout) as resp:
-                    if resp.status in (401, 403):
-                        raise ScraperError(f"HTTP {resp.status}: halaman butuh auth — JANGAN bypass")
-                    raw = resp.read()
-                    final_url = resp.geturl()
-                break
-            except ScraperError:
-                raise
-            except Exception as e:
-                last = e
-                time.sleep(1)
-        if raw is None:
-            raise ScraperError(f"Gagal fetch: {last}")
-        _last_hit[parts.hostname] = time.time()
-        text = raw.decode("utf-8", errors="replace")
-        lowered = text.lower()
-        if any(s in lowered for s in ("name=\"password\"", "type=\"password\"", "paywall", "subscribe to continue")):
-            raise ScraperError("Halaman tampak login/paywall — scraping DITOLAK")
-        try:
-            tables = pd.read_html(text)
-        except ValueError as e:
-            raise ScraperError(f"Tidak ada tabel HTML: {e}")
+        text, final_url, raw = download_guarded(url, config)
+        tables = list_tables(text)
         if table_index >= len(tables):
             raise ScraperError(f"table_index {table_index} di luar {len(tables)} tabel")
         df = tables[table_index].dropna(how="all").drop_duplicates()

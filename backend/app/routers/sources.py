@@ -162,6 +162,31 @@ def list_sources(project_id: uuid.UUID, db: Session = Depends(get_db), user: Use
     return [{"id": str(r.id), "kind": r.kind, "provider": r.provider, "config": r.config, "raw_hash": (r.raw_hash[:16] + "…") if r.raw_hash else None, "record_count": r.record_count, "dataset_id": str(r.dataset_id) if r.dataset_id else None, "created_at": r.created_at.isoformat() if r.created_at else None} for r in rows]
 
 
+class ScrapeInspectIn(BaseModel):
+    url: str = Field(min_length=8, max_length=2000)
+
+
+@router.get("/scraper/presets")
+def scraper_presets(user: User = Depends(get_current_user)) -> list[dict]:
+    from app.services.connectors.scraper import PRESETS
+
+    _ = user
+    return PRESETS
+
+
+@router.post("/scraper/inspect")
+def scraper_inspect(body: ScrapeInspectIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
+    """Pratinjau tabel di URL (allowlist + robots tetap ditegakkan). Tanpa menyimpan."""
+    from app.services.connectors.scraper import ScraperError as _SE
+    from app.services.connectors.scraper import inspect_url
+
+    _ = db
+    try:
+        return inspect_url(body.url, {})
+    except (_SE, ValueError) as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+
+
 @router.get("/scraper/request-log")
 def scraper_log(limit: int = Query(50, ge=1, le=200), db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> list[dict]:
     _ = (db, user)

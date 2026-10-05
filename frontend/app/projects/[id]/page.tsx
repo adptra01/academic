@@ -65,6 +65,11 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   const [delTarget, setDelTarget] = useState<Dataset | null>(null);
   const [sources, setSources] = useState<{ id: string; kind: string; provider: string; record_count: number | null; dataset_id: string | null; created_at: string }[]>([]);
   const [srcProvider, setSrcProvider] = useState("generic_rest");
+  const [presets, setPresets] = useState<{ id: string; name: string; description: string; example_url: string; table_index: number }[]>([]);
+  const [scrapeUrl, setScrapeUrl] = useState("");
+  const [advanced, setAdvanced] = useState(false);
+  const [inspect, setInspect] = useState<{ final_url: string; tables: { index: number; rows: number; cols: number; columns: string[]; sample: Record<string, unknown>[] }[] } | null>(null);
+  const [pickTable, setPickTable] = useState(0);
   const [srcConfig, setSrcConfig] = useState('{\n  "url": "https://.../records",\n  "params": {"limit": 100},\n  "records_path": "data.items",\n  "mapping": {"kolom_tujuan": "path.sumber"}\n}');
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
@@ -93,6 +98,9 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     }
   }
   useEffect(() => { if (sel) void loadDetail(sel, ver); }, [sel, ver]);
+  useEffect(() => {
+    api<typeof presets>(`/api/v1/scraper/presets`).then(setPresets).catch(() => setPresets([]));
+  }, []);
   useEffect(() => {
     api<{ variables?: Record<string, string> }>(`/api/v1/methods/${method}`).then(setMethodSpec).catch(() => setMethodSpec(null));
   }, [method]);
@@ -218,11 +226,22 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     }
   }
 
+  async function inspectTables() {
+    setErr(""); setMsg(""); setInspect(null);
+    try {
+      setInspect(await api(`/api/v1/scraper/inspect`, { method: "POST", body: JSON.stringify({ url: scrapeUrl || undefined }) }));
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Inspect gagal");
+    }
+  }
+
   async function fetchSource(e: React.FormEvent) {
     e.preventDefault();
     setErr(""); setMsg("");
     try {
-      const config = JSON.parse(srcConfig);
+      const config = srcProvider === "html_table" && !advanced
+        ? { url: scrapeUrl, table_index: pickTable }
+        : JSON.parse(srcConfig);
       const kind = srcProvider === "html_table" ? "scraper" : "api";
       const j = await api<{ dataset_id: string; profile: { rows: number; cols: number } }>(`/api/v1/projects/${id}/data-sources/fetch`, {
         method: "POST", body: JSON.stringify({ kind, provider: srcProvider, config }),
@@ -322,8 +341,47 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                 <SelectItem value="html_table">Scraper tabel HTML (allowlist)</SelectItem>
               </SelectContent>
             </Select>
-            <Textarea rows={6} value={srcConfig} onChange={(e) => setSrcConfig(e.target.value)} />
-            <Button type="submit">Fetch → dataset versioned</Button>
+            {srcProvider === "html_table" && !advanced ? (
+              <>
+                <select aria-label="Preset" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value="" onChange={(e) => {
+                  const pr = presets.find((x) => x.id === e.target.value);
+                  if (pr) { setScrapeUrl(pr.example_url); }
+                }}>
+                  <option value="">— Pilih preset (opsional) —</option>
+                  {presets.map((pr) => <option key={pr.id} value={pr.id}>{pr.name} — {pr.description}</option>)}
+                </select>
+                <div className="flex gap-2">
+                  <Input placeholder="https://domain-allowlisted/halaman" value={scrapeUrl} onChange={(e) => setScrapeUrl(e.target.value)} aria-label="URL halaman" />
+                  <Button type="button" variant="secondary" onClick={() => void inspectTables()}>Cek tabel</Button>
+                </div>
+                {inspect && (
+                  <div className="space-y-2">
+                    {inspect.tables.map((t) => (
+                      <label key={t.index} className="flex cursor-pointer items-start gap-2 rounded-lg border border-slate-200 p-2 text-sm">
+                        <input type="radio" name="picktable" checked={pickTable === t.index} onChange={() => setPickTable(t.index)} className="mt-1" />
+                        <span>
+                          <strong>Tabel {t.index}</strong> — {t.rows}×{t.cols} · {t.columns.slice(0, 6).join(", ")}
+                          {t.sample[0] && <span className="block font-mono text-xs text-slate-500">{JSON.stringify(t.sample[0]).slice(0, 120)}</span>}
+                        </span>
+                      </label>
+                    ))}
+                    {inspect.tables.length === 0 && <p className="text-sm text-slate-500">Tidak ada tabel di halaman ini.</p>}
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Button type="submit">Fetch → dataset versioned</Button>
+                  <button type="button" className="text-xs text-blue-700 hover:underline" onClick={() => setAdvanced(true)}>Mode advanced (JSON)</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Textarea rows={6} value={srcConfig} onChange={(e) => setSrcConfig(e.target.value)} />
+                <div className="flex items-center gap-2">
+                  <Button type="submit">Fetch → dataset versioned</Button>
+                  {srcProvider === "html_table" && <button type="button" className="text-xs text-blue-700 hover:underline" onClick={() => setAdvanced(false)}>Kembali ke wizard</button>}
+                </div>
+              </>
+            )}
           </form>
           {sources.length > 0 && (
             <Table>

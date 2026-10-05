@@ -142,3 +142,78 @@ def test_youtube_mock(monkeypatch):
     with pytest.raises(ValueError, match="query"):
         c.fetch({"api_key": "K"})
 
+
+
+HTML_TWO_TABLES = b"""<html><body>
+<table><tr><th>nama</th><th>umur</th></tr><tr><td>Ani</td><td>20</td></tr><tr><td>Budi</td><td>25</td></tr></table>
+<table><tr><th>kota</th></tr><tr><td>Jakarta</td></tr></table>
+</body></html>"""
+
+
+def _mock_net(monkeypatch, html=HTML_TWO_TABLES, robots_allow=True):
+    import urllib.request
+    import urllib.robotparser
+    import app.services.connectors.scraper as sc
+
+    class Resp:
+        status = 200
+
+        def read(self):
+            return html
+
+        def geturl(self):
+            return "http://contoh.test/t"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    class RP:
+        def set_url(self, u):
+            pass
+
+        def read(self):
+            pass
+
+        def can_fetch(self, ua, url):
+            return robots_allow
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: Resp())
+    monkeypatch.setattr(urllib.robotparser, "RobotFileParser", RP)
+    monkeypatch.setattr(sc, "_last_hit", {})
+    return sc
+
+
+def test_inspect_lists_tables(monkeypatch):
+    import os
+
+    sc = _mock_net(monkeypatch)
+    monkeypatch.setattr(os, "getenv", lambda k, d="": "contoh.test" if k == "SCRAPER_ALLOWLIST" else d)
+    out = sc.inspect_url("http://contoh.test/t", {})
+    assert len(out["tables"]) == 2
+    assert out["tables"][0]["rows"] == 2 and out["tables"][0]["columns"] == ["nama", "umur"]
+    assert len(out["raw_hash"]) == 64
+
+
+def test_inspect_robots_deny(monkeypatch):
+    import os
+
+    sc = _mock_net(monkeypatch, robots_allow=False)
+    monkeypatch.setattr(os, "getenv", lambda k, d="": "contoh.test" if k == "SCRAPER_ALLOWLIST" else d)
+    import pytest
+
+    with pytest.raises(Exception, match="robots"):
+        sc.inspect_url("http://contoh.test/t", {})
+
+
+def test_fetch_uses_same_guards(monkeypatch):
+    import os
+
+    sc = _mock_net(monkeypatch)
+    monkeypatch.setattr(os, "getenv", lambda k, d="": "contoh.test" if k == "SCRAPER_ALLOWLIST" else d)
+    c = sc.HTMLTableScraper()
+    res = c.fetch({"url": "http://contoh.test/t", "table_index": 1})
+    assert res.provenance["record_count"] == 1
+    assert sc.PRESETS and all("example_url" in p for p in sc.PRESETS)
