@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { api, apiUrl, authHeaders, downloadExport } from "@/lib/api";
+import ProcessRail from "@/components/app/process-rail";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -14,6 +17,14 @@ import { Select, SelectValue, SelectTrigger, SelectContent, SelectItem } from "@
 import { Label } from "@/components/ui/label";
 
 type Version = { version_number: number };
+type ProjectMeta = {
+  id: string;
+  title: string;
+  description: string | null;
+  research_type: string;
+  created_at: string;
+  updated_at: string;
+};
 type Dataset = { id: string; filename: string; file_type: string; rows_count: number; cols_count: number; versions: Version[] };
 type AnalysisItem = { analysis_uid: string; method: string; created_at: string; dataset_version_number?: number | null; result_hash?: string | null; params?: Record<string, unknown> };
 type ExportItem = { analysis_uid: string; method: string; format: string; created_at: string };
@@ -25,6 +36,17 @@ const METHODS = ["descriptive", "normality", "pearson", "spearman", "ttest_1samp
 const OPS = ["drop_missing", "fill_missing", "remove_outlier_iqr", "scale_standard", "scale_minmax", "transform_log", "transform_sqrt", "mapping", "onehot", "rename", "drop_columns", "text_lowercase", "text_remove_punct", "text_remove_stopwords", "remove_duplicates"];
 const VTYPES = ["Numerical", "Ordinal", "Nominal", "Binary", "Text", "Datetime", "ID"];
 const VROLES = ["Independent", "Dependent", "Control", "Grouping", "ID", "Ignore"];
+
+/** Tab → nomor tahap pada ProcessRail, supaya rel proses selalu sinkron dengan layar. */
+const STAGE_BY_TAB: Record<string, number> = {
+  dataset: 2,
+  variables: 3,
+  preprocess: 4,
+  diff: 4,
+  analysis: 5,
+  log: 6,
+  exports: 7,
+};
 
 function FieldSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
@@ -73,6 +95,8 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   const [srcConfig, setSrcConfig] = useState('{\n  "url": "https://.../records",\n  "params": {"limit": 100},\n  "records_path": "data.items",\n  "mapping": {"kolom_tujuan": "path.sumber"}\n}');
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
+  const [meta, setMeta] = useState<ProjectMeta | null>(null);
+  const [tab, setTab] = useState("dataset");
 
   async function load() {
     try {
@@ -82,8 +106,11 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
       setAnalyses(await api<AnalysisItem[]>(`/api/v1/projects/${id}/analyses`));
       setExports(await api<ExportItem[]>(`/api/v1/projects/${id}/exports`));
       setSources(await api(`/api/v1/projects/${id}/data-sources`));
+      setMeta(await api<ProjectMeta>(`/api/v1/projects/${id}`));
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Gagal memuat");
+    } finally {
+      setLoading(false);
     }
   }
   useEffect(() => { void load(); }, []);
@@ -289,34 +316,171 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   }
 
   const selDs = datasets.find((d) => d.id === sel);
+  const [loading, setLoading] = useState(true);
+
   return (
     <>
-      <h2 className="text-2xl font-bold">Project</h2>
-      {err && <Alert variant="destructive" className="mt-2">{err}</Alert>}
-      {msg && <Alert variant="success" className="mt-2">{msg}</Alert>}
-      <Card className="mt-4">
-        <CardHeader><CardTitle>Upload dataset (CSV/XLSX/XLS/SAV/JSON ≤50MB)</CardTitle></CardHeader>
-        <CardContent>
-          <form onSubmit={upload} className="flex items-center gap-2">
-            <Input type="file" name="file" />
-            <Button type="submit">Upload</Button>
-          </form>
-          {uploadPct != null && <Progress value={uploadPct} className="mt-2" />}
-        </CardContent>
-      </Card>
-      <Card className="mt-4">
-        <CardHeader><CardTitle>Datasets ({datasets.length})</CardTitle></CardHeader>
-        <CardContent className="space-y-1">
-          {datasets.map((d) => (
-            <p key={d.id} className="text-sm">
-              <Button size="sm" variant="secondary" onClick={() => { setSel(d.id); setVer(1); setPreviewOff(0); }}>{d.filename}</Button>{" "}
-              {d.rows_count}×{d.cols_count} · v{d.versions.map((v) => v.version_number).join(",")}{" "}
-              <span className="text-xs text-slate-400">{d.id.slice(0, 8)}</span>{" "}
-              <Button size="sm" variant="secondary" onClick={() => setDelTarget(d)}>Hapus</Button>
+      <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
+        <div className="min-w-0">
+          <Link
+            href="/dashboard"
+            className="ring-accent inline-flex items-center gap-1.5 rounded-sm text-[11.5px] font-medium text-ink-3 hover:text-accent"
+          >
+            <ChevronLeft size={12} strokeWidth={1.5} aria-hidden="true" />
+            Dashboard
+          </Link>
+          <h1 className="mt-2 truncate text-[1.6rem] font-semibold leading-tight tracking-tight text-ink">
+            {loading ? (
+              <span className="shimmer inline-block h-7 w-72 rounded-sm bg-paper-3 align-middle" />
+            ) : (
+              (meta?.title ?? "Project")
+            )}
+          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            {meta && <Badge variant="info">{meta.research_type}</Badge>}
+            <span className="tnum text-[11.5px] text-ink-4">
+              {loading
+                ? "memuat…"
+                : `${datasets.length} dataset · ${analyses.length} analisis · ${exports.length} export`}
+            </span>
+          </div>
+          {meta?.description && (
+            <p className="mt-3 max-w-[62ch] text-[13px] leading-relaxed text-ink-2">
+              {meta.description}
             </p>
-          ))}
-        </CardContent>
-      </Card>
+          )}
+        </div>
+        <Link
+          href="/alur"
+          className="ring-accent shrink-0 rounded-md border border-rule-2 px-3 py-2 text-[12px] font-medium text-ink hover:border-ink-4 hover:bg-paper-2"
+        >
+          Panduan alur
+        </Link>
+      </div>
+
+      {/* Tahap aktif mengikuti tab yang sedang dibuka — DNA project → export. */}
+      <ProcessRail
+        className="mt-6"
+        current={STAGE_BY_TAB[tab] ?? 1}
+        hrefFor={(key) => (key === "project" ? "/dashboard" : undefined)}
+      />
+
+      {err && <Alert variant="destructive" className="mt-5">{err}</Alert>}
+      {msg && <Alert variant="success" className="mt-5">{msg}</Alert>}
+
+      {!selDs && (
+        <section className="mt-7 grid gap-x-10 gap-y-6 lg:grid-cols-12">
+          <div className="lg:col-span-7">
+            <div className="rounded-lg border border-rule bg-paper p-5">
+              <div className="flex items-baseline justify-between gap-4">
+                <h2 className="text-[13.5px] font-semibold tracking-tight text-ink">
+                  Unggah dataset
+                </h2>
+                <span className="tnum text-[10.5px] uppercase tracking-[0.14em] text-ink-4">
+                  langkah 02
+                </span>
+              </div>
+              <p className="mt-2 text-[12.5px] leading-relaxed text-ink-3">
+                CSV, XLSX, XLS, SAV, atau JSON — maksimal 50&nbsp;MB. File
+                diunggah apa adanya; delimiter dan header dideteksi otomatis.
+              </p>
+              <form onSubmit={upload} className="mt-4 space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="ds-file">Berkas dataset</Label>
+                  <Input id="ds-file" type="file" name="file" accept=".csv,.xlsx,.xls,.sav,.json" />
+                </div>
+                {uploadPct != null ? (
+                  <div className="space-y-1.5">
+                    <Progress value={uploadPct} />
+                    <p className="tnum text-[11px] text-ink-3">Mengunggah {uploadPct}%</p>
+                  </div>
+                ) : (
+                  <Button type="submit">Unggah dataset</Button>
+                )}
+              </form>
+            </div>
+          </div>
+
+          <div className="lg:col-span-5">
+            <div className="rounded-lg border border-dashed border-rule-2 px-5 py-10 text-center">
+              <span
+                aria-hidden="true"
+                className="mx-auto block h-7 w-7 border border-rule-2"
+                style={{
+                  backgroundImage:
+                    "repeating-linear-gradient(-45deg, var(--color-paper-3) 0 1px, transparent 1px 6px)",
+                }}
+              />
+              <p className="mt-4 text-[13.5px] font-medium text-ink">Belum ada dataset</p>
+              <p className="mx-auto mt-1.5 max-w-[38ch] text-[12.5px] leading-relaxed text-ink-3">
+                Tujuh tahap berikutnya — variabel, pembersihan, analisis, hasil,
+                dan ekspor — baru terbuka setelah ada data yang bisa dibaca.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {datasets.length > 0 && (
+      <section className="mt-7">
+        <div className="flex items-baseline justify-between gap-4 border-b border-rule pb-2.5">
+          <h2 className="text-[13.5px] font-semibold tracking-tight text-ink">
+            Dataset
+          </h2>
+          <span className="tnum text-[10.5px] uppercase tracking-[0.14em] text-ink-4">
+            {datasets.length} berkas
+          </span>
+        </div>
+        {loading ? (
+          <ul className="divide-y divide-rule" aria-busy="true">
+            {[0, 1].map((i) => (
+              <li key={i} className="flex items-center gap-4 py-3.5">
+                <div className="min-w-0 flex-1">
+                  <div className="shimmer h-4 w-52 rounded-sm bg-paper-3" />
+                  <div className="shimmer mt-2 h-3 w-40 rounded-sm bg-paper-3" />
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+        <ul className="divide-y divide-rule">
+          {datasets.map((d) => {
+            const active = d.id === sel;
+            return (
+              <li key={d.id} className="flex items-center gap-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => { setSel(d.id); setVer(1); setPreviewOff(0); }}
+                  aria-current={active ? "true" : undefined}
+                  className={`pressable ring-accent min-w-0 flex-1 rounded-sm text-left ${
+                    active ? "text-ink" : "text-ink-2 hover:text-ink"
+                  }`}
+                >
+                  <span className="block truncate text-[13.5px] font-medium">{d.filename}</span>
+                  <span className="tnum mt-1 block text-[11px] text-ink-4">
+                    {d.rows_count}×{d.cols_count} ·{" "}
+                    {d.versions.length > 0
+                      ? `v${d.versions.map((v) => v.version_number).join(", ")}`
+                      : "tanpa versi"}{" "}
+                    · {d.file_type.toUpperCase()} · {d.id.slice(0, 8)}
+                  </span>
+                </button>
+                {active && <Badge variant="success">dipakai</Badge>}
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => setDelTarget(d)}
+                  aria-label={`Hapus dataset ${d.filename}`}
+                >
+                  Hapus
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+        )}
+      </section>
+      )}
       <Dialog open={!!delTarget} onOpenChange={(o) => { if (!o) setDelTarget(null); }}>
         <DialogContent>
           <DialogHeader>
@@ -329,9 +493,19 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <Card className="mt-4">
-        <CardHeader><CardTitle>Import via API / Scraper</CardTitle></CardHeader>
-        <CardContent>
+      <details className="group mt-4 rounded-lg border border-rule bg-paper">
+        <summary className="ring-accent flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4">
+          <span className="flex items-center gap-2.5">
+            <span className="text-ink-4 transition-transform duration-200 group-open:rotate-90">›</span>
+            <span className="text-[13.5px] font-semibold tracking-tight text-ink">
+              Import via API atau scraper
+            </span>
+          </span>
+          <span className="tnum text-[10.5px] uppercase tracking-[0.14em] text-ink-4">
+            opsional
+          </span>
+        </summary>
+        <div className="border-t border-rule px-5 py-5">
           <form onSubmit={fetchSource} className="space-y-2">
             <Select value={srcProvider} onValueChange={setSrcProvider}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -361,16 +535,16 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                         <input type="radio" name="picktable" checked={pickTable === t.index} onChange={() => setPickTable(t.index)} className="mt-1" />
                         <span>
                           <strong>Tabel {t.index}</strong> — {t.rows}×{t.cols} · {t.columns.slice(0, 6).join(", ")}
-                          {t.sample[0] && <span className="block font-mono text-xs text-slate-500">{JSON.stringify(t.sample[0]).slice(0, 120)}</span>}
+                          {t.sample[0] && <span className="tnum block text-[11px] text-ink-3">{JSON.stringify(t.sample[0]).slice(0, 120)}</span>}
                         </span>
                       </label>
                     ))}
-                    {inspect.tables.length === 0 && <p className="text-sm text-slate-500">Tidak ada tabel di halaman ini.</p>}
+                    {inspect.tables.length === 0 && <p className="text-[12.5px] text-ink-3">Tidak ada tabel di halaman ini.</p>}
                   </div>
                 )}
                 <div className="flex items-center gap-2">
                   <Button type="submit">Fetch → dataset versioned</Button>
-                  <button type="button" className="text-xs text-blue-700 hover:underline" onClick={() => setAdvanced(true)}>Mode advanced (JSON)</button>
+                  <button type="button" className="ring-accent rounded-sm text-[11.5px] font-medium text-accent hover:text-accent-2" onClick={() => setAdvanced(true)}>Mode advanced (JSON)</button>
                 </div>
               </>
             ) : (
@@ -378,7 +552,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                 <Textarea rows={6} value={srcConfig} onChange={(e) => setSrcConfig(e.target.value)} />
                 <div className="flex items-center gap-2">
                   <Button type="submit">Fetch → dataset versioned</Button>
-                  {srcProvider === "html_table" && <button type="button" className="text-xs text-blue-700 hover:underline" onClick={() => setAdvanced(false)}>Kembali ke wizard</button>}
+                  {srcProvider === "html_table" && <button type="button" className="ring-accent rounded-sm text-[11.5px] font-medium text-accent hover:text-accent-2" onClick={() => setAdvanced(false)}>Kembali ke wizard</button>}
                 </div>
               </>
             )}
@@ -391,17 +565,17 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                   <TableRow key={x.id}>
                     <TableCell>{x.kind}:{x.provider}</TableCell>
                     <TableCell>{x.record_count ?? "-"}</TableCell>
-                    <TableCell className="text-xs text-slate-400">{x.dataset_id?.slice(0, 8) || "-"}</TableCell>
-                    <TableCell className="text-xs text-slate-400">{x.created_at}</TableCell>
+                    <TableCell className="tnum text-[11px] text-ink-4">{x.dataset_id?.slice(0, 8) || "-"}</TableCell>
+                    <TableCell className="tnum text-[11px] text-ink-4">{x.created_at}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </details>
       {selDs && (
-        <Tabs defaultValue="dataset" className="mt-4">
+        <Tabs value={tab} onValueChange={setTab} className="mt-8">
           <TabsList>
             <TabsTrigger value="dataset">Dataset</TabsTrigger>
             <TabsTrigger value="variables">Variables</TabsTrigger>
@@ -430,7 +604,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                         {preview.rows.map((r, i) => <TableRow key={i}>{preview.columns.map((c) => <TableCell key={c}>{String(r[c] ?? "")}</TableCell>)}</TableRow>)}
                       </TableBody>
                     </Table>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="tnum mt-1 text-[11.5px] text-ink-3">
                       Baris {previewOff + 1}–{previewOff + preview.rows.length} dari {preview.total_rows}{" "}
                       <Button size="sm" variant="secondary" disabled={previewOff === 0} onClick={() => { const n = Math.max(0, previewOff - 10); setPreviewOff(n); void loadDetail(sel, ver, n); }}>← Prev</Button>{" "}
                       <Button size="sm" variant="secondary" disabled={previewOff + 10 >= preview.total_rows} onClick={() => { const n = previewOff + 10; setPreviewOff(n); void loadDetail(sel, ver, n); }}>Next →</Button>
@@ -440,7 +614,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                 {profile && (
                   <>
                     <h3 className="mt-4 text-base font-semibold">Profil</h3>
-                    <p className="text-xs text-slate-500">rows {profile.rows} · cols {profile.cols} · missing {profile.missing_pct}% · duplikat {profile.duplicate_rows}</p>
+                    <p className="tnum text-[11.5px] text-ink-3">rows {profile.rows} · cols {profile.cols} · missing {profile.missing_pct}% · duplikat {profile.duplicate_rows}</p>
                     <Table>
                       <TableHeader><TableRow><TableHead>Kolom</TableHead><TableHead>Tipe</TableHead><TableHead>Missing</TableHead><TableHead>Unik</TableHead></TableRow></TableHeader>
                       <TableBody>
@@ -546,7 +720,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                     <SelectContent>{METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                   </Select>
                   {methodSpec?.variables && (
-                    <p className="text-xs text-slate-500">Butuh: {Object.entries(methodSpec.variables).map(([k, v]) => `${k} (${v})`).join(", ")}</p>
+                    <p className="tnum text-[11.5px] text-ink-3">Butuh: {Object.entries(methodSpec.variables).map(([k, v]) => `${k} (${v})`).join(", ")}</p>
                   )}
                   <Textarea rows={3} value={varsJson} onChange={(e) => setVarsJson(e.target.value)} />
                   <Button type="submit">Run</Button>
@@ -564,11 +738,11 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                   <TableBody>
                     {analyses.map((a) => (
                       <TableRow key={a.analysis_uid}>
-                        <TableCell><a className="text-blue-700 hover:underline" href={`/analyses/${a.analysis_uid}`}>{a.analysis_uid}</a></TableCell>
+                        <TableCell><Link className="ring-accent text-accent hover:text-accent-2" href={`/analyses/${a.analysis_uid}`}>{a.analysis_uid}</Link></TableCell>
                         <TableCell><Badge variant="info">{a.method}</Badge></TableCell>
                         <TableCell>v{a.dataset_version_number ?? "-"}</TableCell>
-                        <TableCell className="text-xs text-slate-400">{a.result_hash || "-"}</TableCell>
-                        <TableCell className="text-xs text-slate-400">{a.created_at}</TableCell>
+                        <TableCell className="tnum text-[11px] text-ink-4">{a.result_hash || "-"}</TableCell>
+                        <TableCell className="tnum text-[11px] text-ink-4">{a.created_at}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -581,17 +755,17 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
               <CardHeader><CardTitle>Pusat Export ({exports.length})</CardTitle></CardHeader>
               <CardContent>
                 {exports.length === 0 ? (
-                  <p className="text-sm text-slate-500">Belum ada file. Export dari halaman hasil analisis.</p>
+                  <p className="text-[12.5px] text-ink-3">Belum ada file. Export dari halaman hasil analisis.</p>
                 ) : (
                   <Table>
                     <TableHeader><TableRow><TableHead>Analysis</TableHead><TableHead>Method</TableHead><TableHead>Format</TableHead><TableHead>Waktu</TableHead><TableHead>Aksi</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {exports.map((x, i) => (
                         <TableRow key={i}>
-                          <TableCell className="text-xs"><a className="text-blue-700 hover:underline" href={`/analyses/${x.analysis_uid}`}>{x.analysis_uid}</a></TableCell>
+                          <TableCell className="text-xs"><Link className="ring-accent text-accent hover:text-accent-2" href={`/analyses/${x.analysis_uid}`}>{x.analysis_uid}</Link></TableCell>
                           <TableCell>{x.method}</TableCell>
                           <TableCell><Badge>{x.format.toUpperCase()}</Badge></TableCell>
-                          <TableCell className="text-xs text-slate-400">{x.created_at}</TableCell>
+                          <TableCell className="tnum text-[11px] text-ink-4">{x.created_at}</TableCell>
                           <TableCell><Button size="sm" variant="secondary" onClick={() => void downloadExport(x.analysis_uid, x.format)}>Unduh</Button></TableCell>
                         </TableRow>
                       ))}

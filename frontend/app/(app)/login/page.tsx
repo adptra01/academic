@@ -38,6 +38,8 @@ export default function LoginPage() {
       const j = await res.json();
       if (!res.ok) throw new Error(j.detail || `HTTP ${res.status}`);
       window.localStorage.setItem("token", j.access_token);
+      // Simpan profil supaya shell konsol bisa menyapa nama, bukan hanya "Logout".
+      if (j.user) window.localStorage.setItem("user", JSON.stringify(j.user));
       window.location.href = "/dashboard";
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Login gagal");

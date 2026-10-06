@@ -1,4 +1,14 @@
 
+## [2026-10-06] — Konsol: dashboard + project detail
+- Primitif `ui/*` diselaraskan ke design token yang sama dengan halaman public: kartu jadi hairline tanpa shadow, tombol ke aksen petrol + `pressable` + `ring-accent`, badge/alert terdesaturasi, tabel header mono kecil + angka tabular, tab jadi rail garis bawah (bukan pil abu-abu), input/label rapat + fokus aksen
+- `ProcessRail` (baru): 7 tahap `Buat project → Unggah data → Variabel → Bersihkan → Analisis → Hasil → Ekspor`, dipakai di dashboard (`current=1`) dan project detail (ikut tab aktif lewat `STAGE_BY_TAB`) — urutan Create Project → Open Project → selanjutnya jadi kerangka yang selalu terlihat
+- Shell konsol `(app)/layout.tsx`: sticky, `bg-paper-2`, nav Dashboard/Metode/Reproduksi, nama pengguna dari profil yang disimpan saat login; nav pindah ke sheet di bawah `md` supaya rail tahap dapat lebar penuh
+- Dashboard: rail tahap, form Create Project memakai `research_type` (5 nilai yang diizinkan backend) + `description` — sebelumnya UI mengabaikan keduanya; daftar project jadi hairline list dengan `Buka` + tombol hapus (ikon, `aria-label`), skeleton saat memuat, empty state, ganti password di `<details>`
+- Project detail: header meta (judul, jenis, jumlah dataset/analisis/export), upload + empty state "Belum ada dataset", daftar dataset hairline dengan badge `dipakai`, blok import API/scraper jadi `<details>` opsional (sebelumnya selalu tampil di atas lipatan), 7 tab tetap sama
+- Halaman `analyses/[uid]` belum disentuh (fase berikutnya)
+- Insiden: rail tahap + TabsList melebar dokumen di 390px (`min-w-max` + `inline-flex`) → `w-full max-w-full overflow-x-auto overscroll-x-contain`; tombol `Buka` dengan `opacity-0` tidak terlihat saat hover di headless → jadi selalu tampil
+- Verified: `tsc --noEmit` bersih, `next build` 11/11, 200 di 4 halaman public + 4 rute aplikasi, rail ikut tab (Log → tahap 06 Hasil), research log menampilkan 6 analisis + hash dari API nyata, tanpa horizontal overflow di 390px (`scrollW=clientW=390` di dashboard & project)
+
 ## [2026-10-06] — Halaman public (welcome + 3 halaman detail)
 - Route group `(marketing)` dengan shell sendiri (header/grain/footer); `(app)` menyimpan halaman terautentikasi → **URL lama tidak berubah** (`/dashboard`, `/login`, `/register`, `/analyses/[uid]`, `/projects/[id]`, `/shared/[token]`, `/auth/callback` tetap sama)
 - Welcome page dipecah: 9.180px → **3.164px**. Rincian dipindah ke `/metode` (katalog + filter/pencarian), `/alur` (8 langkah + format + 15 operasi + grafik), `/reproduksi` (audit log + result_hash + bukti validasi R/SPSS). Welcome: hero + ringkasan 7 kelompok + 4 langkah inti + CTA

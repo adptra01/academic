@@ -2,16 +2,20 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/utils";
 
+/**
+ * Badge = label status. Semua varian mengikuti token dan sengaja dibuat
+ * terdesaturasi supaya tidak mencolok.
+ */
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold transition-colors",
+  "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10.5px] font-medium uppercase leading-tight tracking-[0.1em] transition-colors",
   {
     variants: {
       variant: {
-        default: "border-slate-200 bg-slate-100 text-slate-800",
-        success: "border-green-200 bg-green-50 text-green-700",
-        destructive: "border-red-200 bg-red-50 text-red-700",
-        info: "border-blue-200 bg-blue-50 text-blue-700",
-        warning: "border-amber-200 bg-amber-50 text-amber-700",
+        default: "border-rule bg-paper-2 text-ink-2",
+        success: "border-accent-line bg-accent-wash text-accent-2",
+        destructive: "border-danger/30 bg-danger/8 text-danger",
+        info: "border-accent-line bg-accent-wash text-accent",
+        warning: "border-warn/30 bg-warn-wash text-warn",
       },
     },
     defaultVariants: { variant: "default" },
@@ -24,12 +28,12 @@ function Badge({ className, variant, ...props }: BadgeProps) {
   return <span className={cn(badgeVariants({ variant }), className)} {...props} />;
 }
 
-const alertVariants = cva("relative w-full rounded-lg border p-4 text-sm", {
+const alertVariants = cva("relative w-full rounded-md border px-3.5 py-2.5 text-[13px] leading-relaxed", {
   variants: {
     variant: {
-      default: "border-slate-200 bg-white text-slate-800",
-      destructive: "border-red-200 bg-red-50 text-red-800",
-      success: "border-green-200 bg-green-50 text-green-800",
+      default: "border-rule bg-paper-2 text-ink-2",
+      destructive: "border-danger/30 bg-danger/8 text-danger",
+      success: "border-accent-line bg-accent-wash text-accent-2",
     },
   },
   defaultVariants: { variant: "default" },
