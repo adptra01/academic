@@ -8,6 +8,7 @@ Aturan keras (lihat docs/scraping-policy.md):
 """
 from __future__ import annotations
 import time
+import re
 import urllib.parse
 import urllib.request
 import urllib.robotparser
@@ -22,6 +23,12 @@ PRESETS = [
     {"id": "first-table", "name": "Tabel pertama halaman mana pun", "description": "Ambil tabel pertama yang ditemukan di URL allowlisted.",
      "example_url": "", "table_index": 0},
     {"id": "bps-statik", "name": "Tabel publik BPS/statistik", "description": "Tempel URL tabel publik (mis. Badan Pusat Statistik).",
+     "example_url": "", "table_index": 0},
+    {"id": "auto-detect", "name": "Auto Detect (Coba semua strategi)", "description": "Coba Wikipedia → Tabel pertama → BPS → Google Sheets → Generic HTML. Ambil yang paling kaya data.",
+     "example_url": "", "table_index": 0, "auto": True},
+    {"id": "google-sheets", "name": "Google Sheets Publik", "description": "CSV export dari Google Sheets publik (format: https://docs.google.com/spreadsheets/d/ID/export?format=csv).",
+     "example_url": "https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/export?format=csv", "table_index": 0},
+    {"id": "generic-html", "name": "Generic HTML Table (Fallback)", "description": "Coba semua tabel di halaman, ambil yang paling kaya data (baris × kolom).",
      "example_url": "", "table_index": 0},
 ]
 
@@ -89,7 +96,8 @@ def download_guarded(url: str, config: dict) -> tuple[str, str, bytes]:
 
 def list_tables(text: str) -> list:
     try:
-        tables = pd.read_html(text)
+        from io import StringIO
+        tables = pd.read_html(StringIO(text))
     except ValueError as e:
         raise ScraperError(f"Tidak ada tabel HTML: {e}")
     return [t.dropna(how="all").drop_duplicates() for t in tables]
@@ -132,6 +140,17 @@ class HTMLTableScraper(DataConnector):
 
     def fetch(self, config: dict) -> FetchResult:
         url = config.get("url", "")
+        preset_id = config.get("preset_id", "first-table")
+        
+        # Auto-detect mode: coba semua strategi berurutan
+        if preset_id == "auto-detect":
+            return self._fetch_auto_detect(url, config)
+        
+        # Google Sheets publik via CSV export
+        if preset_id == "google-sheets":
+            return self._fetch_google_sheets(url, config)
+        
+        # Mode standar: table_index eksplisit
         guard_url(url)
         table_index = int(config.get("table_index", 0))
         text, final_url, raw = download_guarded(url, config)
@@ -150,3 +169,43 @@ class HTMLTableScraper(DataConnector):
                 "robots": "allowed", "deduped": True,
             },
         )
+
+    def _fetch_auto_detect(self, url: str, config: dict) -> FetchResult:
+        """Coba strategi berurutan: wikipedia → first-table → bps-statik → google-sheets → generic-html"""
+        strategies = [
+            ("wikipedia", {"table_index": 0}),
+            ("first-table", {"table_index": 0}),
+            ("bps-statik", {"table_index": 0}),
+            ("google-sheets", {}),
+            ("generic-html", {"table_index": 0}),
+        ]
+        
+        last_error = None
+        for preset_id, preset_config in strategies:
+            try:
+                merged_config = {**config, **preset_config}
+                # Temporarily override preset_id to avoid recursion
+                merged_config = {**config, **preset_config, "preset_id": preset_id}
+                return self.fetch(merged_config)
+            except Exception as e:
+                last_error = e
+                continue
+        raise ScraperError(f"Auto-detect gagal: {last_error}")
+
+    def _fetch_google_sheets(self, url: str, config: dict) -> FetchResult:
+        """Fetch Google Sheets via CSV export endpoint."""
+        # Convert Google Sheets URL to CSV export format
+        # https://docs.google.com/spreadsheets/d/ID/edit#gid=0
+        # -> https://docs.google.com/spreadsheets/d/ID/export?format=csv&gid=GID
+        import re
+        match = re.search(r'/spreadsheets/d/([a-zA-Z0-9-_]+)', url)
+        if not match:
+            raise ScraperError("URL Google Sheets tidak valid. Format: https://docs.google.com/spreadsheets/d/ID/...")
+        sheet_id = match.group(1)
+        gid_match = re.search(r'[#&]gid=(\d+)', url)
+        gid = gid_match.group(1) if gid_match else "0"
+        csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+        
+        # Fetch CSV directly
+        config_gs = {**config, "url": csv_url, "preset_id": "generic-html"}
+        return self.fetch(config_gs)

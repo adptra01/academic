@@ -17,7 +17,7 @@ services:
       - BACKEND_CORS_REGEX=http://(127\.0\.0\.1|localhost):\d+
       # DEV ONLY: ganti di prod via secrets (lihat docs/runbook-prod.md)
       - OAUTH_ENCRYPTION_KEY=jqKn1bmE1dTH0vLBFhVLAMpvlnCgfQXzUDQbX11H2LQ=
-      - SCRAPER_ALLOWLIST=
+      - SCRAPER_ALLOWLIST=en.wikipedia.org,wikipedia.org,docs.google.com,spreadsheets.google.com,httpbin.org,r.jina.ai
       # S3/MinIO nonaktif di local DDEV (registry minio diblokir, 401/pull denied).
       # Dev gunakan filesystem volume; S3 aktif di VPS prod via compose.yml (perlu docker login).
       # - S3_ENDPOINT=http://minio:9000
