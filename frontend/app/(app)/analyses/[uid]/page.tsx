@@ -3,18 +3,18 @@ import { useEffect, useState } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import dynamic from "next/dynamic";
-import { api, apiUrl, apaStyle, authHeaders, downloadExport } from "../../../lib/api";
-import type { Viz } from "../../../components/EChartView";
+import { api, apiUrl, apaStyle, authHeaders, downloadExport } from "@/lib/api";
+import type { Viz } from "@/components/EChartView";
 
-const EChartView = dynamic(() => import("../../../components/EChartView"), { ssr: false });
-import { Button } from "../../../components/ui/button";
-import { Textarea } from "../../../components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui/card";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../../components/ui/table";
-import { Badge } from "../../../components/ui/badge";
-import { Alert } from "../../../components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/tabs";
-import { Select, SelectValue, SelectTrigger, SelectContent, SelectItem } from "../../../components/ui/select";
+const EChartView = dynamic(() => import("@/components/EChartView"), { ssr: false });
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/input";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Alert } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectValue, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select";
 
 type Detail = {
   analysis_uid: string; method: string; variables: Record<string, unknown>; params: Record<string, unknown>;

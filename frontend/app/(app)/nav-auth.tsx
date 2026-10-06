@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiUrl } from "../lib/api";
+import { apiUrl } from "@/lib/api";
 
 export default function NavAuth() {
   const [logged, setLogged] = useState(false);

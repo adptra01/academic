@@ -1,4 +1,19 @@
 
+## [2026-10-06] — Halaman public (welcome + 3 halaman detail)
+- Route group `(marketing)` dengan shell sendiri (header/grain/footer); `(app)` menyimpan halaman terautentikasi → **URL lama tidak berubah** (`/dashboard`, `/login`, `/register`, `/analyses/[uid]`, `/projects/[id]`, `/shared/[token]`, `/auth/callback` tetap sama)
+- Welcome page dipecah: 9.180px → **3.164px**. Rincian dipindah ke `/metode` (katalog + filter/pencarian), `/alur` (8 langkah + format + 15 operasi + grafik), `/reproduksi` (audit log + result_hash + bukti validasi R/SPSS). Welcome: hero + ringkasan 7 kelompok + 4 langkah inti + CTA
+- Nav jadi tautan rute sungguhan + active state (`aria-current="page"`) via `usePathname`; footer ikut diperbarui (anchor `#format` yang mati sudah diganti)
+- Design system: token Tailwind v4 (`paper/ink/rule/accent/abyss` + aksen petrol tunggal), font Archivo + IBM Plex Mono (mono untuk semua angka & ID), tekstur grafik-kertas + grain fixed, underline SVG `pathLength="1"`
+- Konten diturunkan dari kode, bukan dikarang: 15 metode MVP + 5 fase 2 dari `methods/registry.yaml`, 15 op dari `VALID_OPS`, 13 tipe grafik dari `CHART_TYPES`, 6 format export, toleransi 1e-6/1e-4 dari gate rilis
+- State lengkap: katalog punya loading→hasil (skeleton shimmer), empty state, dan error inline; "Analysis record" di hero memanggil `/health` sungguhan (status engine jujur online/offline + Coba lagi)
+- a11y: gate `.js-reveal` (tanpa JS konten tetap terlihat), `prefers-reduced-motion`, label di atas input + helper text, skip-to-content belum (TODO)
+- Insiden: `[data-reveal]{opacity:0}` bikin 38 elemen tak terlihat bila observer gagal → diperbaiki dengan gate `js-reveal` + `threshold 0`; label meta di alur kerja menabrak teks → meta dipindah jadi chip; header jadi dobel saat layout `(marketing)` dibuat (page lama masih render SiteHeader sendiri) → header/footer/grain hanya dari layout
+- Section `Format` di `/alur` dirapikan: 3 kolom tinggi tak sama + blok 15-op yang terpisah → 3 grup seragam (`Format file` 5 masuk/6 keluar berdampingan, `Tipe grafik` grid 13, `Operasi preprocessing` daftar 2 kolom dengan keterangan per op); kolom konteks jadi sticky; grid grafik pakai border eksplisit supaya sel kosong di baris terakhir tidak tampil sebagai blok abu
+- Duplikasi judul dibersihkan: h2 `Pipeline` dan `Provenance` dihapus karena `PageHeader` sudah memikulnya (teksnya sama persis sebelumnya)
+- Nav `Beranda` dikembalikan sebagai item pertama + breadcrumb `← Beranda` di halaman detail
+- Verified: `tsc --noEmit` bersih, `next build` 11/11 page (4 public statis), 200 di 4 halaman public + 4 rute aplikasi, anchor `/metode#wilcoxon` mendarat di top=112, tanpa horizontal overflow di 390px (scrollW=clientW=390)
+- Catatan: `next lint` tidak dijalankan — ESLint belum dikonfigurasi di repo (prompt interaktif), di luar scope
+
 ## [2026-10-04] — Export LaTeX
 - `build_latex` (article+booktabs+graphicx+hyperref): tabel statistik, formula verbatim, calculation, figure placeholder + appendix; escape karakter khusus; format `tex` di endpoint + CHECK + UI
 - Verified: 200, begin/end seimbang (5/5), header/footer OK

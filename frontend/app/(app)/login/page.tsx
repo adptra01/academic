@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiUrl } from "../../lib/api";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
-import { Alert } from "../../components/ui/badge";
-import { Label } from "../../components/ui/label";
+import { apiUrl } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Alert } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -15,7 +15,7 @@ export default function LoginPage() {
   async function googleLogin() {
     setErr("");
     try {
-      const { api } = await import("../../lib/api");
+      const { api } = await import("@/lib/api");
       const j = await api<{ url: string }>(`/api/v1/auth/google/url`);
       window.location.href = j.url;
     } catch (e: unknown) {

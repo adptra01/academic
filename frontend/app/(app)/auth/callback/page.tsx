@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiUrl } from "../../../lib/api";
-import { Alert } from "../../../components/ui/badge";
+import { apiUrl } from "@/lib/api";
+import { Alert } from "@/components/ui/badge";
 
 /** Callback OAuth Google: tukar ?code= menjadi sesi JWT internal. */
 export default function GoogleCallbackPage() {

@@ -1,11 +1,11 @@
 "use client";
 import { useState } from "react";
-import { apiUrl } from "../../lib/api";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Card, CardContent } from "../../components/ui/card";
-import { Alert } from "../../components/ui/badge";
-import { Label } from "../../components/ui/label";
+import { apiUrl } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Alert } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
