@@ -1,4 +1,12 @@
 
+## [2026-10-08] — Layout tahap 02–07: stepper vertikal + panel satu tahap
+- Ganti navigasi ganda (ProcessRail horizontal + barisan 7 tab) dengan satu stepper vertikal `components/app/step-nav.tsx`: ikon + nama + nomor tahap + ringkasan hasil + status selesai/terkunci; sticky di desktop, chip scroll-mendatar di ponsel
+- Tiap tahap kini satu panel: kepala "Tahap NN dari 06" + judul + petunjuk + konten, plus tombol Kembali/Lanjut; diff "Bandingkan Versi" digabung sebagai sub-kartu opsional di tahap Bersihkan (bukan tahap wajib)
+- Status jujur dari data: terkunci bila belum ada file, selesai bila ada artefaknya (file/kolom/versi/analisis/unduhan); daftar file + ambil-dari-web pindah ke dalam tahap 02
+- Token dipakai ulang dari `@theme` (paper/ink/rule/accent), tanpa warna baru; animasi hanya `fade-in` (transform/opacity)
+- Insiden: `</div>` grid kurang satu + bungkus `<Card>` diff hilang saat pemindahan blok → diperbaiki; overflow 1142px di 390px karena grid item tanpa `min-w-0` → ditambah
+- Verified: `tsc` bersih, `next build` 11/11, klik Lanjut pindah tahap + header ikut ("Tahap 03 dari 06"), 390/390 tanpa overflow
+
 ## [2026-10-08] — Perbaikan "Failed to fetch" + bahasa menu untuk user umum
 - **Akar masalah "Failed to fetch"** (bukan CORS): (1) container `db` mati → backend 500 dengan `psycopg.OperationalError [Errno -2] Name or service not known`; `/health` tetap 200 karena **tidak menyentuh database** sehingga health check menipu; (2) default `apiUrl()` jatuh ke `localhost:8000` yang hanya hidup di jaringan container — DDEV memetakan `:8000` → host `:8100`
 - `lib/api.ts`: default → `http://localhost:8100`; `fetchWithContext()` mengubah kegagalan jaringan menjadi pesan yang menyebut URL yang dicoba + langkah perbaikan; dipakai di 6 halaman + `xhr.onerror` upload. Halaman login juga menangani respons non-JSON dan `access_token` yang hilang

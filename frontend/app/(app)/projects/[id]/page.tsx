@@ -4,21 +4,20 @@ import Link from "next/link";
 import {
   ChartBar,
   ChevronLeft,
+  ChevronRight,
   Columns3,
   Download,
   FlaskConical,
-  GitCompare,
   History,
   Database,
   Info,
   Play,
   Upload,
   Table2,
-  type LucideIcon,
 } from "lucide-react";
 import { api, apiUrl, authHeaders, downloadExport, fetchWithContext } from "@/lib/api";
 import { STATUS_HELP, TAB_HINT, TAB_LABEL } from "@/lib/plain-terms";
-import ProcessRail from "@/components/app/process-rail";
+import StepNav, { type StepStatus } from "@/components/app/step-nav";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -27,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectValue, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
@@ -52,16 +51,38 @@ const OPS = ["drop_missing", "fill_missing", "remove_outlier_iqr", "scale_standa
 const VTYPES = ["Numerical", "Ordinal", "Nominal", "Binary", "Text", "Datetime", "ID"];
 const VROLES = ["Independent", "Dependent", "Control", "Grouping", "ID", "Ignore"];
 
-/** Tab → nomor tahap pada ProcessRail, supaya rel proses selalu sinkron dengan layar. */
-const STAGE_BY_TAB: Record<string, number> = {
-  dataset: 2,
-  variables: 3,
-  preprocess: 4,
-  diff: 4,
-  analysis: 5,
-  log: 6,
-  exports: 7,
+/** Urutan tahap kerja 02–07. `tab` adalah kunci konten yang tampil;
+ *  `diff` digabung ke dalam tahap Bersihkan supaya pengguna awam tidak
+ *  mengira "Bandingkan Versi" adalah tahap wajib yang berdiri sendiri. */
+const STEP_ORDER = [
+  "dataset",
+  "variables",
+  "preprocess",
+  "analysis",
+  "log",
+  "exports",
+] as const;
+
+type StepKey = (typeof STEP_ORDER)[number];
+
+/** Nomor tahap kanonis untuk setiap kunci (tahap 01 = project, di dashboard). */
+const STEP_NUMBER: Record<StepKey, string> = {
+  dataset: "02",
+  variables: "03",
+  preprocess: "04",
+  analysis: "05",
+  log: "06",
+  exports: "07",
 };
+
+const STEP_ICON = {
+  dataset: Database,
+  variables: Columns3,
+  preprocess: FlaskConical,
+  analysis: ChartBar,
+  log: History,
+  exports: Download,
+} as const;
 
 /** Nama metode dalam bahasa sehari-hari. Nama teknis (`ttest_ind`) tetap
  *  ditampilkan di bawahnya agar cocok dengan log, ekspor, dan literatur. */
@@ -108,40 +129,7 @@ const OP_PLAIN: Record<string, { name: string }> = {
   remove_duplicates: { name: "Hapus baris yang sama persis" },
 };
 
-/** Urutan tab = urutan kerja, bukan urutan abjad. */
-const TAB_ORDER = [
-  "dataset",
-  "variables",
-  "preprocess",
-  "diff",
-  "analysis",
-  "log",
-  "exports",
-] as const;
-
-const TAB_ICON: Record<string, LucideIcon> = {
-  dataset: Table2,
-  variables: Columns3,
-  preprocess: FlaskConical,
-  diff: GitCompare,
-  analysis: ChartBar,
-  log: History,
-  exports: Download,
-};
-
-function FieldSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
-  return (
-    <div className="space-y-1">
-      <Label>{label}</Label>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger><SelectValue /></SelectTrigger>
-        <SelectContent>
-          {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
+/** Urutan tahap kerja 02–07. */
 
 export default function ProjectPage({ params }: { params: { id: string } }) {
   const id = params.id;
@@ -406,6 +394,43 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   const selDs = datasets.find((d) => d.id === sel);
   const [loading, setLoading] = useState(true);
 
+  /* ---- Status tahap untuk StepNav (tahap 02–07) ----
+   *  Terkunci = belum ada file data. Selesai = ada artefak turunannya
+   *  (versi baru, analisis, unduhan). Jujur apa adanya: ini indikator visual,
+   *  bukan pengunci alur — pengguna tetap boleh melompat. */
+  const hasDatasets = datasets.length > 0;
+  const versionCount = selDs?.versions.length ?? 0;
+  const doneSignal: Record<StepKey, boolean> = {
+    dataset: hasDatasets,
+    variables: variables.length > 0,
+    preprocess: versionCount > 1,
+    analysis: analyses.length > 0,
+    log: analyses.length > 0,
+    exports: exports.length > 0,
+  };
+  const stepSummary: Record<StepKey, string | undefined> = {
+    dataset: hasDatasets ? `${datasets.length} file` : undefined,
+    variables: variables.length > 0 ? `${variables.length} kolom` : undefined,
+    preprocess: versionCount > 1 ? `v${ver} aktif` : undefined,
+    analysis: analyses.length > 0 ? `${analyses.length} jalan` : undefined,
+    log: analyses.length > 0 ? `${analyses.length} tercatat` : undefined,
+    exports: exports.length > 0 ? `${exports.length} file` : undefined,
+  };
+  function stepStatus(key: StepKey): StepStatus {
+    if (!hasDatasets && key !== "dataset") return "locked";
+    if (tab === key) return "current";
+    if (doneSignal[key]) return "done";
+    return "todo";
+  }
+  function gotoStep(key: string) {
+    if (!hasDatasets && key !== "dataset") return;
+    setTab(key);
+    document.getElementById("langkah-kerja")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  const stepIndex = Math.max(0, STEP_ORDER.indexOf(tab as StepKey));
+  const prevStep = stepIndex > 0 ? STEP_ORDER[stepIndex - 1] : null;
+  const nextStep = stepIndex < STEP_ORDER.length - 1 ? STEP_ORDER[stepIndex + 1] : null;
+
   return (
     <>
       <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
@@ -446,12 +471,6 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
         </Link>
       </div>
 
-      {/* Tahap aktif mengikuti tab yang sedang dibuka — DNA project → export. */}
-      <ProcessRail
-        className="mt-6"
-        current={STAGE_BY_TAB[tab] ?? 1}
-        hrefFor={(key) => (key === "project" ? "/dashboard" : undefined)}
-      />
 
       {err && <Alert variant="destructive" className="mt-5">{err}</Alert>}
       {msg && <Alert variant="success" className="mt-5">{msg}</Alert>}
@@ -507,16 +526,71 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
               />
               <p className="mt-4 text-[13.5px] font-medium text-ink">Belum ada file data</p>
               <p className="mx-auto mt-1.5 max-w-[38ch] text-[12.5px] leading-relaxed text-ink-3">
-                Tujuh tahap berikutnya — variabel, pembersihan, analisis, hasil,
-                dan ekspor — baru terbuka setelah ada data yang bisa dibaca.
+                Tahap berikutnya — cek kolom, pembersihan, analisis, hasil, dan unduhan —
+                baru terbuka setelah ada file data yang bisa dibaca.
               </p>
             </div>
           </div>
         </section>
       )}
 
-      {datasets.length > 0 && (
-      <section className="mt-7">
+
+      <Dialog open={!!delTarget} onOpenChange={(o) => { if (!o) setDelTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hapus dataset?</DialogTitle>
+            <DialogDescription>{delTarget?.filename} beserta semua versinya akan dihapus. Ditolak server jika sudah ada analysis.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDelTarget(null)}>Batal</Button>
+            <Button variant="destructive" onClick={() => void removeDataset()}>Hapus</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {selDs && (
+        <Tabs value={tab} onValueChange={setTab} className="mt-8">
+          <div
+            id="langkah-kerja"
+            className="grid scroll-mt-24 gap-6 lg:grid-cols-[17.5rem_minmax(0,1fr)]"
+          >
+            <div className="min-w-0 rounded-lg border border-rule bg-paper-2/40 p-3 lg:sticky lg:top-20 lg:self-start">
+              <p className="tnum px-2 pb-2 pt-1 text-[10px] font-medium uppercase tracking-[0.16em] text-ink-4">
+                Daftar tahap
+              </p>
+              <StepNav
+                steps={STEP_ORDER.map((k) => ({
+                  key: k,
+                  n: STEP_NUMBER[k],
+                  label: TAB_LABEL[k],
+                  hint: TAB_HINT[k],
+                  icon: STEP_ICON[k],
+                  status: stepStatus(k),
+                  summary: stepSummary[k],
+                }))}
+                onSelect={gotoStep}
+              />
+            </div>
+
+            <div className="min-w-0">
+              <div className="rounded-lg border border-rule bg-paper p-5">
+                <p className="tnum text-[10.5px] font-medium uppercase tracking-[0.16em] text-accent">
+                  Tahap {STEP_NUMBER[tab as StepKey]} dari 06
+                </p>
+                <h2 className="mt-2 text-[1.15rem] font-semibold leading-tight tracking-tight text-ink">
+                  {TAB_LABEL[tab]}
+                </h2>
+                <div className="mt-2 flex items-start gap-2">
+                  <Info size={14} strokeWidth={1.75} aria-hidden="true" className="mt-0.5 shrink-0 text-ink-4" />
+                  <p className="max-w-[62ch] text-[13px] leading-relaxed text-ink-2">
+                    {TAB_HINT[tab]}
+                  </p>
+                </div>
+              </div>
+
+              <div className="fade-in mt-4" key={tab}>
+          <TabsContent value="dataset">
+      <section>
         <div className="flex items-baseline justify-between gap-4 border-b border-rule pb-2.5">
           <h2 className="flex items-center gap-2 text-[13.5px] font-semibold tracking-tight text-ink">
             <Database size={15} strokeWidth={1.75} aria-hidden="true" className="text-accent" />
@@ -579,19 +653,6 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
         </ul>
         )}
       </section>
-      )}
-      <Dialog open={!!delTarget} onOpenChange={(o) => { if (!o) setDelTarget(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Hapus dataset?</DialogTitle>
-            <DialogDescription>{delTarget?.filename} beserta semua versinya akan dihapus. Ditolak server jika sudah ada analysis.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDelTarget(null)}>Batal</Button>
-            <Button variant="destructive" onClick={() => void removeDataset()}>Hapus</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       <details className="group mt-4 rounded-lg border border-rule bg-paper">
         <summary className="ring-accent flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4">
           <span className="flex items-center gap-2.5">
@@ -673,30 +734,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
           )}
         </div>
       </details>
-      {selDs && (
-        <Tabs value={tab} onValueChange={setTab} className="mt-8">
-          <TabsList aria-label="Bagian kerja project">
-            {TAB_ORDER.map((k) => {
-              const Icon = TAB_ICON[k];
-              return (
-                <TabsTrigger key={k} value={k}>
-                  <Icon size={14} strokeWidth={1.75} aria-hidden="true" />
-                  {TAB_LABEL[k]}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-
-          {/* Subjudul per tab: menjelaskan apa yang harus dilakukan di sini,
-              supaya pengguna tidak perlu menebak isi setiap tab. */}
-          <div className="mt-5 flex items-start gap-2.5">
-            <Info size={14} strokeWidth={1.75} aria-hidden="true" className="mt-0.5 shrink-0 text-ink-4" />
-            <p className="max-w-[68ch] text-[13px] leading-relaxed text-ink-2">
-              {TAB_HINT[tab]}
-            </p>
-          </div>
-          <TabsContent value="dataset">
-            <Card>
+            <Card className="mt-4">
               <CardHeader><CardTitle>Isi File: {selDs.filename}</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-sm">
@@ -833,10 +871,13 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                 </form>
               </CardContent>
             </Card>
-          </TabsContent>
-          <TabsContent value="diff">
-            <Card>
-              <CardHeader><CardTitle>Bandingkan Dua Versi</CardTitle></CardHeader>
+            <div className="mt-4 rounded-lg border border-dashed border-rule-2 bg-paper-2/40 p-4">
+              <p className="tnum text-[10px] font-medium uppercase tracking-[0.16em] text-ink-4">
+                Opsional — setelah ada 2 versi atau lebih
+              </p>
+              <div className="mt-2">
+                <Card>
+                  <CardHeader><CardTitle>Bandingkan Dua Versi</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={showDiff} className="flex gap-2">
                   <Input aria-label="Versi lama" value={diffFrom} onChange={(e) => setDiffFrom(e.target.value)} />
@@ -859,7 +900,9 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                   </div>
                 )}
               </CardContent>
-            </Card>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
           <TabsContent value="analysis">
             <Card>
@@ -979,6 +1022,30 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
               </CardContent>
             </Card>
           </TabsContent>
+
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                  {prevStep ? (
+                    <Button variant="outline" onClick={() => gotoStep(prevStep)}>
+                      <ChevronLeft size={14} strokeWidth={1.75} aria-hidden="true" />
+                      Kembali: {TAB_LABEL[prevStep]}
+                    </Button>
+                  ) : (
+                    <span />
+                  )}
+                  {nextStep ? (
+                    <Button onClick={() => gotoStep(nextStep)}>
+                      Lanjut: {TAB_LABEL[nextStep]}
+                      <ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" />
+                    </Button>
+                  ) : (
+                    <span className="text-[12px] text-ink-3">
+                      Semua tahap selesai — unduhan tersimpan di atas.
+                    </span>
+                  )}
+                </div>
+              </div>
+          </div>
+          </div>
         </Tabs>
       )}
     </>
