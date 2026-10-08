@@ -1,8 +1,23 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
-import { api, apiUrl, authHeaders, downloadExport } from "@/lib/api";
+import {
+  ChartBar,
+  ChevronLeft,
+  Columns3,
+  Download,
+  FlaskConical,
+  GitCompare,
+  History,
+  Database,
+  Info,
+  Play,
+  Upload,
+  Table2,
+  type LucideIcon,
+} from "lucide-react";
+import { api, apiUrl, authHeaders, downloadExport, fetchWithContext } from "@/lib/api";
+import { STATUS_HELP, TAB_HINT, TAB_LABEL } from "@/lib/plain-terms";
 import ProcessRail from "@/components/app/process-rail";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -46,6 +61,72 @@ const STAGE_BY_TAB: Record<string, number> = {
   analysis: 5,
   log: 6,
   exports: 7,
+};
+
+/** Nama metode dalam bahasa sehari-hari. Nama teknis (`ttest_ind`) tetap
+ *  ditampilkan di bawahnya agar cocok dengan log, ekspor, dan literatur. */
+const METHOD_PLAIN: Record<string, string> = {
+  descriptive: "Ringkasan data (mean, SD, median)",
+  normality: "Uji normalitas (Shapiro-Wilk, Kolmogorov-Smirnov)",
+  pearson: "Korelasi Pearson (linear)",
+  spearman: "Korelasi Spearman (berpola)",
+  ttest_1samp: "Uji t satu sampel",
+  ttest_ind: "Uji t dua kelompok independen",
+  ttest_paired: "Uji t dua pengukuran berpasangan",
+  anova_oneway: "ANOVA satu arah",
+  chi2_independence: "Uji chi-kuadrat (dua variabel kategorik)",
+  chi2_gof: "Uji chi-kuadrat (kesesuaian distribusi)",
+  mannwhitney: "Uji Mann-Whitney U (tanpa asumsi normal)",
+  wilcoxon: "Uji Wilcoxon (berpasangan, tanpa normal)",
+  kruskal: "Uji Kruskal-Wallis (tiga kelompok atau lebih)",
+  linreg_simple: "Regresi linier sederhana",
+  linreg_multiple: "Regresi linier berganda",
+  ml_classify: "Klasifikasi machine learning",
+  ml_cluster: "Clustering machine learning",
+  text_tfidf: "Vektorisasi teks TF-IDF",
+  text_lda: "Topic modeling LDA",
+  apriori: "Aturan asosiasi Apriori",
+};
+
+/** Bahasa sehari-hari untuk 15 operasi; nama teknis tetap ditampilkan di bawahnya
+ *  supaya pengguna bisa mencocokkan dengan dokumentasi dan literatur metode. */
+const OP_PLAIN: Record<string, { name: string }> = {
+  drop_missing: { name: "Hapus baris yang ada data kosongnya" },
+  fill_missing: { name: "Isi data yang kosong" },
+  remove_outlier_iqr: { name: "Buang nilai yang terlalu jauh berbeda" },
+  scale_standard: { name: "Samakan skala (standardisasi)" },
+  scale_minmax: { name: "Samakan skala ke rentang 0 sampai 1" },
+  transform_log: { name: "Ubah ke bentuk logaritma" },
+  transform_sqrt: { name: "Ubah ke akar kuadrat" },
+  mapping: { name: "Ganti nilai kategori" },
+  onehot: { name: "Pisahkan kolom kategori menjadi kolom 0 dan 1" },
+  rename: { name: "Ganti nama kolom" },
+  drop_columns: { name: "Hapus kolom yang tidak dipakai" },
+  text_lowercase: { name: "Ubah teks jadi huruf kecil" },
+  text_remove_punct: { name: "Hapus tanda baca" },
+  text_remove_stopwords: { name: "Hapus kata-kata umum" },
+  remove_duplicates: { name: "Hapus baris yang sama persis" },
+};
+
+/** Urutan tab = urutan kerja, bukan urutan abjad. */
+const TAB_ORDER = [
+  "dataset",
+  "variables",
+  "preprocess",
+  "diff",
+  "analysis",
+  "log",
+  "exports",
+] as const;
+
+const TAB_ICON: Record<string, LucideIcon> = {
+  dataset: Table2,
+  variables: Columns3,
+  preprocess: FlaskConical,
+  diff: GitCompare,
+  analysis: ChartBar,
+  log: History,
+  exports: Download,
 };
 
 function FieldSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
@@ -156,7 +237,14 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
             } catch { reject(new Error(`HTTP ${xhr.status}`)); }
           }
         };
-        xhr.onerror = () => reject(new Error("Jaringan gagal"));
+        xhr.onerror = () =>
+          reject(
+            new Error(
+              `Tidak bisa menghubungi API di ${apiUrl()}. Pastikan backend jalan ` +
+                `(ddev start) dan NEXT_PUBLIC_API_URL benar — untuk DDEV host-side ` +
+                `biasanya http://localhost:8100.`
+            )
+          );
         xhr.send(fd);
       });
       setMsg(`Upload OK: ${done.rows} rows × ${done.cols} cols`);
@@ -284,7 +372,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     if (!delTarget) return;
     setErr(""); setMsg("");
     try {
-      const res = await fetch(`${apiUrl()}/api/v1/datasets/${delTarget.id}`, { method: "DELETE", headers: { ...authHeaders() } });
+      const res = await fetchWithContext(`${apiUrl()}/api/v1/datasets/${delTarget.id}`, { method: "DELETE", headers: { ...authHeaders() } });
       if (res.status !== 204) {
         const j = await res.json().catch(() => ({}));
         throw new Error((j as { detail?: string }).detail || `HTTP ${res.status}`);
@@ -301,7 +389,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
 
   async function downloadVersion() {
     try {
-      const res = await fetch(`${apiUrl()}/api/v1/datasets/${sel}/download?version=${ver}`, { headers: { ...authHeaders() } });
+      const res = await fetchWithContext(`${apiUrl()}/api/v1/datasets/${sel}/download?version=${ver}`, { headers: { ...authHeaders() } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -373,20 +461,23 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
           <div className="lg:col-span-7">
             <div className="rounded-lg border border-rule bg-paper p-5">
               <div className="flex items-baseline justify-between gap-4">
-                <h2 className="text-[13.5px] font-semibold tracking-tight text-ink">
-                  Unggah dataset
+                <h2 className="flex items-center gap-2 text-[13.5px] font-semibold tracking-tight text-ink">
+                  <Database size={15} strokeWidth={1.75} aria-hidden="true" className="text-accent" />
+                  Unggah File Data
                 </h2>
                 <span className="tnum text-[10.5px] uppercase tracking-[0.14em] text-ink-4">
-                  langkah 02
+                  Tahap 02
                 </span>
               </div>
-              <p className="mt-2 text-[12.5px] leading-relaxed text-ink-3">
-                CSV, XLSX, XLS, SAV, atau JSON — maksimal 50&nbsp;MB. File
-                diunggah apa adanya; delimiter dan header dideteksi otomatis.
+              <p className="mt-2 max-w-[46ch] text-[12.5px] leading-relaxed text-ink-3">
+                Pilih file dari komputer Anda. Format CSV, XLSX, XLS, SAV, dan
+                JSON diterima, maksimal 50&nbsp;MB. Pemisah kolom dan baris
+                judul dibaca otomatis, jadi file Excel dari SPSS atau Excel
+                langsung bisa dipakai.
               </p>
               <form onSubmit={upload} className="mt-4 space-y-3">
                 <div className="space-y-2">
-                  <Label htmlFor="ds-file">Berkas dataset</Label>
+                  <Label htmlFor="ds-file">Pilih file dari komputer</Label>
                   <Input id="ds-file" type="file" name="file" accept=".csv,.xlsx,.xls,.sav,.json" />
                 </div>
                 {uploadPct != null ? (
@@ -395,7 +486,10 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                     <p className="tnum text-[11px] text-ink-3">Mengunggah {uploadPct}%</p>
                   </div>
                 ) : (
-                  <Button type="submit">Unggah dataset</Button>
+                  <Button type="submit" size="lg">
+                    <Upload size={15} strokeWidth={1.75} aria-hidden="true" />
+                    Unggah File Data
+                  </Button>
                 )}
               </form>
             </div>
@@ -411,7 +505,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                     "repeating-linear-gradient(-45deg, var(--color-paper-3) 0 1px, transparent 1px 6px)",
                 }}
               />
-              <p className="mt-4 text-[13.5px] font-medium text-ink">Belum ada dataset</p>
+              <p className="mt-4 text-[13.5px] font-medium text-ink">Belum ada file data</p>
               <p className="mx-auto mt-1.5 max-w-[38ch] text-[12.5px] leading-relaxed text-ink-3">
                 Tujuh tahap berikutnya — variabel, pembersihan, analisis, hasil,
                 dan ekspor — baru terbuka setelah ada data yang bisa dibaca.
@@ -424,11 +518,12 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
       {datasets.length > 0 && (
       <section className="mt-7">
         <div className="flex items-baseline justify-between gap-4 border-b border-rule pb-2.5">
-          <h2 className="text-[13.5px] font-semibold tracking-tight text-ink">
-            Dataset
+          <h2 className="flex items-center gap-2 text-[13.5px] font-semibold tracking-tight text-ink">
+            <Database size={15} strokeWidth={1.75} aria-hidden="true" className="text-accent" />
+            File Data Anda
           </h2>
           <span className="tnum text-[10.5px] uppercase tracking-[0.14em] text-ink-4">
-            {datasets.length} berkas
+            {datasets.length} file
           </span>
         </div>
         {loading ? (
@@ -465,7 +560,11 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                     · {d.file_type.toUpperCase()} · {d.id.slice(0, 8)}
                   </span>
                 </button>
-                {active && <Badge variant="success">dipakai</Badge>}
+                {active && (
+                  <Badge variant="success" title={STATUS_HELP.aktif}>
+                    sedang dipakai
+                  </Badge>
+                )}
                 <Button
                   size="sm"
                   variant="destructive"
@@ -498,11 +597,11 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
           <span className="flex items-center gap-2.5">
             <span className="text-ink-4 transition-transform duration-200 group-open:rotate-90">›</span>
             <span className="text-[13.5px] font-semibold tracking-tight text-ink">
-              Import via API atau scraper
+              Ambil Data dari Web atau API
             </span>
           </span>
           <span className="tnum text-[10.5px] uppercase tracking-[0.14em] text-ink-4">
-            opsional
+            Opsional
           </span>
         </summary>
         <div className="border-t border-rule px-5 py-5">
@@ -576,25 +675,36 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
       </details>
       {selDs && (
         <Tabs value={tab} onValueChange={setTab} className="mt-8">
-          <TabsList>
-            <TabsTrigger value="dataset">Dataset</TabsTrigger>
-            <TabsTrigger value="variables">Variables</TabsTrigger>
-            <TabsTrigger value="preprocess">Preprocess</TabsTrigger>
-            <TabsTrigger value="diff">Diff</TabsTrigger>
-            <TabsTrigger value="analysis">Analysis</TabsTrigger>
-            <TabsTrigger value="log">Log</TabsTrigger>
-            <TabsTrigger value="exports">Export</TabsTrigger>
+          <TabsList aria-label="Bagian kerja project">
+            {TAB_ORDER.map((k) => {
+              const Icon = TAB_ICON[k];
+              return (
+                <TabsTrigger key={k} value={k}>
+                  <Icon size={14} strokeWidth={1.75} aria-hidden="true" />
+                  {TAB_LABEL[k]}
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
+
+          {/* Subjudul per tab: menjelaskan apa yang harus dilakukan di sini,
+              supaya pengguna tidak perlu menebak isi setiap tab. */}
+          <div className="mt-5 flex items-start gap-2.5">
+            <Info size={14} strokeWidth={1.75} aria-hidden="true" className="mt-0.5 shrink-0 text-ink-4" />
+            <p className="max-w-[68ch] text-[13px] leading-relaxed text-ink-2">
+              {TAB_HINT[tab]}
+            </p>
+          </div>
           <TabsContent value="dataset">
             <Card>
-              <CardHeader><CardTitle>Preview — {selDs.filename} (v{ver})</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Isi File: {selDs.filename}</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-sm">
-                  <span className="text-slate-500">Version: </span>
+                  <span className="text-ink-3">Pilih versi: </span>
                   {selDs.versions.map((v) => (
                     <Button key={v.version_number} size="sm" variant="secondary" className="mr-1" onClick={() => { setVer(v.version_number); setPreviewOff(0); }}>v{v.version_number}</Button>
                   ))}{" "}
-                  <Button size="sm" variant="secondary" onClick={() => void downloadVersion()}>Unduh CSV v{ver}</Button>
+                  <Button size="sm" variant="secondary" onClick={() => void downloadVersion()}>Unduh Data (CSV)</Button>
                 </p>
                 {preview && (
                   <>
@@ -606,17 +716,17 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                     </Table>
                     <p className="tnum mt-1 text-[11.5px] text-ink-3">
                       Baris {previewOff + 1}–{previewOff + preview.rows.length} dari {preview.total_rows}{" "}
-                      <Button size="sm" variant="secondary" disabled={previewOff === 0} onClick={() => { const n = Math.max(0, previewOff - 10); setPreviewOff(n); void loadDetail(sel, ver, n); }}>← Prev</Button>{" "}
-                      <Button size="sm" variant="secondary" disabled={previewOff + 10 >= preview.total_rows} onClick={() => { const n = previewOff + 10; setPreviewOff(n); void loadDetail(sel, ver, n); }}>Next →</Button>
+                      <Button size="sm" variant="secondary" disabled={previewOff === 0} onClick={() => { const n = Math.max(0, previewOff - 10); setPreviewOff(n); void loadDetail(sel, ver, n); }}>Sebelumnya</Button>{" "}
+                      <Button size="sm" variant="secondary" disabled={previewOff + 10 >= preview.total_rows} onClick={() => { const n = previewOff + 10; setPreviewOff(n); void loadDetail(sel, ver, n); }}>Berikutnya</Button>
                     </p>
                   </>
                 )}
                 {profile && (
                   <>
-                    <h3 className="mt-4 text-base font-semibold">Profil</h3>
-                    <p className="tnum text-[11.5px] text-ink-3">rows {profile.rows} · cols {profile.cols} · missing {profile.missing_pct}% · duplikat {profile.duplicate_rows}</p>
+                    <h3 className="mt-5 text-[13.5px] font-semibold text-ink">Gambaran Umum Data</h3>
+                    <p className="tnum text-[11.5px] text-ink-3">{profile.rows} baris · {profile.cols} kolom · {profile.missing_pct}% data kosong · {profile.duplicate_rows} baris duplikat</p>
                     <Table>
-                      <TableHeader><TableRow><TableHead>Kolom</TableHead><TableHead>Tipe</TableHead><TableHead>Missing</TableHead><TableHead>Unik</TableHead></TableRow></TableHeader>
+                      <TableHeader><TableRow><TableHead>Kolom</TableHead><TableHead>Jenis Data</TableHead><TableHead>Data Kosong</TableHead><TableHead>Nilai Unik</TableHead></TableRow></TableHeader>
                       <TableBody>
                         {profile.columns.map((c) => <TableRow key={c.name}><TableCell>{c.name}</TableCell><TableCell><Badge>{c.detected_type}</Badge></TableCell><TableCell>{c.missing_count}</TableCell><TableCell>{c.unique_count}</TableCell></TableRow>)}
                       </TableBody>
@@ -628,10 +738,10 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
           </TabsContent>
           <TabsContent value="variables">
             <Card>
-              <CardHeader><CardTitle>Variables (v{ver})</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Pengaturan Kolom (versi {ver})</CardTitle></CardHeader>
               <CardContent>
                 <Table>
-                  <TableHeader><TableRow><TableHead>Nama</TableHead><TableHead>Type</TableHead><TableHead>Role</TableHead></TableRow></TableHeader>
+                  <TableHeader><TableRow><TableHead>Nama Kolom</TableHead><TableHead>Jenis Data</TableHead><TableHead>Peran</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {variables.map((v) => (
                       <TableRow key={v.id}>
@@ -657,48 +767,89 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
           </TabsContent>
           <TabsContent value="preprocess">
             <Card>
-              <CardHeader><CardTitle>Preprocessing → version baru</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Langkah Pembersihan</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={addOp} className="flex gap-2">
                   <Select value={op} onValueChange={setOp}>
-                    <SelectTrigger aria-label="Operasi"><SelectValue /></SelectTrigger>
-                    <SelectContent>{OPS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                    <SelectTrigger aria-label="Jenis pembersihan"><SelectValue /></SelectTrigger>
+                    <SelectContent>{OPS.map((o) => (
+                      <SelectItem key={o} value={o}>
+                        <span className="flex flex-col items-start gap-0.5">
+                          <span className="text-[12.5px]">{OP_PLAIN[o]?.name ?? o}</span>
+                          <span className="tnum text-[10.5px] text-ink-4">{o}</span>
+                        </span>
+                      </SelectItem>
+                    ))}</SelectContent>
                   </Select>
-                  <Input aria-label="Kolom" placeholder="kolom" value={opCol} onChange={(e) => setOpCol(e.target.value)} />
-                  <Button type="submit" variant="secondary">Tambah</Button>
+                  <Input
+                    aria-label="Nama kolom yang akan dibersihkan"
+                    placeholder="Nama kolom, mis. service_quality"
+                    value={opCol}
+                    onChange={(e) => setOpCol(e.target.value)}
+                  />
+                  <Button type="submit" variant="secondary">Tambah Langkah</Button>
                 </form>
-                <Input aria-label="Params JSON" className="mt-2" placeholder='params JSON, mis. {"strategy":"median"}' value={opParams} onChange={(e) => setOpParams(e.target.value)} />
+                <Input aria-label="Params JSON" className="mt-2" placeholder='Pilihan tambahan, mis. {"strategy":"median"}' value={opParams} onChange={(e) => setOpParams(e.target.value)} />
                 {chain.length > 0 && (
-                  <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm">
+                  <ol className="mt-3 space-y-1.5">
                     {chain.map((c, i) => (
-                      <li key={i}>{String(c.op)}{c.column ? `(${String(c.column)})` : ""}{" "}
-                        <button className="text-red-700 hover:underline" onClick={() => setChain((x) => x.filter((_, j) => j !== i))}>hapus</button>
+                      <li
+                        key={i}
+                        className="flex items-center gap-3 rounded-md border border-rule bg-paper-2/50 px-3 py-2"
+                      >
+                        <span className="tnum shrink-0 text-[10.5px] text-ink-4">
+                          {i + 1}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[12.5px] text-ink">
+                            {OP_PLAIN[String(c.op)]?.name ?? String(c.op)}
+                          </span>
+                          <span className="tnum block truncate text-[10.5px] text-ink-4">
+                            {String(c.op)}
+                            {c.column ? ` · kolom ${String(c.column)}` : ""}
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          className="ring-accent shrink-0 rounded px-2 py-1 text-[11.5px] font-medium text-danger hover:bg-danger/8"
+                          onClick={() => setChain((x) => x.filter((_, j) => j !== i))}
+                        >
+                          Hapus
+                        </button>
                       </li>
                     ))}
                   </ol>
                 )}
                 <form onSubmit={runPreprocess} className="mt-2">
-                  <Button type="submit">Jalankan {chain.length} operasi (base v{ver})</Button>
+                  <p className="text-[12px] leading-relaxed text-ink-3">
+                  Langkah ditambahkan ke daftar di atas, lalu dijalankan sekaligus.
+                  Setiap dijalankan membuat versi baru — file asli tetap utuh.
+                </p>
+                <Button type="submit" disabled={chain.length === 0}>
+                  {chain.length === 0
+                    ? "Tambahkan langkah dulu"
+                    : `Jalankan Pembersihan (${chain.length} langkah)`}
+                </Button>
                 </form>
               </CardContent>
             </Card>
           </TabsContent>
           <TabsContent value="diff">
             <Card>
-              <CardHeader><CardTitle>Bandingkan version (diff)</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Bandingkan Dua Versi</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={showDiff} className="flex gap-2">
-                  <Input aria-label="Dari version" value={diffFrom} onChange={(e) => setDiffFrom(e.target.value)} />
-                  <Input aria-label="Ke version" value={diffTo} onChange={(e) => setDiffTo(e.target.value)} />
+                  <Input aria-label="Versi lama" value={diffFrom} onChange={(e) => setDiffFrom(e.target.value)} />
+                  <Input aria-label="Versi baru" value={diffTo} onChange={(e) => setDiffTo(e.target.value)} />
                   <Button type="submit">Bandingkan</Button>
                 </form>
                 {diff && (
                   <div className="mt-2 text-sm">
                     <p>Baris: {diff.rows_from} → {diff.rows_to} (Δ {diff.rows_delta >= 0 ? "+" : ""}{diff.rows_delta})</p>
-                    <p>Kolom tambah: {diff.columns_added.join(", ") || "-"}</p>
-                    <p>Kolom hilang: {diff.columns_removed.join(", ") || "-"}</p>
+                    <p>Kolom baru: {diff.columns_added.join(", ") || "tidak ada"}</p>
+                    <p>Kolom hilang: {diff.columns_removed.join(", ") || "tidak ada"}</p>
                     <Table>
-                      <TableHeader><TableRow><TableHead>Kolom</TableHead><TableHead>Mean awal</TableHead><TableHead>Mean akhir</TableHead><TableHead>Missing</TableHead></TableRow></TableHeader>
+                      <TableHeader><TableRow><TableHead>Kolom</TableHead><TableHead>Rata-rata Versi Lama</TableHead><TableHead>Rata-rata Versi Baru</TableHead><TableHead>Data Kosong</TableHead></TableRow></TableHeader>
                       <TableBody>
                         {diff.numeric_drift.map((d) => (
                           <TableRow key={d.column}><TableCell>{d.column}</TableCell><TableCell>{d.mean_from ?? "-"}</TableCell><TableCell>{d.mean_to ?? "-"}</TableCell><TableCell>{d.missing_from}→{d.missing_to}</TableCell></TableRow>
@@ -712,34 +863,83 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
           </TabsContent>
           <TabsContent value="analysis">
             <Card>
-              <CardHeader><CardTitle>Run analysis (base v{ver})</CardTitle></CardHeader>
-              <CardContent className="space-y-2">
-                <form onSubmit={runAnalysis} className="space-y-2">
-                  <Select value={method} onValueChange={setMethod}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                  </Select>
-                  {methodSpec?.variables && (
-                    <p className="tnum text-[11.5px] text-ink-3">Butuh: {Object.entries(methodSpec.variables).map(([k, v]) => `${k} (${v})`).join(", ")}</p>
-                  )}
-                  <Textarea rows={3} value={varsJson} onChange={(e) => setVarsJson(e.target.value)} />
-                  <Button type="submit">Run</Button>
+              <CardHeader><CardTitle>Jalankan Analisis (dari versi {ver})</CardTitle></CardHeader>
+              <CardContent>
+                <form onSubmit={runAnalysis} className="max-w-xl space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="m-method">1. Pilih metode statistik</Label>
+                    <Select value={method} onValueChange={setMethod}>
+                      <SelectTrigger id="m-method">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {METHODS.map((m) => (
+                          <SelectItem key={m} value={m}>
+                            <span className="flex flex-col items-start gap-0.5">
+                              <span className="text-[12.5px]">
+                                {METHOD_PLAIN[m] ?? m}
+                              </span>
+                              <span className="tnum text-[10.5px] text-ink-4">{m}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {methodSpec?.variables && (
+                      <p className="text-[12px] leading-relaxed text-ink-3">
+                        Metode ini butuh:{" "}
+                        {Object.entries(methodSpec.variables)
+                          .map(([k, v]) => `${k} (${v})`)
+                          .join(", ")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="m-vars">2. Tentukan kolom yang dipakai</Label>
+                    <Textarea
+                      id="m-vars"
+                      rows={4}
+                      value={varsJson}
+                      onChange={(e) => setVarsJson(e.target.value)}
+                      className="tnum"
+                      aria-describedby="m-vars-help"
+                    />
+                    <p id="m-vars-help" className="text-[12px] leading-relaxed text-ink-3">
+                      Tulis nama kolom persis seperti di file Anda,{" "}
+                      <span className="tnum text-ink-2">
+                        {"{"}kunci: "nama_kolom"{"}"}
+                      </span>
+                      . Contoh:{" "}
+                      <span className="tnum text-ink-2">
+                        {"{"}"x": "service_quality", "y": "satisfaction"{"}"}
+                      </span>
+                    </p>
+                  </div>
+
+                  <Button type="submit" size="lg">
+                    <Play size={14} strokeWidth={1.75} aria-hidden="true" />
+                    Jalankan Analisis
+                  </Button>
                 </form>
               </CardContent>
             </Card>
           </TabsContent>
           <TabsContent value="log">
             <Card>
-              <CardHeader><CardTitle>Research Log ({analyses.length})</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Riwayat Semua Analisis ({analyses.length})</CardTitle></CardHeader>
               <CardContent>
-                <Button variant="secondary" onClick={downloadLogCsv}>Unduh Log CSV</Button>
+                <Button variant="outline" onClick={downloadLogCsv}>
+                  <Download size={14} strokeWidth={1.75} aria-hidden="true" />
+                  Unduh Riwayat (CSV)
+                </Button>
                 <Table>
-                  <TableHeader><TableRow><TableHead>Analysis ID</TableHead><TableHead>Method</TableHead><TableHead>Ver</TableHead><TableHead>Hash</TableHead><TableHead>Waktu</TableHead></TableRow></TableHeader>
+                  <TableHeader><TableRow><TableHead>ID Analisis</TableHead><TableHead>Metode</TableHead><TableHead>Ver</TableHead><TableHead>Cap Integritas</TableHead><TableHead>Waktu</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {analyses.map((a) => (
                       <TableRow key={a.analysis_uid}>
                         <TableCell><Link className="ring-accent text-accent hover:text-accent-2" href={`/analyses/${a.analysis_uid}`}>{a.analysis_uid}</Link></TableCell>
-                        <TableCell><Badge variant="info">{a.method}</Badge></TableCell>
+                        <TableCell><Badge variant="info">{METHOD_PLAIN[a.method] ?? a.method}</Badge></TableCell>
                         <TableCell>v{a.dataset_version_number ?? "-"}</TableCell>
                         <TableCell className="tnum text-[11px] text-ink-4">{a.result_hash || "-"}</TableCell>
                         <TableCell className="tnum text-[11px] text-ink-4">{a.created_at}</TableCell>
@@ -752,10 +952,14 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
           </TabsContent>
           <TabsContent value="exports">
             <Card>
-              <CardHeader><CardTitle>Pusat Export ({exports.length})</CardTitle></CardHeader>
+              <CardHeader><CardTitle>File yang Sudah Diunduh ({exports.length})</CardTitle></CardHeader>
               <CardContent>
                 {exports.length === 0 ? (
-                  <p className="text-[12.5px] text-ink-3">Belum ada file. Export dari halaman hasil analisis.</p>
+                  <p className="text-[13px] leading-relaxed text-ink-3">
+                    Belum ada file yang diunduh. Untuk membuat file, buka salah satu
+                    analisis di tab Riwayat Analisis, lalu pilih format unduhan
+                    di halaman hasil.
+                  </p>
                 ) : (
                   <Table>
                     <TableHeader><TableRow><TableHead>Analysis</TableHead><TableHead>Method</TableHead><TableHead>Format</TableHead><TableHead>Waktu</TableHead><TableHead>Aksi</TableHead></TableRow></TableHeader>

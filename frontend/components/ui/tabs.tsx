@@ -28,7 +28,8 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "ring-accent relative -mb-px inline-flex items-center justify-center whitespace-nowrap border-b-2 border-transparent px-3 py-2 text-[12.5px] font-medium text-ink-3 transition-colors duration-200 hover:text-ink focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=active]:border-accent data-[state=active]:text-ink",
+      // gap-2 memisahkan ikon dari label; tanpa itu ikon menempel ke teks.
+      "ring-accent relative -mb-px inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3 py-2 text-[12.5px] font-medium text-ink-3 transition-colors duration-200 hover:text-ink focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=active]:border-accent data-[state=active]:text-ink [&_svg]:shrink-0",
       className
     )}
     {...props}

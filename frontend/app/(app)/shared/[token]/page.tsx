@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, fetchWithContext } from "@/lib/api";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/badge";
@@ -17,7 +17,7 @@ export default function SharedPage({ params }: { params: { token: string } }) {
   const [d, setD] = useState<Shared | null>(null);
   const [err, setErr] = useState("");
   useEffect(() => {
-    fetch(`${apiUrl()}/public/shared/${token}`)
+    fetchWithContext(`${apiUrl()}/public/shared/${token}`)
       .then(async (r) => { if (!r.ok) throw new Error("Link tidak valid / dicabut / kedaluwarsa"); return r.json(); })
       .then(setD)
       .catch((e: unknown) => setErr(e instanceof Error ? e.message : "Gagal"));

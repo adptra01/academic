@@ -2,8 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Trash2 } from "lucide-react";
-import { api, apiUrl, authHeaders } from "@/lib/api";
+import {
+  ArrowRight,
+  Columns3,
+  Database,
+  FlaskConical,
+  FolderOpen,
+  PencilRuler,
+  Trash2,
+} from "lucide-react";
+import { api, apiUrl, authHeaders, fetchWithContext } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Badge, Alert } from "@/components/ui/badge";
@@ -133,7 +141,7 @@ export default function DashboardPage() {
     setErr("");
     setMsg("");
     try {
-      const res = await fetch(`${apiUrl()}/api/v1/projects/${delTarget.id}`, {
+      const res = await fetchWithContext(`${apiUrl()}/api/v1/projects/${delTarget.id}`, {
         method: "DELETE",
         headers: authHeaders(),
       });
@@ -164,22 +172,23 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {/* ---- langkah 01: buat project ---- */}
+      {/* ---- Tahap 01: buat project ---- */}
       <section className="mt-7 grid gap-x-10 gap-y-8 lg:grid-cols-12">
         <div className="lg:col-span-7">
           <form onSubmit={create} className="rounded-lg border border-rule bg-paper p-5">
             <div className="flex items-baseline justify-between gap-4">
-              <h2 className="text-[13.5px] font-semibold tracking-tight text-ink">
-                Buat project
+              <h2 className="flex items-center gap-2 text-[13.5px] font-semibold tracking-tight text-ink">
+                <PencilRuler size={15} strokeWidth={1.75} aria-hidden="true" className="text-accent" />
+                Buat Project Baru
               </h2>
               <span className="tnum text-[10.5px] uppercase tracking-[0.14em] text-ink-4">
-                langkah 01
+                Tahap 01
               </span>
             </div>
 
             <div className="mt-5 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="p-title">Judul penelitian</Label>
+                <Label htmlFor="p-title">1. Judul penelitian</Label>
                 <Input
                   id="p-title"
                   value={title}
@@ -201,7 +210,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Jenis penelitian</Label>
+                <Label htmlFor="p-type">2. Jenis penelitian</Label>
                 <Select value={researchType} onValueChange={setResearchType}>
                   <SelectTrigger aria-label="Jenis penelitian">
                     <SelectValue />
@@ -217,7 +226,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="p-desc">Catatan</Label>
+                <Label htmlFor="p-desc">3. Catatan (opsional)</Label>
                 <Textarea
                   id="p-desc"
                   value={description}
@@ -228,7 +237,7 @@ export default function DashboardPage() {
 
               <div className="flex items-center gap-3 pt-1">
                 <Button type="submit" disabled={creating}>
-                  {creating ? "Membuat…" : "Buat project"}
+                  {creating ? "Membuat…" : "Buat Project"}
                   <ArrowRight size={14} strokeWidth={1.5} />
                 </Button>
                 <span className="text-[11.5px] text-ink-4">
@@ -243,28 +252,62 @@ export default function DashboardPage() {
         <div className="lg:col-span-5">
           <div className="rounded-lg border border-rule bg-paper p-5">
             <p className="tnum text-[10.5px] font-medium uppercase tracking-[0.14em] text-ink-4">
-              Setelah project dibuat
+              Setelah project dibuat, Anda akan
             </p>
-            <ol className="mt-4 space-y-3">
+            <ol className="mt-4">
               {[
-                ["02", "Unggah dataset", "CSV, XLSX, XLS, SAV, atau JSON — pratinjau dulu sebelum dianalisis."],
-                ["03", "Tetapkan variabel", "Tipe data dan peran tiap kolom menentukan metode yang sah."],
-                ["04", "Bersihkan", "15 operasi preprocessing; tiap operasi menulis versi baru."],
-              ].map(([n, t, d]) => (
-                <li key={n} className="flex gap-3 border-t border-rule pt-3">
-                  <span className="tnum shrink-0 text-[10.5px] text-accent">{n}</span>
-                  <span className="min-w-0">
-                    <span className="block text-[12.5px] font-medium text-ink">{t}</span>
-                    <span className="mt-0.5 block text-[12px] leading-relaxed text-ink-3">{d}</span>
-                  </span>
-                </li>
-              ))}
+                {
+                  n: "02",
+                  icon: Database,
+                  t: "Unggah file data",
+                  d: "Pilih file CSV atau Excel dari komputer. Isinya bisa Anda periksa sebelum dianalisis.",
+                },
+                {
+                  n: "03",
+                  icon: Columns3,
+                  t: "Cek setiap kolom",
+                  d: "Tentukan jenis data dan peran tiap kolom. Ini yang memilih metode mana yang boleh dipakai.",
+                },
+                {
+                  n: "04",
+                  icon: FlaskConical,
+                  t: "Bersihkan data",
+                  d: "Hapus baris kosong atau nilai yang terlalu jauh berbeda. File asli tetap tersimpan utuh.",
+                },
+              ].map((s, i) => {
+                const Icon = s.icon;
+                return (
+                  <li
+                    key={s.n}
+                    className={`flex gap-3 ${i === 0 ? "" : "mt-3"} border-t border-rule pt-3`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-paper-3 text-ink-3"
+                    >
+                      <Icon size={13} strokeWidth={1.75} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[12.5px] font-medium text-ink">{s.t}</span>
+                      <span className="mt-0.5 block text-[12px] leading-relaxed text-ink-3">
+                        {s.d}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
             </ol>
             <Link
               href="/alur"
-              className="ring-accent mt-4 inline-block text-[12.5px] font-medium text-accent hover:text-accent-2"
+              className="ring-accent group mt-5 inline-flex items-center gap-1.5 rounded-sm text-[12.5px] font-medium text-accent hover:text-accent-2"
             >
-              Lihat alur lengkap →
+              Lihat semua tahapan
+              <ArrowRight
+                size={13}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className="transition-transform duration-300 group-hover:translate-x-0.5"
+              />
             </Link>
           </div>
         </div>
@@ -273,8 +316,9 @@ export default function DashboardPage() {
       {/* ---- daftar project ---- */}
       <section className="mt-9">
         <div className="flex items-baseline justify-between gap-4 border-b border-rule pb-2.5">
-          <h2 className="text-[13.5px] font-semibold tracking-tight text-ink">
-            Project saya
+          <h2 className="flex items-center gap-2 text-[13.5px] font-semibold tracking-tight text-ink">
+            <FolderOpen size={15} strokeWidth={1.75} aria-hidden="true" className="text-accent" />
+            Project Saya
           </h2>
           <span className="tnum text-[10.5px] uppercase tracking-[0.14em] text-ink-4">
             {loading ? "memuat…" : `${projects.length} project`}
@@ -422,7 +466,7 @@ function EmptyState() {
       />
       <p className="mt-4 text-[14px] font-medium text-ink">Belum ada project</p>
       <p className="mx-auto mt-1.5 max-w-[40ch] text-[12.5px] leading-relaxed text-ink-3">
-        Buat project di atas untuk mulai. Setelah itu dataset bisa langsung
+        Buat project di atas untuk mulai. Setelah itu file data bisa langsung
         diunggah dan dianalisis tanpa langkah konversi manual.
       </p>
     </div>

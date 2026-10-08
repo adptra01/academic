@@ -1,4 +1,16 @@
 
+## [2026-10-08] — Perbaikan "Failed to fetch" + bahasa menu untuk user umum
+- **Akar masalah "Failed to fetch"** (bukan CORS): (1) container `db` mati → backend 500 dengan `psycopg.OperationalError [Errno -2] Name or service not known`; `/health` tetap 200 karena **tidak menyentuh database** sehingga health check menipu; (2) default `apiUrl()` jatuh ke `localhost:8000` yang hanya hidup di jaringan container — DDEV memetakan `:8000` → host `:8100`
+- `lib/api.ts`: default → `http://localhost:8100`; `fetchWithContext()` mengubah kegagalan jaringan menjadi pesan yang menyebut URL yang dicoba + langkah perbaikan; dipakai di 6 halaman + `xhr.onerror` upload. Halaman login juga menangani respons non-JSON dan `access_token` yang hilang
+- `frontend/.env.local` dibuat (git-ignored) supaya `next dev` tanpa env tetap benar
+- Login page dirapikan: field API URL dipindah ke `<details>` "API tidak bisa dihubungi?" + tombol buka `/health`; pesan 401 → "Sesi berakhir"
+- `lib/plain-terms.ts` (baru): satu kamus istilah teknis → bahasa sehari-hari, dipakai bersama oleh dashboard dan project detail agar tidak ada dua kosakata untuk satu hal
+- Bahasa menu: tab `Dataset/Variables/Preprocess/Diff/Analysis/Log/Export` → `Lihat Data/Atur Kolom/Bersihkan Data/Bandingkan Versi/Jalankan Analisis/Riwayat Analisis/Unduh Hasil`, masing-masing dengan ikon + subjudul penjelasan; `Unggah dataset` → `Unggah File Data`; `dipakai` → `sedang dipakai`; `Run` → `Jalankan Analisis` (form bernomor 1–2)
+- `ProcessRail`: tiap tahap punya ikon + nomor + nama; di bawah `md` berubah jadi daftar vertikal bertingkat dengan penanda "sedang dikerjakan" (rail horizontal memaksa scroll mendatar di ponsel)
+- `OP_PLAIN` + `METHOD_PLAIN`: 15 operasi dan 20 metode punya nama bahasa sehari-hari, dengan nama teknis tetap ditampilkan di bawahnya agar cocok dengan log, ekspor, dan literatur
+- Insiden: ikon tab menempel ke label (tidak ada `gap`) → `gap-2` + `shrink-0`; `langkah 01` masih tertinggal di satu tempat → `Tahap 01`
+- Verified: `pytest` 61 passed, `tsc` bersih, `next build` 11/11, login sukses di `localhost:3000`, pesan baru terverifikasi saat URL disetel ke port mati (`:9999`), tanpa horizontal overflow di 390px, rel+tab sinkron dengan tab
+
 ## [2026-10-06] — Konsol: dashboard + project detail
 - Primitif `ui/*` diselaraskan ke design token yang sama dengan halaman public: kartu jadi hairline tanpa shadow, tombol ke aksen petrol + `pressable` + `ring-accent`, badge/alert terdesaturasi, tabel header mono kecil + angka tabular, tab jadi rail garis bawah (bukan pil abu-abu), input/label rapat + fokus aksen
 - `ProcessRail` (baru): 7 tahap `Buat project → Unggah data → Variabel → Bersihkan → Analisis → Hasil → Ekspor`, dipakai di dashboard (`current=1`) dan project detail (ikut tab aktif lewat `STAGE_BY_TAB`) — urutan Create Project → Open Project → selanjutnya jadi kerangka yang selalu terlihat

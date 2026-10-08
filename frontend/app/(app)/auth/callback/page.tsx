@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, fetchWithContext } from "@/lib/api";
 import { Alert } from "@/components/ui/badge";
 
 /** Callback OAuth Google: tukar ?code= menjadi sesi JWT internal. */
@@ -12,7 +12,7 @@ export default function GoogleCallbackPage() {
       setErr("Tidak ada authorization code dari Google.");
       return;
     }
-    fetch(`${apiUrl()}/api/v1/auth/google/callback`, {
+    fetchWithContext(`${apiUrl()}/api/v1/auth/google/callback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code }),

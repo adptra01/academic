@@ -1,9 +1,37 @@
+/**
+ * Basis URL API.
+ *
+ * Urutan: localStorage (di-set halaman login) → NEXT_PUBLIC_API_URL → default.
+ * Default WAJIB `localhost:8100`, bukan 8000: DDEV memetakan container backend
+ * :8000 ke host :8100, jadi 8000 hanya hidup di dalam jaringan container. Fallback
+ * ke 8000 membuat fetch ditolak browser dan muncul sebagai "Failed to fetch" tanpa
+ * penjelasan — pesan yang sama untuk CORS, DNS, dan server mati.
+ */
 export function apiUrl(): string {
   if (typeof window !== "undefined") {
     const saved = window.localStorage.getItem("api_url");
     if (saved) return saved.replace(/\/$/, "");
   }
-  return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
+  return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8100").replace(/\/$/, "");
+}
+
+/**
+ * `fetch` yang mengubah kegagalan jaringan menjadi pesan yang bisa ditindaklanjuti.
+ * Tanpa ini, CORS salah, DNS salah, dan backend mati semuanya tampil sebagai
+ * "Failed to fetch" yang tidak menyuruh apa pun.
+ */
+export async function fetchWithContext(input: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch (e) {
+    const base = input.startsWith("http") ? new URL(input).origin : apiUrl();
+    throw new Error(
+      `Tidak bisa menghubungi API di ${base}. ` +
+        `Pastikan backend jalan (ddev start) dan NEXT_PUBLIC_API_URL benar — ` +
+        ` untuk DDEV host-side biasanya http://localhost:8100. ` +
+        `Detail: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
 }
 
 export function authHeaders(): HeadersInit {
@@ -12,13 +40,13 @@ export function authHeaders(): HeadersInit {
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${apiUrl()}${path}`, {
+  const res = await fetchWithContext(`${apiUrl()}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...authHeaders(), ...(init?.headers || {}) },
   });
   if (res.status === 401 && typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
     window.location.href = "/login";
-    throw new Error("Unauthorized");
+    throw new Error("Sesi berakhir. Silakan masuk kembali.");
   }
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
@@ -33,7 +61,9 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 /** Unduh file export (CSV/XLSX/PDF) dengan token. */
 export async function downloadExport(uid: string, format: string) {
-  const res = await fetch(`${apiUrl()}/api/v1/analyses/${uid}/export?format=${format}`, { headers: { ...authHeaders() } });
+  const res = await fetchWithContext(`${apiUrl()}/api/v1/analyses/${uid}/export?format=${format}`, {
+    headers: { ...authHeaders() },
+  });
   if (!res.ok) throw new Error(`Export gagal: HTTP ${res.status}`);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, fetchWithContext } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +16,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setErr("");
     try {
-      const res = await fetch(`${apiUrl()}/api/v1/auth/register`, {
+      const res = await fetchWithContext(`${apiUrl()}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, name }),

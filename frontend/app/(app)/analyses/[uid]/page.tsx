@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import dynamic from "next/dynamic";
-import { api, apiUrl, apaStyle, authHeaders, downloadExport } from "@/lib/api";
+import { apaStyle, api, apiUrl, authHeaders, downloadExport, fetchWithContext } from "@/lib/api";
 import type { Viz } from "@/components/EChartView";
 
 const EChartView = dynamic(() => import("@/components/EChartView"), { ssr: false });
@@ -88,7 +88,7 @@ export default function AnalysisPage({ params }: { params: { uid: string } }) {
     if (chartType && chartType !== "default") qs.set("type", chartType);
     if (chartCol && chartCol !== "all") qs.set("column", chartCol);
     const q = qs.toString() ? `?${qs.toString()}` : "";
-    fetch(`${apiUrl()}/api/v1/analyses/${uid}/chart${q}`, { headers: { ...authHeaders() } })
+    fetchWithContext(`${apiUrl()}/api/v1/analyses/${uid}/chart${q}`, { headers: { ...authHeaders() } })
       .then((res) => { if (!res.ok) throw new Error(`Chart HTTP ${res.status}`); return res.blob(); })
       .then((blob) => { url = URL.createObjectURL(blob); setChartUrl(url); })
       .catch(() => setChartUrl(""));
