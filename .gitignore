@@ -36,6 +36,9 @@ build/
 *.log
 logs/
 
+# Arsip template/vendor (jangan commit)
+*.zip
+
 # OS & editor
 .DS_Store
 .vscode/

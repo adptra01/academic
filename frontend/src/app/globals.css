@@ -1,0 +1,426 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+.input-default {
+  @apply h-9;
+}
+.input-lg {
+  @apply h-10;
+}
+.input-sm {
+  @apply h-8;
+}
+.input-size-lg {
+  @apply size-10;
+}
+
+[data-slot='button'].h-10:not(.px-6),
+button[data-slot='button'].h-10:not(.px-6),
+[data-slot='dropdown-menu-trigger'].h-10:not(.px-6),
+[data-slot='dialog-trigger'].h-10:not(.px-6),
+[data-slot='dialog-close'].h-10:not(.px-6),
+[data-slot='popover-trigger'].h-10:not(.px-6),
+a[data-slot='button'].h-10:not(.px-6) {
+  @apply px-4;
+}
+
+[data-slot='button'].h-9:not(.px-6),
+button[data-slot='button'].h-9:not(.px-6),
+[data-slot='dropdown-menu-trigger'].h-9:not(.px-6),
+[data-slot='dialog-trigger'].h-9:not(.px-6),
+[data-slot='dialog-close'].h-9:not(.px-6),
+[data-slot='dropdown-menu-trigger'].h-9:not(.px-6),
+[data-slot='popover-trigger'].h-9:not(.px-6),
+a[data-slot='button'].h-9:not(.px-6) {
+  @apply px-3;
+}
+
+/* For native button elements and elements with role="button", e.g., button, checkbox, radio, switch etc. */
+button:not(:disabled),
+[role='checkbox']:not(:disabled),
+[role='radio']:not(:disabled),
+[role='switch']:not(:disabled),
+[role='button']:not(:disabled) {
+  cursor: pointer;
+}
+
+/* For labels associated with form controls */
+label[for],
+label:has([role='checkbox']):not(:disabled),
+label:has([role='radio']):not(:disabled),
+label:has([role='switch']):not(:disabled) {
+  cursor: pointer;
+}
+
+/* For slider component */
+[role='slider']:not([data-disabled]),
+[data-slot='slider-track']:not([data-disabled]),
+[data-slot='slider-thumb']:not([data-disabled]) {
+  cursor: pointer;
+}
+
+/* For components with menuitems, e.g., dropdown, context menu, etc. */
+[role='menuitem']:not(:disabled),
+[role='menuitemcheckbox']:not(:disabled),
+[role='menuitemradio']:not(:disabled) {
+  cursor: pointer !important;
+}
+
+/* For components with options, e.g., combobox, command, select etc. */
+[role='option']:not(:disabled),
+select[data-slot='native-select']:not(:disabled) {
+  cursor: pointer !important;
+}
+
+/* For number input spin buttons */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  cursor: pointer;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@theme inline {
+  --animate-heartbeat: heartbeat 2s infinite ease-in-out;
+
+  @keyframes heartbeat {
+    0% {
+      box-shadow: 0 0 0 0 var(--heartbeat-color, var(--primary));
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 0 6px transparent;
+      transform: scale(1.03);
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+      transform: scale(1);
+    }
+  }
+}
+
+/* ==========================================================================
+   Academic layer — merek petrol + alias kompatibilitas + utilitas gerak.
+   Token lama (paper/ink/rule/accent) dipetakan ke token shadcn agar semua
+   komponen hasil port tetap jalan tanpa rewrite massal.
+   ========================================================================== */
+
+:root {
+  --primary: oklch(0.43 0.075 198);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.43 0.075 198);
+  --sidebar-primary: oklch(0.43 0.075 198);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-ring: oklch(0.43 0.075 198);
+}
+
+.dark {
+  --primary: oklch(0.68 0.09 195);
+  --primary-foreground: oklch(0.145 0 0);
+  --ring: oklch(0.68 0.09 195);
+  --sidebar-primary: oklch(0.68 0.09 195);
+  --sidebar-primary-foreground: oklch(0.145 0 0);
+  --sidebar-ring: oklch(0.68 0.09 195);
+}
+
+@theme inline {
+  /* Alias kompatibilitas: nama lama → token shadcn */
+  --color-paper: var(--background);
+  --color-paper-2: var(--muted);
+  --color-paper-3: var(--border);
+  --color-paper-4: var(--border);
+  --color-ink: var(--foreground);
+  --color-ink-2: var(--muted-foreground);
+  --color-ink-3: var(--muted-foreground);
+  --color-ink-4: var(--muted-foreground);
+  --color-rule: var(--border);
+  --color-rule-2: var(--input);
+  --color-accent: var(--primary);
+  --color-accent-2: var(--primary);
+  --color-accent-3: var(--primary);
+  --color-accent-wash: var(--muted);
+  --color-accent-line: var(--border);
+  --color-abyss: var(--foreground);
+  --color-abyss-2: var(--card);
+  --color-abyss-3: var(--border);
+  --color-danger: var(--destructive);
+  --color-warn: var(--chart-4);
+  --color-warn-wash: var(--muted);
+  --font-archivo: var(--font-archivo);
+}
+
+::selection {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* Angka/ID/hash selalu monospace tabular agar kolom rata. */
+.tnum {
+  font-family: var(--font-mono-plex), var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Halaman publik memakai Archivo sebagai sans utama. */
+.font-editorial,
+.font-editorial body {
+  font-family: var(--font-archivo), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+.font-editorial {
+  font-family: var(--font-archivo), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Tekstur kertas grafik + grain (fixed, tanpa repaint saat scroll). */
+.graph-paper {
+  background-image:
+    linear-gradient(to right, color-mix(in oklch, var(--foreground) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklch, var(--foreground) 5%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.graph-paper-fade {
+  -webkit-mask-image: radial-gradient(120% 90% at 78% 12%, #000 0%, transparent 68%);
+  mask-image: radial-gradient(120% 90% at 78% 12%, #000 0%, transparent 68%);
+}
+.grain-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0.045;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.hatch {
+  background-image: repeating-linear-gradient(-45deg, var(--primary) 0 1px, transparent 1px 5px);
+}
+
+/* Gerak: hanya transform/opacity. */
+@keyframes rise-in {
+  from { opacity: 0; transform: translate3d(0, 16px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes breathe {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+@keyframes marquee-x {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+@keyframes shimmer-sweep {
+  from { transform: translate3d(-110%, 0, 0); }
+  to { transform: translate3d(210%, 0, 0); }
+}
+@keyframes stamp-in {
+  0% { opacity: 0; transform: scale(1.5) rotate(-14deg); }
+  60% { opacity: 1; transform: scale(0.94) rotate(-6deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-6deg); }
+}
+@keyframes trace-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes caret-blink {
+  0%, 48% { opacity: 1; }
+  49%, 100% { opacity: 0; }
+}
+@keyframes ping-ring {
+  0% { opacity: 0.55; transform: scale(0.7); }
+  70%, 100% { opacity: 0; transform: scale(2.4); }
+}
+.rise { animation: rise-in 0.75s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(var(--i, 0) * 70ms); }
+.animate-breathe { animation: breathe 2.6s ease-in-out infinite; }
+.shimmer { position: relative; overflow: hidden; }
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translate3d(-100%, 0, 0);
+  background: linear-gradient(90deg, transparent 0%, color-mix(in oklch, var(--background) 85%, transparent) 50%, transparent 100%);
+  animation: shimmer-sweep 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.animate-shimmer { animation: shimmer-sweep 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+.fade-in { animation: fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-ping-ring { animation: ping-ring 2.4s cubic-bezier(0, 0, 0.2, 1) infinite; }
+.animate-marquee { animation: marquee-x var(--marquee-duration, 46s) linear infinite; }
+.animate-stamp { animation: stamp-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.9s both; }
+.animate-trace { stroke-dasharray: 1; animation: trace-draw 2.2s cubic-bezier(0.65, 0, 0.35, 1) 0.35s both; }
+.caret::after {
+  content: '';
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 0.15em;
+  vertical-align: text-bottom;
+  background-color: var(--primary);
+  animation: caret-blink 1.15s steps(1, end) infinite;
+}
+
+.js-reveal [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 20px, 0);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(var(--i, 0) * 70ms);
+  will-change: opacity, transform;
+}
+.js-reveal [data-reveal='left'] { transform: translate3d(-24px, 0, 0); }
+.js-reveal [data-reveal='scale'] { transform: scale(0.97); }
+.js-reveal [data-reveal].is-visible { opacity: 1; transform: none; will-change: auto; }
+
+.stair-item { position: relative; }
+@media (min-width: 768px) {
+  .stair-item { padding-left: calc(var(--i, 0) * 1.4rem); }
+}
+
+.pressable { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.pressable:active { transform: translate3d(0, 1px, 0) scale(0.985); }
+.ring-accent:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  [data-reveal], .js-reveal [data-reveal] { opacity: 1 !important; transform: none !important; }
+}
+
+img.chart {
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+@media print {
+  nav, button, select, input, textarea { display: none !important; }
+  body { background: #fff; }
+  main { max-width: 100%; padding: 0; }
+  .grain-layer { display: none !important; }
+}
