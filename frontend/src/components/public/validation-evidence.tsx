@@ -1,4 +1,4 @@
-import { FAMILY_LABEL, METHODS, type MethodFamily } from "@/lib/methods";
+import { FAMILY_LABEL, type MethodFamily } from "@/lib/methods";
 
 /**
  * Bukti validasi — disusun dari evidence yang benar-benar ada di

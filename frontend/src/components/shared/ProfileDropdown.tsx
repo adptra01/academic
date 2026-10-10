@@ -30,7 +30,9 @@ type StoredUser = { name?: string; email?: string } | null
 function initialsOf(name?: string, email?: string) {
   const base = (name || email || '?').trim()
   const parts = base.split(/\s+/)
+
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+
   return base.slice(0, 2).toUpperCase()
 }
 
@@ -41,6 +43,8 @@ const ProfileDropdown = () => {
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem('user')
+
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Baca/fetch sistem eksternal (localStorage/API/CSS var) saat mount atau saat dependensi berubah; lazy state di render akan menyebabkan hydration mismatch.
       setUser(raw ? (JSON.parse(raw) as StoredUser) : null)
     } catch {
       setUser(null)
@@ -49,8 +53,10 @@ const ProfileDropdown = () => {
 
   async function logout() {
     setBusy(true)
+
     try {
       const token = window.localStorage.getItem('token')
+
       await fetch(`${apiUrl()}/api/v1/auth/logout`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -58,6 +64,7 @@ const ProfileDropdown = () => {
     } catch {
       /* abaikan — token lokal tetap dibersihkan */
     }
+
     window.localStorage.removeItem('token')
     window.localStorage.removeItem('user')
     window.location.href = '/login'

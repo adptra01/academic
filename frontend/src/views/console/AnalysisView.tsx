@@ -42,11 +42,14 @@ function flatten(obj: unknown, prefix = ''): [string, string][] {
   if (typeof obj !== 'object') return [[prefix, String(obj)]]
   if (Array.isArray(obj)) return [[prefix, obj.slice(0, 10).map(String).join('; ')]]
   const rows: [string, string][] = []
+
   for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
     const key = prefix ? `${prefix}.${k}` : k
+
     if (v != null && typeof v === 'object') rows.push(...flatten(v, key))
     else rows.push([key, String(v)])
   }
+
   return rows
 }
 
@@ -75,12 +78,21 @@ function StatTable({ data }: { data: unknown }) {
 
 function Formula({ latex }: { latex?: string }) {
   if (!latex) return null
+
+  let html: string | null = null
+
   try {
-    const html = katex.renderToString(latex, { throwOnError: false, displayMode: true })
-    return <div className='overflow-x-auto' dangerouslySetInnerHTML={{ __html: html }} />
+    html = katex.renderToString(latex, { throwOnError: false, displayMode: true })
   } catch {
+    html = null
+  }
+
+  // KaTeX gagal render → tampilkan sumber mentah, bukan halaman kosong.
+  if (html === null) {
     return <pre className='bg-muted overflow-x-auto rounded p-3 font-mono text-xs'>{latex}</pre>
   }
+
+  return <div className='overflow-x-auto' dangerouslySetInnerHTML={{ __html: html }} />
 }
 
 const AnalysisView = () => {
@@ -112,12 +124,15 @@ const AnalysisView = () => {
     if (!uid || vizMode !== 'png') return
     let url = ''
     const qs = new URLSearchParams()
+
     if (chartType && chartType !== 'default') qs.set('type', chartType)
     if (chartCol && chartCol !== 'all') qs.set('column', chartCol)
     const q = qs.toString() ? `?${qs.toString()}` : ''
+
     fetchWithContext(`${apiUrl()}/api/v1/analyses/${uid}/chart${q}`, { headers: { ...authHeaders() } })
       .then(res => {
         if (!res.ok) throw new Error(`Chart HTTP ${res.status}`)
+
         return res.blob()
       })
       .then(blob => {
@@ -125,6 +140,7 @@ const AnalysisView = () => {
         setChartUrl(url)
       })
       .catch(() => setChartUrl(''))
+
     return () => {
       if (url) URL.revokeObjectURL(url)
     }
@@ -132,8 +148,10 @@ const AnalysisView = () => {
 
   useEffect(() => {
     if (!uid || vizMode !== 'echarts') return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Baca/fetch sistem eksternal (localStorage/API/CSS var) saat mount atau saat dependensi berubah; lazy state di render akan menyebabkan hydration mismatch.
     setVizErr('')
     const qs = new URLSearchParams()
+
     if (chartType && chartType !== 'default') qs.set('type', chartType)
     if (chartCol && chartCol !== 'all') qs.set('column', chartCol)
     api<Viz>(`/api/v1/analyses/${uid}/viz${qs.toString() ? `?${qs.toString()}` : ''}`)
@@ -143,8 +161,10 @@ const AnalysisView = () => {
 
   async function makeShare() {
     setShareMsg('Membuat link...')
+
     try {
       const j = await api<{ token: string }>(`/api/v1/analyses/${uid}/share`, { method: 'POST', body: JSON.stringify({ expires_days: 30 }) })
+
       setShareTok(j.token)
       setShareMsg('Link aktif 30 hari. Bagikan URL di bawah.')
     } catch (e: unknown) {
@@ -164,8 +184,10 @@ const AnalysisView = () => {
 
   async function rerun() {
     setRerunMsg('Menjalankan ulang...')
+
     try {
       const j = await api<{ analysis_uid: string; result: { identical_to_original?: boolean } }>(`/api/v1/analyses/${uid}/rerun`, { method: 'POST' })
+
       setRerunMsg(`Rerun ${j.analysis_uid} — identik: ${j.result.identical_to_original ? 'YA ✓' : 'TIDAK (selidiki!)'}`)
     } catch (e: unknown) {
       setRerunMsg(e instanceof Error ? e.message : 'Rerun gagal')
@@ -175,6 +197,7 @@ const AnalysisView = () => {
   async function sendFeedback(e: React.FormEvent) {
     e.preventDefault()
     setFbMsg('')
+
     try {
       await api(`/api/v1/feedback`, { method: 'POST', body: JSON.stringify({ analysis_uid: uid, category: fbCat, description: fbDesc }) })
       setFbDesc('')
@@ -194,6 +217,7 @@ const AnalysisView = () => {
 
   const r = d.result
   const reject = r.decision?.text === 'Tolak H0'
+
   const descCols =
     d.method === 'descriptive' && Array.isArray((d.variables as Record<string, unknown>).columns)
       ? ((d.variables as Record<string, unknown>).columns as unknown[]).map(String)
@@ -339,7 +363,7 @@ const AnalysisView = () => {
               {vizMode === 'png' ? (
                 <>
                   {chartUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
+                     
                     <img className='chart' src={chartUrl} alt='chart' />
                   ) : (
                     <p className='text-muted-foreground text-xs'>Memuat grafik...</p>

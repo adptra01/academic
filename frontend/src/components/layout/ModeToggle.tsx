@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 
 type ModeToggleProps = {
   className?: string
+
   /** Tampilkan teks (dipakai di menu mobile) alih-alih tombol ikon saja. */
   withLabel?: boolean
 }

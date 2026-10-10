@@ -28,12 +28,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -168,6 +166,7 @@ const ProjectView = () => {
   async function load() {
     try {
       const ds = await api<Dataset[]>(`/api/v1/projects/${id}/datasets`)
+
       setDatasets(ds)
       if (!sel && ds[0]) setSel(ds[0].id)
       setAnalyses(await api<AnalysisItem[]>(`/api/v1/projects/${id}/analyses`))
@@ -180,7 +179,9 @@ const ProjectView = () => {
       setLoading(false)
     }
   }
+
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Baca/fetch sistem eksternal (localStorage/API/CSS var) saat mount atau saat dependensi berubah; lazy state di render akan menyebabkan hydration mismatch.
     if (id) void load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
@@ -194,13 +195,15 @@ const ProjectView = () => {
       setErr(e instanceof Error ? e.message : 'Gagal detail')
     }
   }
+
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Baca/fetch sistem eksternal (localStorage/API/CSS var) saat mount atau saat dependensi berubah; lazy state di render akan menyebabkan hydration mismatch.
     if (sel) void loadDetail(sel, ver)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sel, ver])
   useEffect(() => {
     api<typeof presets>(`/api/v1/scraper/presets`).then(setPresets).catch(() => setPresets([]))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [])
   useEffect(() => {
     api<{ variables?: Record<string, string> }>(`/api/v1/methods/${method}`).then(setMethodSpec).catch(() => setMethodSpec(null))
@@ -209,22 +212,29 @@ const ProjectView = () => {
   async function upload(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
+
     setErr('')
     setMsg('')
     setUploadPct(0)
+
     try {
       const token = window.localStorage.getItem('token')
+
       const done = await new Promise<{ rows: number; cols: number }>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
+
         xhr.open('POST', `${apiUrl()}/api/v1/projects/${id}/datasets/upload`)
         if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+
         xhr.upload.onprogress = ev => {
           if (ev.lengthComputable) setUploadPct(Math.round((ev.loaded / ev.total) * 100))
         }
+
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
               const j = JSON.parse(xhr.responseText)
+
               resolve(j.profile)
             } catch {
               reject(new Error('Respons tidak valid'))
@@ -232,12 +242,14 @@ const ProjectView = () => {
           } else {
             try {
               const j = JSON.parse(xhr.responseText)
+
               reject(new Error(j.detail || `HTTP ${xhr.status}`))
             } catch {
               reject(new Error(`HTTP ${xhr.status}`))
             }
           }
         }
+
         xhr.onerror = () =>
           reject(
             new Error(
@@ -248,6 +260,7 @@ const ProjectView = () => {
           )
         xhr.send(fd)
       })
+
       setMsg(`Upload OK: ${done.rows} rows × ${done.cols} cols`)
       await load()
     } catch (e: unknown) {
@@ -269,8 +282,10 @@ const ProjectView = () => {
   function addOp(e: React.FormEvent) {
     e.preventDefault()
     setErr('')
+
     try {
       const extra = opParams.trim() ? JSON.parse(opParams) : {}
+
       setChain(c => [...c, { op, ...(opCol ? { column: opCol } : {}), ...extra }])
       setOpCol('')
       setOpParams('{}')
@@ -281,27 +296,36 @@ const ProjectView = () => {
 
   async function runPreprocess(e: React.FormEvent) {
     e.preventDefault()
+
     if (chain.length === 0) {
       setErr('Tambahkan minimal 1 operasi dulu')
+
       return
     }
+
     setErr('')
     setMsg('')
+
     try {
       const ops = chain
+
       const j = await api<{ new_version?: number; job_id?: string }>(`/api/v1/datasets/${sel}/preprocess`, {
         method: 'POST',
         body: JSON.stringify({ base_version: ver, operations: ops })
       })
+
       if (j.job_id) {
         setMsg(`Masuk antrean async, menunggu worker...`)
+
         for (let i = 0; i < 60; i++) {
           await new Promise(r => setTimeout(r, 2000))
           const st = await api<{ state: string; result?: { new_version: number }; error?: string }>(`/api/v1/jobs/${j.job_id}`)
+
           if (st.state === 'SUCCESS') {
             setMsg(`Version baru v${st.result?.new_version} dibuat (async, ${ops.length} ops)`)
             break
           }
+
           if (st.state === 'FAILURE') throw new Error(st.error || 'Job gagal')
           setMsg(`Worker: ${st.state}...`)
         }
@@ -309,6 +333,7 @@ const ProjectView = () => {
       setChain([])
       await load()
       const vs = await api<{ versions: { version_number: number }[] }>(`/api/v1/datasets/${sel}`)
+
       setVer(Math.max(...vs.versions.map(v => v.version_number)))
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Preprocess gagal')
@@ -320,9 +345,11 @@ const ProjectView = () => {
       ['analysis_uid', 'method', 'version', 'hash', 'created_at'],
       ...analyses.map(a => [a.analysis_uid, a.method, `v${a.dataset_version_number ?? '-'}`, a.result_hash || '', a.created_at])
     ]
+
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
     const el = document.createElement('a')
+
     el.href = url
     el.download = 'research_log.csv'
     el.click()
@@ -332,6 +359,7 @@ const ProjectView = () => {
   async function showDiff(e: React.FormEvent) {
     e.preventDefault()
     setErr('')
+
     try {
       setDiff(await api<Diff>(`/api/v1/datasets/${sel}/diff?from=${diffFrom}&to=${diffTo}`))
     } catch (e: unknown) {
@@ -344,11 +372,13 @@ const ProjectView = () => {
     setErr('')
     setMsg('')
     const t0 = performance.now()
+
     try {
       const j = await api<{ analysis_uid: string }>(`/api/v1/analyses/run`, {
         method: 'POST',
         body: JSON.stringify({ project_id: id, dataset_id: sel || datasets[0]?.id, base_version: ver, method, variables: JSON.parse(varsJson) })
       })
+
       setMsg(`Analysis ${j.analysis_uid} selesai dalam ${((performance.now() - t0) / 1000).toFixed(1)}s`)
       await load()
     } catch (e: unknown) {
@@ -360,6 +390,7 @@ const ProjectView = () => {
     setErr('')
     setMsg('')
     setInspect(null)
+
     try {
       setInspect(await api(`/api/v1/scraper/inspect`, { method: 'POST', body: JSON.stringify({ url: scrapeUrl || undefined }) }))
     } catch (e: unknown) {
@@ -371,16 +402,20 @@ const ProjectView = () => {
     e.preventDefault()
     setErr('')
     setMsg('')
+
     try {
       const config =
         srcProvider === 'html_table' && !advanced
           ? { url: scrapeUrl, table_index: pickTable }
           : JSON.parse(srcConfig)
+
       const kind = srcProvider === 'html_table' ? 'scraper' : 'api'
+
       const j = await api<{ dataset_id: string; profile: { rows: number; cols: number } }>(`/api/v1/projects/${id}/data-sources/fetch`, {
         method: 'POST',
         body: JSON.stringify({ kind, provider: srcProvider, config })
       })
+
       setMsg(`Import OK: ${j.profile.rows} rows → dataset ${j.dataset_id.slice(0, 8)} (provenance tersimpan)`)
       await load()
     } catch (e: unknown) {
@@ -392,19 +427,25 @@ const ProjectView = () => {
     if (!delTarget) return
     setErr('')
     setMsg('')
+
     try {
       const res = await fetchWithContext(`${apiUrl()}/api/v1/datasets/${delTarget.id}`, { method: 'DELETE', headers: { ...authHeaders() } })
+
       if (res.status !== 204) {
         const j = await res.json().catch(() => ({}))
+
         throw new Error((j as { detail?: string }).detail || `HTTP ${res.status}`)
       }
+
       setMsg(`Dataset ${delTarget.filename} dihapus`)
+
       if (sel === delTarget.id) {
         setSel('')
         setPreview(null)
         setProfile(null)
         setVariables([])
       }
+
       setDelTarget(null)
       await load()
     } catch (e: unknown) {
@@ -416,10 +457,12 @@ const ProjectView = () => {
   async function downloadVersion() {
     try {
       const res = await fetchWithContext(`${apiUrl()}/api/v1/datasets/${sel}/download?version=${ver}`, { headers: { ...authHeaders() } })
+
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
+
       a.href = url
       a.download = `dataset_v${ver}.csv`
       a.click()
@@ -434,6 +477,7 @@ const ProjectView = () => {
   /* ---- Status tahap untuk StepNav ---- */
   const hasDatasets = datasets.length > 0
   const versionCount = selDs?.versions.length ?? 0
+
   const doneSignal: Record<StepKey, boolean> = {
     dataset: hasDatasets,
     variables: variables.length > 0,
@@ -442,6 +486,7 @@ const ProjectView = () => {
     log: analyses.length > 0,
     exports: exports.length > 0
   }
+
   const stepSummary: Record<StepKey, string | undefined> = {
     dataset: hasDatasets ? `${datasets.length} file` : undefined,
     variables: variables.length > 0 ? `${variables.length} kolom` : undefined,
@@ -450,17 +495,21 @@ const ProjectView = () => {
     log: analyses.length > 0 ? `${analyses.length} tercatat` : undefined,
     exports: exports.length > 0 ? `${exports.length} file` : undefined
   }
+
   function stepStatus(key: StepKey): StepStatus {
     if (!hasDatasets && key !== 'dataset') return 'locked'
     if (tab === key) return 'current'
     if (doneSignal[key]) return 'done'
+
     return 'todo'
   }
+
   function gotoStep(key: string) {
     if (!hasDatasets && key !== 'dataset') return
     setTab(key)
     document.getElementById('langkah-kerja')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
+
   const stepIndex = Math.max(0, STEP_ORDER.indexOf(tab as StepKey))
   const prevStep = stepIndex > 0 ? STEP_ORDER[stepIndex - 1] : null
   const nextStep = stepIndex < STEP_ORDER.length - 1 ? STEP_ORDER[stepIndex + 1] : null
@@ -603,6 +652,7 @@ const ProjectView = () => {
                         <ul className='divide-y'>
                           {datasets.map(d => {
                             const active = d.id === sel
+
                             return (
                               <li key={d.id} className='flex items-center gap-4 py-3'>
                                 <button
@@ -668,6 +718,7 @@ const ProjectView = () => {
                               value=''
                               onChange={e => {
                                 const pr = presets.find(x => x.id === e.target.value)
+
                                 if (pr) setScrapeUrl(pr.example_url)
                               }}
                             >
@@ -831,6 +882,7 @@ const ProjectView = () => {
                               disabled={previewOff === 0}
                               onClick={() => {
                                 const n = Math.max(0, previewOff - 10)
+
                                 setPreviewOff(n)
                                 void loadDetail(sel, ver, n)
                               }}
@@ -843,6 +895,7 @@ const ProjectView = () => {
                               disabled={previewOff + 10 >= preview.total_rows}
                               onClick={() => {
                                 const n = previewOff + 10
+
                                 setPreviewOff(n)
                                 void loadDetail(sel, ver, n)
                               }}

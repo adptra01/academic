@@ -10,8 +10,10 @@
 export function apiUrl(): string {
   if (typeof window !== "undefined") {
     const saved = window.localStorage.getItem("api_url");
+
     if (saved) return saved.replace(/\/$/, "");
   }
+
   return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8100").replace(/\/$/, "");
 }
 
@@ -25,6 +27,7 @@ export async function fetchWithContext(input: string, init?: RequestInit): Promi
     return await fetch(input, init);
   } catch (e) {
     const base = input.startsWith("http") ? new URL(input).origin : apiUrl();
+
     throw new Error(
       `Tidak bisa menghubungi API di ${base}. ` +
         `Pastikan backend jalan (ddev start) dan NEXT_PUBLIC_API_URL benar — ` +
@@ -36,6 +39,7 @@ export async function fetchWithContext(input: string, init?: RequestInit): Promi
 
 export function authHeaders(): HeadersInit {
   const token = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
+
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -44,18 +48,24 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { "Content-Type": "application/json", ...authHeaders(), ...(init?.headers || {}) },
   });
+
   if (res.status === 401 && typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
     window.location.href = "/login";
     throw new Error("Sesi berakhir. Silakan masuk kembali.");
   }
+
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
+
     try {
       const j = await res.json();
+
       msg = (j as { detail?: string }).detail || msg;
     } catch { /* abaikan */ }
+
     throw new Error(msg);
   }
+
   return res.json() as Promise<T>;
 }
 
@@ -64,10 +74,12 @@ export async function downloadExport(uid: string, format: string) {
   const res = await fetchWithContext(`${apiUrl()}/api/v1/analyses/${uid}/export?format=${format}`, {
     headers: { ...authHeaders() },
   });
+
   if (!res.ok) throw new Error(`Export gagal: HTTP ${res.status}`);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
+
   a.href = url;
   a.download = `${uid}.${format}`;
   a.click();
@@ -82,6 +94,7 @@ export function apaStyle(result: Record<string, unknown>): string {
   const ptxt = p == null ? "p = ?" : p < 0.001 ? "p < .001" : `p = ${Number(p).toFixed(3)}`;
   const n = result.n;
   const num = (v: unknown, d = 3) => (typeof v === "number" ? v.toFixed(d) : "?");
+
   switch (m) {
     case "ttest_ind": return `Independent t-test: t(${s.df}) = ${num(s.t)}, ${ptxt}, d = ${num((result.effect_size as Record<string, number> | null)?.cohens_d, 2)} (n = ${n})`;
     case "ttest_1samp": return `One-sample t-test: t(${s.df}) = ${num(s.t)}, ${ptxt} (n = ${n})`;

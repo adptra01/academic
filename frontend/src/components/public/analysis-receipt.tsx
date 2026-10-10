@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import { Check, RefreshCw, TriangleAlert } from "lucide-react";
+
 import { apiUrl } from "@/lib/api";
 
 type Status = "probing" | "ok" | "checking" | "error";
@@ -19,6 +21,7 @@ export default function AnalysisReceipt() {
 
   useEffect(() => {
     let alive = true;
+
     fetch(`${apiUrl()}/health`)
       .then((r) => {
         if (alive) setStatus(r.ok ? "ok" : "error");
@@ -26,6 +29,7 @@ export default function AnalysisReceipt() {
       .catch(() => {
         if (alive) setStatus("error");
       });
+
     return () => {
       alive = false;
     };
@@ -35,6 +39,7 @@ export default function AnalysisReceipt() {
   useEffect(() => {
     if (status !== "checking") return;
     timer.current = setTimeout(() => setStatus("ok"), 1150);
+
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+
 import PageHeader from "@/components/public/page-header";
 import MethodsIndex from "@/components/public/methods-index";
 import ClosingCta from "@/components/public/closing-cta";

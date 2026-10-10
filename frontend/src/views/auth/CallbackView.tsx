@@ -16,10 +16,14 @@ const CallbackView = () => {
 
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('code')
+
     if (!code) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Baca/fetch sistem eksternal (localStorage/API/CSS var) saat mount atau saat dependensi berubah; lazy state di render akan menyebabkan hydration mismatch.
       setErr('Tidak ada authorization code dari Google.')
+
       return
     }
+
     fetchWithContext(`${apiUrl()}/api/v1/auth/google/callback`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -27,6 +31,7 @@ const CallbackView = () => {
     })
       .then(async res => {
         const j = await res.json()
+
         if (!res.ok) throw new Error(j.detail || `HTTP ${res.status}`)
         window.localStorage.setItem('token', j.access_token)
         if (j.user) window.localStorage.setItem('user', JSON.stringify(j.user))

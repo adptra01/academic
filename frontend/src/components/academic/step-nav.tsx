@@ -14,6 +14,7 @@ export type StepItem = {
   hint: string
   icon: LucideIcon
   status: StepStatus
+
   /** Satu baris hasil, mis. "2 file · v3 aktif". */
   summary?: string
 }

@@ -232,3 +232,13 @@
 - Kredensial S3 dev (`minioadmin`/`minioadmin123`) diganti interpolasi `${S3_ACCESS_KEY:-minioadmin}`/`${S3_SECRET_KEY:-minioadmin}`
 - Verifikasi: tidak ada kunci asli tersisa di berkas ter-track; `ddev restart` + health 200 + login demo tetap normal; tidak ada token OAuth tersimpan di DB lokal sehingga rotasi tidak merusak data
 - Audit lain: `.env`/`.env.local` ter-gitignore (hanya `.env.example` ter-track), `db_snapshots` & `.ddev-docker-*.yaml` ter-gitignore, tidak ada dump DB, berkas terbesar 424K (`og-image.png`)
+
+## [2026-10-10] — Lint hijau + SECURITY.md
+- **Lint frontend: 201 masalah → 0** (29 berkas). PRD mensyaratkan "lint passes" di hampir semua US dan sebelumnya gagal.
+  - `eslint --fix` menuntaskan 187 masalah otomatis (`padding-line-between-statements`, `import/order`, `lines-around-comment`)
+  - 4 import tak terpakai dibuang: `METHODS` (validation-evidence), `FieldGroup`/`Label`/`Separator` (ProjectView)
+  - `Formula` (AnalysisView) direfaktor: hasil `katex.renderToString` diletakkan di luar blok `try` — menghapus pelanggaran `react-hooks/error-boundaries` tanpa mengubah perilaku (KaTeX gagal → tampilkan sumber mentah)
+  - 9 lokasi `react-hooks/set-state-in-effect` diberi `eslint-disable` beralasan: semuanya pola sah (baca localStorage/API/CSS var saat mount); lazy state saat render justru menyebabkan hydration mismatch
+- **`SECURITY.md` dibuat** — selama ini dirujuk `.env.example`/`.gitignore` tapi tidak pernah ada. Isinya sesuai kondisi kode nyata, termasuk bagian jujur "Yang BELUM selesai": tidak ada validasi MIME, delete dataset masih hard delete (bukan soft-delete), belum ada audit log login, rate limit hanya di endpoint auth, tidak ada enkripsi at-rest, belum ada CI keamanan
+- Catatan temuan: `@limiter.limit("10/minute")` aktif di register/login/ganti password/OAuth; bcrypt; cookie HttpOnly SameSite; isolasi `user_id` di semua query; `research_logs` append-only (tanpa route ubah/hapus); nama upload disanitasi (aman path traversal)
+- Verified: `eslint` 0 masalah, `tsc` bersih, `next build` 11/11 route, screenshot mode gelap identik pra-perubahan, alur login → dashboard normal

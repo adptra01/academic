@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+
 import { AVAILABLE_METHODS, FAMILY_LABEL, FAMILY_ORDER, METHODS } from "@/lib/methods";
 import Reveal from "./reveal";
 

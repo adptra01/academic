@@ -52,7 +52,9 @@ const TYPES = ['Skripsi', 'Tesis', 'Disertasi', 'Paper', 'Lainnya'] as const
 /** Tanggal ISO → "12 Okt 2026". Sengaja tanpa library date. */
 function fmtDate(iso: string) {
   const d = new Date(iso)
+
   if (Number.isNaN(d.getTime())) return iso
+
   return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(d)
 }
 
@@ -77,6 +79,7 @@ const DashboardView = () => {
 
   async function load() {
     setLoading(true)
+
     try {
       setProjects(await api<Project[]>('/api/v1/projects'))
       setErr('')
@@ -88,24 +91,30 @@ const DashboardView = () => {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Baca/fetch sistem eksternal (localStorage/API/CSS var) saat mount atau saat dependensi berubah; lazy state di render akan menyebabkan hydration mismatch.
     void load()
   }, [])
 
   async function create(e: React.FormEvent) {
     e.preventDefault()
     const t = title.trim()
+
     if (!t) {
       setTitleError('Judul wajib diisi.')
+
       return
     }
+
     setTitleError('')
     setCreating(true)
     setErr('')
+
     try {
       const created = await api<Project>('/api/v1/projects', {
         method: 'POST',
         body: JSON.stringify({ title: t, description: description.trim() || null, research_type: researchType })
       })
+
       setTitle('')
       setDescription('')
       setMsg(`Project "${created.title}" dibuat.`)
@@ -122,6 +131,7 @@ const DashboardView = () => {
     setErr('')
     setMsg('')
     setPwBusy(true)
+
     try {
       await api('/api/v1/auth/change-password', {
         method: 'POST',
@@ -142,11 +152,13 @@ const DashboardView = () => {
     setDeleting(true)
     setErr('')
     setMsg('')
+
     try {
       const res = await fetch(`${apiUrl()}/api/v1/projects/${delTarget.id}`, {
         method: 'DELETE',
         headers: authHeaders()
       })
+
       if (res.status !== 204) throw new Error(`HTTP ${res.status}`)
       setMsg(`Project "${delTarget.title}" dihapus.`)
       setDelTarget(null)

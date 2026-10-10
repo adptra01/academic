@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+
 import Reveal from "./reveal";
 
 const NEEDS = [

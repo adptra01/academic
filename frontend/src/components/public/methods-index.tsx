@@ -1,7 +1,9 @@
 "use client";
 
 import { memo, useMemo, useState } from "react";
+
 import { Search, X } from "lucide-react";
+
 import {
   AVAILABLE_METHODS,
   FAMILY_LABEL,
@@ -21,6 +23,7 @@ const PHASE_2_COUNT = METHODS.length - AVAILABLE_METHODS.length;
 
 const MethodRow = memo(function MethodRow({ m }: { m: Method }) {
   const fase2 = m.family === "fase-2";
+
   return (
     <li
       id={m.id}
@@ -79,15 +82,19 @@ export default function MethodsIndex() {
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
+
     const filtered = METHODS.filter((m) => {
       const byFamily = family === "all" || m.family === family;
+
       const byQuery =
         q === "" ||
         m.name.toLowerCase().includes(q) ||
         m.id.toLowerCase().includes(q) ||
         m.requires.toLowerCase().includes(q);
+
       return byFamily && byQuery;
     });
+
     return FAMILY_ORDER.map((f) => ({
       family: f,
       items: filtered.filter((m) => m.family === f),
@@ -122,6 +129,7 @@ export default function MethodsIndex() {
                 <div className="flex flex-wrap gap-1.5" role="group" aria-label="Saring menurut kelompok metode">
                   {FILTERS.map((f) => {
                     const active = family === f.key;
+
                     return (
                       <button
                         key={f.key}

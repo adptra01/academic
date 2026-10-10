@@ -31,13 +31,16 @@ const RegisterView = () => {
     e.preventDefault()
     setErr('')
     setBusy(true)
+
     try {
       const res = await fetchWithContext(`${apiUrl()}/api/v1/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name })
       })
+
       const j = await res.json()
+
       if (!res.ok) throw new Error(j.detail || `HTTP ${res.status}`)
       window.localStorage.setItem('token', j.access_token)
       if (j.user) window.localStorage.setItem('user', JSON.stringify(j.user))

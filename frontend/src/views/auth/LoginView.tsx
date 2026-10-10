@@ -34,6 +34,7 @@ const LoginView = () => {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Baca/fetch sistem eksternal (localStorage/API/CSS var) saat mount atau saat dependensi berubah; lazy state di render akan menyebabkan hydration mismatch.
     setApiUrlVal(
       window.localStorage.getItem('api_url') ||
         process.env.NEXT_PUBLIC_API_URL ||
@@ -43,9 +44,11 @@ const LoginView = () => {
 
   async function googleLogin() {
     setErr('')
+
     try {
       const { api } = await import('@/lib/api')
       const j = await api<{ url: string }>(`/api/v1/auth/google/url`)
+
       window.location.href = j.url
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Login Google gagal dimulai')
@@ -56,14 +59,18 @@ const LoginView = () => {
     e.preventDefault()
     setErr('')
     setBusy(true)
+
     try {
       window.localStorage.setItem('api_url', apiUrlVal.replace(/\/$/, ''))
+
       const res = await fetchWithContext(`${apiUrlVal.replace(/\/$/, '')}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       })
+
       let j: { detail?: string; access_token?: string; user?: { name?: string; email?: string } }
+
       try {
         j = await res.json()
       } catch {
@@ -71,6 +78,7 @@ const LoginView = () => {
           `Server membalas ${res.status} tanpa JSON. Cek ${apiUrlVal}/health — untuk DDEV host-side biasanya http://localhost:8100.`
         )
       }
+
       if (!res.ok) throw new Error(j.detail || `HTTP ${res.status}`)
       if (!j.access_token) throw new Error('Server tidak mengembalikan access_token')
       window.localStorage.setItem('token', j.access_token)

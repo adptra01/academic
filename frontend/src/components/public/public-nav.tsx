@@ -15,6 +15,7 @@ export default function PublicNav({ items }: { items: NavItem[] }) {
         {items.map((l) => {
           const active =
             l.href === "/" ? pathname === "/" : pathname === l.href || pathname.startsWith(`${l.href}/`);
+
           return (
             <li key={l.href}>
               <Link

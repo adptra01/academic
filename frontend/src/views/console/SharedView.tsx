@@ -41,6 +41,7 @@ const SharedView = () => {
     fetchWithContext(`${apiUrl()}/public/shared/${token}`)
       .then(async r => {
         if (!r.ok) throw new Error('Link tidak valid / dicabut / kedaluwarsa')
+
         return r.json()
       })
       .then(setD)

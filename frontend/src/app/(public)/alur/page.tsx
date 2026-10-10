@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+
 import PageHeader from "@/components/public/page-header";
 import Pipeline from "@/components/public/pipeline";
 import Formats from "@/components/public/formats";

@@ -6,6 +6,7 @@ type RevealProps = {
   children: ReactNode;
   className?: string;
   variant?: "up" | "left" | "scale";
+
   /** Posisi dalam-waterfall reveal —KHUSUS untuk stagger. */
   index?: number;
   as?: ElementType;
@@ -27,11 +28,13 @@ function ensureObserver(): IntersectionObserver {
           observer?.unobserve(entry.target);
         }
       },
+
       // threshold 0 + rootMargin negatif: tetap terpicu walau elemen lebih tinggi
       // dari viewport (threshold pecahan tidak akan tercapai di kasus itu).
       { rootMargin: "0px 0px -8% 0px", threshold: 0 }
     );
   }
+
   return observer;
 }
 
@@ -46,9 +49,12 @@ export default function Reveal({
 
   useEffect(() => {
     const el = ref.current;
+
     if (!el) return;
     const io = ensureObserver();
+
     io.observe(el);
+
     return () => {
       io.unobserve(el);
     };

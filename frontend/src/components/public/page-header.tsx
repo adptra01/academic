@@ -4,6 +4,7 @@ type PageHeaderProps = {
   eyebrow: string;
   title: string;
   lede: string;
+
   /** Satu-duanya angka ringkas di kanan atas header. */
   facts?: Array<{ k: string; v: string }>;
 };

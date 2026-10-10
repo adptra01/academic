@@ -17,10 +17,13 @@ export type Method = {
   id: string;
   name: string;
   family: MethodFamily;
+
   /** Syarat data minimum, ditulis supaya peneliti tahu kapan metode ini sah. */
   requires: string;
+
   /** Nama pendek untuk pratinjau katalog di halaman welcome. */
   short?: string;
+
   /** Asumsi yang diperiksa otomatis sebelum hasil dipakai. */
   assumptions?: string[];
 };

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import Link from "next/link";
+
 import { apiUrl } from "@/lib/api";
 import ModeToggle from "@/components/layout/ModeToggle";
 import type { NavItem } from "./public-nav";
@@ -12,13 +14,16 @@ export function SessionLinks() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Baca/fetch sistem eksternal (localStorage/API/CSS var) saat mount atau saat dependensi berubah; lazy state di render akan menyebabkan hydration mismatch.
     setLogged(!!window.localStorage.getItem("token"));
   }, []);
 
   async function logout() {
     setBusy(true);
+
     try {
       const token = window.localStorage.getItem("token");
+
       await fetch(`${apiUrl()}/api/v1/auth/logout`, {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -26,6 +31,7 @@ export function SessionLinks() {
     } catch {
       /* abaikan — token lokal tetap dibersihkan */
     }
+
     window.localStorage.removeItem("token");
     window.location.href = "/login";
   }
@@ -75,10 +81,13 @@ export function MobileNav({ items }: { items: NavItem[] }) {
 
   useEffect(() => {
     if (!open) return;
+
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
+
     document.addEventListener("keydown", onKey);
+
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 

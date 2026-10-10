@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+
 import PageHeader from "@/components/public/page-header";
 import Provenance from "@/components/public/provenance";
 import ValidationEvidence from "@/components/public/validation-evidence";
