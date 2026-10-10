@@ -214,3 +214,15 @@
 - Verified: `tsc` bersih, `next build` 11/11, audit computed-style + cek overflow/console-error seluruh halaman publik via agent-browser (desktop 1440 + mobile 390); QA console dengan login demo (dashboard + project view, desktop + 390) tanpa overflow
 - Akibat insiden DB: `ddev-academic-db` mati → login 500 (`/health` 200); dipulihkan via `ddev start` (init.sql jalan ulang = DB fresh), akun demo dibuat ulang + 1 project uji
 - Backup pra-perubahan: `/mnt/DiskD/Workspace/Backups/academic-frontend-pre-redesign-ngulikdata-20261010-1510.tar.gz`
+
+## [2026-10-10] — Light & dark mode + pembersihan kode mati (frontend)
+- **Mode gelap penuh**: token `.dark` disempurnakan (bg/netral hangat, kartu elevasi, border tipis), `color-scheme` per mode, `html` diberi `bg-background`; `next-themes` tetap `attribute='class'` + `defaultTheme='system'`
+- **Token semantik baru**: `--brand/--brand-foreground` (blok CTA biru tetap pekat di mode gelap, bukan bir terang menyilaukan), `--strong/--strong-foreground/--strong-accent` (panel Reproduksi tetap gelap di kedua mode + aksen terang untuk keterbacaan), `--shadow-card` tema-sadar, `--warn`/`--warn-wash`/`--accent-wash` bernilai terang & gelap
+- **Turunan dari itu**: `analysis-receipt` (`bg-white` → `bg-card`, skeleton `bg-muted`, sheen `shimmer` berbasis `--foreground`), `methods-index` (input cari `bg-background`), tombol aksen publik `text-paper` → `text-primary-foreground`, `.caret` pakai `currentColor`
+- **Grafik sadar tema** (`EChartView`): warna axis/grid/label/bar/line/baca dari variabel CSS dan bereaksi pada `resolvedTheme`; fallback `text-slate-500` → `text-muted-foreground`
+- **`ModeToggle`** di header publik (sm+) + baris berlabel di panel menu mobile; console sudah punya dari sebelumnya
+- **Hapus yang tidak perlu**: 17 komponen UI tanpa satu pun importer (`background-ripple`, `button-group`, `chart`, `checkbox`, `circular-progress`, `combobox`, `command`, `input-otp`, `pagination`, `popover`, `radio-group`, `rating`, `resizable`, `scroll-area`, `switch`, `timeline`, `toggle-group`); CSS mati (`.hatch`, `.animate-marquee`, `marquee-x`, `.input-*`, alias `paper-3/4`, `abyss*`); 8 dependensi npm yatim (`cmdk`, `input-otp`, `react-resizable-panels`, `recharts`, `@hookform/resolvers`, `@tanstack/react-table`, `react-hook-form`, `zod`)
+- **Fix bug yang ditemukan saat migrasi**: alias `--color-accent → primary` membuat hover `dropdown-menu`/`select` tidak terbaca (bg biru + teks gelap) di kedua mode → komponen publik dimigrasi ke `primary`, alias `accent*` dibuang agar semantik `accent` shadcn kembali benar
+- **Fix beranda breadcrumb**: prop `parent` di `PageHeader` dihapus (remah roti "Beranda" tidak lagi dirender di `/metode`, `/alur`, `/reproduksi`)
+- Verified: `tsc` bersih, `next build` 11/11 route, screenshot + cek computed-style & overflow di `/`, `/reproduksi`, `/login`, `/dashboard`, `/projects/[id]` pada viewport 1440 untuk mode terang dan gelap; login demo → dashboard → project tanpa error konsol
+- Insiden lingkungan: kontainer ddev `db` exited → login backend 500; dipulihkan via `ddev start` (tabel lama masih ada, data tidak terhapus)

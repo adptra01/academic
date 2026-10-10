@@ -14,7 +14,6 @@ export default function MetodePage() {
   return (
     <>
       <PageHeader
-        parent={{ href: "/", label: "Beranda" }}
         eyebrow="Katalog metode"
         title="Buka metode hanya kalau syaratnya memang terpenuhi."
         lede="Indeks lengkap metode yang tersedia beserta data yang dibutuhkan. Setiap entri menampilkan asumsi yang diperiksa otomatis sebelum hasil boleh dipakai."

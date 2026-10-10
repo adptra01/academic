@@ -52,3 +52,28 @@
   - Form Layouts
   - Form Validation
   - Data Table
+
+## 2026-10-10 — Desain light & dark mode + pembersihan
+
+### Added
+- Mode terang/gelap penuh: `next-themes` (`attribute='class'`, `defaultTheme='system'`), token `.dark` disempurnakan, `color-scheme` terdefinisi per mode.
+- `ModeToggle` publik di header dan di panel mobile.
+- Token semantik baru: `--brand`/`--brand-foreground`, `--strong`/`--strong-foreground`, `--strong-accent`, `--shadow-card` (tema-sadar).
+- `EChartView` sadar tema: warna axis/grid/label/bar/line dibaca dari variabel CSS dan bereaksi pada perubahan tema.
+
+### Changed
+- Panel `Provenance` (reproduksi) tetap gelap di kedua mode menggunakan token `strong`, aksen terang (strong-accent) untuk keterbacaan, border dan opacity diadaptasi.
+- `ClosingCTA` pakai token `brand` agar blok CTA biru tetap stabil di mode gelap.
+- `AnalysisReceipt`: `bg-white/*` → `bg-card/*`, bayangan karti tema-sadar, skeleton pakai `bg-muted`, sheen `shimmer` berbasis `--foreground`.
+- Komponen publik dimigrasi dari `accent*` ke `primary*`; alias `accent→primary` lama dihapus agar semantik `accent` shadcn kembali normal (memperbaiki hover dropdown/select).
+- `html` diberi `bg-background`, `.caret::after` pakai `currentColor`, `::selection` konsisten.
+- Penyesuaian kecil token `warn`/`warn-wash` dan `accent-wash` agar siap tema.
+
+### Removed
+- Komponen UI tidak terpakai: `background-ripple`, `button-group`, `chart`, `checkbox`, `circular-progress`, `combobox`, `command`, `input-otp`, `pagination`, `popover`, `radio-group`, `rating`, `resizable`, `scroll-area`, `switch`, `timeline`, `toggle-group`.
+- CSS mati: `.hatch`, `.animate-marquee`, `@keyframes marquee-x`, `.input-default/.input-lg/.input-sm/.input-size-lg`, alias `--color-paper-4`, `--color-abyss*`, override `accent*→primary*` yang berlebihan.
+- Dependensi yatim/dihapus: `cmdk`, `input-otp`, `react-resizable-panels`, `recharts`, `@hookform/resolvers`, `@tanstack/react-table`, `react-hook-form`, `zod`.
+
+### Fixed
+- Konsistensi mode gelap di halaman publik (hero/nav/methods/analysis-receipt/provenance/CTA), kontras label pada panel gelap.
+- Hover `dropdown-menu`/`select` kembali terbaca setelah memulihkan semantik `accent` shadcn.

@@ -14,7 +14,6 @@ export default function ReproduksiPage() {
   return (
     <>
       <PageHeader
-        parent={{ href: "/", label: "Beranda" }}
         eyebrow="Reproduksi"
         title="Jejak yang masih bisa dibaca tahun depan."
         lede="Apa yang menentukan apakah hasil bisa dipercaya bukan hanya angkanya, melainkan apa yang tersisa setelah tombol ditekan. Di sini semuanya dijelaskan."

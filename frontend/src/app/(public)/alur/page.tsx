@@ -15,7 +15,6 @@ export default function AlurPage() {
   return (
     <>
       <PageHeader
-        parent={{ href: "/", label: "Beranda" }}
         eyebrow="Alur kerja"
         title="Delapan langkah, setiap langkah meninggalkan jejak."
         lede="Tidak ada langkah yang menghapus langkah sebelumnya. Unggah, tetapkan variabel, bersihkan, jalankan, baca, ekspor, lalu buktikan bisa diulang."

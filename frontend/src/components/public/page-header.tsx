@@ -1,59 +1,39 @@
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
 import Reveal from "./reveal";
 
 type PageHeaderProps = {
   eyebrow: string;
   title: string;
   lede: string;
-  /** Remah roti — hanya ditampilkan jika halaman punya induk yang jelas. */
-  parent?: { href: string; label: string };
   /** Satu-duanya angka ringkas di kanan atas header. */
   facts?: Array<{ k: string; v: string }>;
 };
 
 /** Header untuk halaman public di dalam situs (bukan welcome). */
-export default function PageHeader({ eyebrow, title, lede, parent, facts }: PageHeaderProps) {
+export default function PageHeader({ eyebrow, title, lede, facts }: PageHeaderProps) {
   return (
     <section className="relative overflow-hidden">
       <div className="dot-grid dot-grid-fade absolute inset-0" aria-hidden="true" />
       <div className="relative mx-auto max-w-[1400px] px-5 pb-16 pt-14 sm:px-8 lg:pb-20 lg:pt-20">
-        {parent && (
-          <Reveal>
-            <Link
-              href={parent.href}
-              className="ring-accent group inline-flex items-center gap-1.5 rounded-sm text-[12px] font-medium text-ink-3 transition-colors duration-300 hover:text-primary"
-            >
-              <ChevronLeft
-                size={13}
-                strokeWidth={1.5}
-                className="transition-transform duration-300 group-hover:-translate-x-0.5"
-              />
-              {parent.label}
-            </Link>
-          </Reveal>
-        )}
-
         <div className="grid gap-x-10 gap-y-9 lg:grid-cols-12">
-          <div className={parent ? "lg:col-span-8" : "lg:col-span-8"}>
-            <Reveal index={parent ? 1 : 0}>
+          <div className="lg:col-span-8">
+            <Reveal>
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-3">
                 {eyebrow}
               </p>
             </Reveal>
-            <Reveal index={parent ? 2 : 1}>
+            <Reveal index={1}>
               <h1 className="mt-5 max-w-[18ch] text-[2.4rem] font-bold leading-[1.0] tracking-[-0.035em] text-ink sm:text-[3rem] lg:text-[3.4rem]">
                 {title}
               </h1>
             </Reveal>
-            <Reveal index={parent ? 3 : 2}>
+            <Reveal index={2}>
               <p className="mt-6 max-w-[56ch] text-[15.5px] leading-[1.7] text-ink-2">{lede}</p>
             </Reveal>
           </div>
 
           {facts && facts.length > 0 && (
             <div className="lg:col-span-4">
-              <Reveal index={parent ? 4 : 3}>
+              <Reveal index={3}>
                 <dl className="divide-y divide-rule border-y border-rule">
                   {facts.map((f) => (
                     <div key={f.k} className="flex items-baseline justify-between gap-4 py-3.5">
