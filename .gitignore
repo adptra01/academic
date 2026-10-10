@@ -30,6 +30,13 @@ minio-data/
 !**/fixtures/*.csv
 !**/fixtures/*.json
 
+# Dokumen penelitian user (skripsi/tesis) & notebook hasil scrape — JANGAN commit.
+# Berisi karya pihak ketiga dan/atau data sensitif; repositori ini publik.
+sample/
+*.docx
+*.ipynb
+*.pdf
+
 # Build & logs
 dist/
 build/
