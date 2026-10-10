@@ -291,3 +291,32 @@ dataset) tetap terblokir.
   `-h localhost -p 5432 -U postgres -d academic_test`.
 - Lockfile diverifikasi sinkron dengan `package.json` (`npm ls
   --package-lock-only` tanpa ketidaksesuaian).
+
+## [2026-10-10] — Fix CI #2: nama folder bentukan dengan aturan `data/`
+
+### Bug
+Typecheck CI gagal: `src/hooks/use-current-time-indicator.ts(7,36): error TS2307:
+Cannot find module '@/assets/data/constants'`.
+
+### Akar
+Aturan `.gitignore` `data/` (untuk folder dataset upload) juga cocok dengan
+direktori **sumber** `frontend/src/assets/data/` — namanya sama. Dua berkas `.ts`
+di dalamnya tidak pernah ter-commit, jadi typecheck gagal di CI sementara lolos
+di mesin lokal (berkas ada di disk, hanya tak ter-track).
+
+### Solusi: hapus, bukan pengecualian
+Setelah dilacak, seluruh rantainya **kode mati sisa template AdminCN** yang
+fiturnya sudah dibuang saat migrasi:
+
+| Berkas | Pemakai |
+| --- | --- |
+| `frontend/src/hooks/use-current-time-indicator.ts` (`useCurrentTimeIndicator`) | 0 |
+| `frontend/src/hooks/use-event-visibility.ts` (`useEventVisibility`) | 0 |
+| `frontend/src/hooks/use-pagination.ts` (`usePagination`) | 0 |
+| `frontend/src/assets/data/constants.ts` | hanya hook mati di atas |
+| `frontend/src/assets/data/event-type-options.ts` | 0 |
+
+Dihapus (122 baris). Tidak ada tambahan pengecualian `.gitignore` — akar masalah
+(nama folder sumber bertabrakan dengan aturan ignore data) hilang, bukan ditambal.
+
+`use-mobile.ts` tetap ada dan masih dipakai (1 pemakai).
