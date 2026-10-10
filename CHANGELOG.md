@@ -242,3 +242,25 @@
 - **`SECURITY.md` dibuat** — selama ini dirujuk `.env.example`/`.gitignore` tapi tidak pernah ada. Isinya sesuai kondisi kode nyata, termasuk bagian jujur "Yang BELUM selesai": tidak ada validasi MIME, delete dataset masih hard delete (bukan soft-delete), belum ada audit log login, rate limit hanya di endpoint auth, tidak ada enkripsi at-rest, belum ada CI keamanan
 - Catatan temuan: `@limiter.limit("10/minute")` aktif di register/login/ganti password/OAuth; bcrypt; cookie HttpOnly SameSite; isolasi `user_id` di semua query; `research_logs` append-only (tanpa route ubah/hapus); nama upload disanitasi (aman path traversal)
 - Verified: `eslint` 0 masalah, `tsc` bersih, `next build` 11/11 route, screenshot mode gelap identik pra-perubahan, alur login → dashboard normal
+
+## [2026-10-10] — CI/CD (PRD FR-25) + temuan drift skema
+
+### Added
+- `.github/workflows/ci.yml` — 2 job paralel, gate merah = jangan merge:
+  - **backend**: Python 3.11 + service `postgres:15.7-bookworm`, apply `db/init.sql`, `alembic stamp head`, lalu `pytest -q` (61 test: engine deterministik + sharing + social-login)
+  - **frontend**: Node 22, `npm ci` -> `npm run lint` -> `npm run check-types` -> `npm run build`
+- Terpicu pada push/PR ke `master` + `workflow_dispatch`; `concurrency` membatalkan run lama agar tidak menumpuk
+
+### Verified (lokal, bukan asumsi)
+- Seluruh alur job backend diuji dulu di Postgres sekali-pakai lewat Docker (network `ddev-academic_default`): init.sql -> `stamp head` -> **61 test PASS dalam ~20s**
+- `npm run lint` exit 0 dan `npm run check-types` exit 0 (perintah yang sama dipakai CI, bukan perintah tambahan)
+- YAML divalidasi dengan parser (job, service, env, urutan step)
+
+### Fixed / ditemukan saat memasang CI
+- **Drift skema**: `db/init.sql` sudah memuat `feedback_reports`, `shared_links`, `oauth_connections`, `data_sources`, dan kolom `datasets.source_kind/source_meta`, sementara migrasi alembic `f1e2d3c4b5a6` -> `c2d3e4f5a6b7` -> `d3e4f5a6b7c8` membuat tabel yang sama lagi. Akibatnya `alembic upgrade head` **gagal** (`DuplicateTable: relation "feedback_reports" already exists`) pada DB fresh.
+- Dampak: langkah `alembic upgrade head` di `docs/runbook-prod.md` (bagian "3. Deploy") tidak bisa dijalankan setelah `init.sql` mengisi volume Postgres baru. Dev tidak terpengaruh karena ddev hanya menjalankan `init.sql`.
+- Penanganan CI: `init.sql` sebagai sumber skema + `alembic stamp head` (cukup menandai versi, tanpa eksekusi migrasi). Ini menutupi, bukan memutus akar — perlu keputusan: jadikan alembic satu-satunya sumber (init.sql hanya baseline), atau buat ketiga migrasi idempoten (`CREATE TABLE IF NOT EXISTS`).
+- CI perlu `STORAGE_DIR` (default `/code/storage` tidak bisa dibuat di runner) dan `JWT_SECRET` >=32 char (`main.py` menolak lebih pendek saat import).
+
+### Catatan kode (bukan bagian CI)
+- `backend/app/routers/datasets.py` masih memakai path hardcode `/tmp/opencode/...` untuk berkas unduhan preview — sisa lingkungan pengembangan. Sebaiknya pakai `tempfile`.

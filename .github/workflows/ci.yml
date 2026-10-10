@@ -1,0 +1,111 @@
+name: CI
+
+# Gate rilis (PRD FR-25): typecheck + lint + scientific tests wajib hijau.
+# Jangan dilewati — kalau merah, JANGAN merge.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+# Batalkan run lama di branch/PR yang sama agar tidak menumpuk.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------- backend
+  # Test scientific engine deterministik + test sharing/social-login.
+  # Kedua yang terakhir butuh PostgreSQL nyata (register → project → analisis),
+  # jadi service db dijalankan di sini.
+  backend:
+    name: Backend — scientific tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15.7-bookworm
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: academic_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d academic_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/academic_test
+      JWT_SECRET: ci-only-not-a-real-secret-0000000000000000
+      COOKIE_SECURE: "false"
+      STORAGE_DIR: /tmp/ci-storage
+      BACKEND_CORS_ORIGINS: http://localhost:3000
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Sumber skema = db/init.sql (baseline). Migrasi alembic TIDAK dijalankan
+      # pada DB fresh karena isinya sudah termasuk di init.sql — lihat catatan
+      # drift skema di CHANGELOG. `stamp head` menandai versi tanpa eksekusi.
+      - name: Apply schema (init.sql baseline)
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../db/init.sql
+        env:
+          PGPASSWORD: postgres
+
+      - name: Mark alembic at head
+        run: alembic stamp head
+
+      - name: Run test suite
+        run: python -m pytest -q
+
+  # --------------------------------------------------------------- frontend
+  # PRD: "Typecheck/lint passes" hampir di semua US.
+  frontend:
+    name: Frontend — lint, typecheck, build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run check-types
+
+      # Build juga memverifikasi semua route masih bisa di-generate.
+      - name: Build
+        run: npm run build
