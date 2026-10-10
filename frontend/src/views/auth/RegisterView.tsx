@@ -61,7 +61,7 @@ const RegisterView = () => {
             <Logo className='gap-3' />
           </Link>
           <div>
-            <CardTitle className='mb-2 text-2xl font-semibold'>Buat akun</CardTitle>
+            <CardTitle className='mb-2 text-3xl leading-[1.05] font-bold tracking-[-0.03em]'>Buat akun</CardTitle>
             <CardDescription className='text-base'>
               Daftar untuk mulai menyimpan penelitian Anda.
             </CardDescription>
@@ -78,6 +78,7 @@ const RegisterView = () => {
                   </FieldLabel>
                   <Input
                     id='name'
+                    className='rounded-lg'
                     autoComplete='name'
                     placeholder='Nama lengkap'
                     value={name}
@@ -90,6 +91,7 @@ const RegisterView = () => {
                   </FieldLabel>
                   <Input
                     type='email'
+                    className='rounded-lg'
                     id='email'
                     autoComplete='username'
                     placeholder='nama@kampus.ac.id'
@@ -103,6 +105,7 @@ const RegisterView = () => {
                   </FieldLabel>
                   <Input
                     type='password'
+                    className='rounded-lg'
                     id='password'
                     autoComplete='new-password'
                     value={password}

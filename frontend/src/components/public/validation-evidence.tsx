@@ -63,14 +63,14 @@ function familyLabel(f: MethodFamily) {
 
 export default function ValidationEvidence() {
   return (
-    <section className="border-b border-rule bg-paper-2/40">
-      <div className="mx-auto max-w-[1400px] px-5 py-20 sm:px-8 lg:py-24">
+    <section className="bg-paper-2">
+      <div className="mx-auto max-w-[1400px] px-5 py-24 sm:px-8 lg:py-32">
         <div className="grid gap-x-10 gap-y-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <p className="tnum text-[10.5px] font-medium uppercase tracking-[0.22em] text-ink-3">
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-3">
               Bukti validasi
             </p>
-            <h2 className="mt-5 max-w-[16ch] text-[2rem] font-semibold leading-[1.05] tracking-tight text-ink lg:text-[2.5rem]">
+            <h2 className="mt-5 max-w-[16ch] text-[2.25rem] font-bold leading-[1.02] tracking-[-0.035em] text-ink lg:text-[2.75rem]">
               Angka dibandingkan, bukan diklaim.
             </h2>
             <p className="mt-5 max-w-[38ch] text-[14.5px] leading-[1.7] text-ink-2">
@@ -97,7 +97,7 @@ export default function ValidationEvidence() {
             <div className="border-t border-rule">
               {CHECKS.map((c) => (
                 <div key={c.family} className="grid gap-x-6 gap-y-2 border-b border-rule py-5 sm:grid-cols-[10rem_minmax(0,1fr)]">
-                  <p className="tnum text-[10.5px] font-medium uppercase leading-relaxed tracking-[0.14em] text-ink-4">
+                  <p className="font-mono text-[11px] font-medium uppercase leading-relaxed tracking-[0.2em] text-ink-4">
                     {familyLabel(c.family)}
                   </p>
                   <ul className="divide-y divide-rule/70">

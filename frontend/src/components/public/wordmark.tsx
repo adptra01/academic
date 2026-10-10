@@ -15,18 +15,18 @@ export default function Wordmark({ className }: { className?: string }) {
         <path
           d="M5.5 19.4 11 12.8 16.4 15.4 23.25 5.9"
           pathLength="1"
-          stroke="var(--color-accent)"
+          stroke="var(--primary)"
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
           className="animate-trace"
         />
-        <circle cx="11" cy="12.8" r="1.7" fill="var(--color-accent)" />
-        <circle cx="23.25" cy="5.9" r="1.7" fill="var(--color-accent)" />
+        <circle cx="11" cy="12.8" r="1.7" fill="var(--primary)" />
+        <circle cx="23.25" cy="5.9" r="1.7" fill="var(--primary)" />
       </svg>
       <span className="flex items-baseline gap-2">
-        <span className="text-[15px] font-semibold leading-none tracking-tight text-ink">Academic</span>
-        <span className="tnum text-[9px] font-medium uppercase leading-none tracking-[0.22em] text-ink-3">
+        <span className="text-[15px] font-bold leading-none tracking-[-0.02em] text-ink">Academic</span>
+        <span className="font-mono text-[9px] font-medium uppercase leading-none tracking-[0.22em] text-ink-3">
           platform
         </span>
       </span>

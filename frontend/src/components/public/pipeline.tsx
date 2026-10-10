@@ -51,8 +51,8 @@ const STEPS: Step[] = [
 
 export default function Pipeline() {
   return (
-    <section id="alur" className="scroll-mt-24 border-b border-rule bg-paper-2/40">
-      <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8 lg:py-20">
+    <section id="alur" className="scroll-mt-24 bg-paper-2">
+      <div className="mx-auto max-w-[1400px] px-5 py-24 sm:px-8 lg:py-32">
         <div className="grid gap-x-10 gap-y-8 lg:grid-cols-12">
           {/* Judul halaman sudah ditangani PageHeader; gutter kiri dipakai sebagai
               ruang kosong yang disengaja agar tangga langkah terbaca utuh. */}
@@ -66,20 +66,20 @@ export default function Pipeline() {
                   className="stair-item group grid gap-x-7 gap-y-2 border-t border-rule py-7 md:grid-cols-[3.25rem_minmax(0,1fr)] md:py-8"
                 >
                   <div className="flex items-center gap-2.5 md:block">
-                    <span className="tnum text-[11px] font-medium text-accent">
+                    <span className="tnum text-[11px] font-medium text-primary">
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     <span
                       aria-hidden="true"
-                      className="hidden h-px w-full bg-rule-2 transition-colors duration-500 group-hover:bg-accent md:mt-3 md:block"
+                      className="hidden h-px w-full bg-rule-2 transition-colors duration-500 group-hover:bg-primary md:mt-3 md:block"
                     />
                   </div>
                   <div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                      <h3 className="text-[16.5px] font-medium leading-snug tracking-tight text-ink">
+                      <h3 className="text-[16.5px] font-medium leading-snug tracking-[-0.02em] text-ink">
                         {s.title}
                       </h3>
-                      <span className="tnum rounded border border-rule px-1.5 py-0.5 text-[9.5px] font-medium uppercase tracking-[0.14em] text-ink-4">
+                      <span className="font-mono rounded border border-rule px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.2em] text-ink-4">
                         {s.meta}
                       </span>
                     </div>

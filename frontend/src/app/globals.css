@@ -48,86 +48,74 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Palet netral hangat (hue 78) + primer biru pekat — mengikuti referensi. */
 :root {
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: oklch(0.185 0.004 78);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.185 0.004 78);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.185 0.004 78);
+  --primary: oklch(0.204 0.2 271);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.968 0.005 78);
+  --secondary-foreground: oklch(0.204 0.004 78);
+  --muted: oklch(0.968 0.005 78);
+  --muted-foreground: oklch(0.52 0.01 78);
+  --accent: oklch(0.968 0.005 78);
+  --accent-foreground: oklch(0.204 0.004 78);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
+  --border: oklch(0.88 0.01 78);
+  --input: oklch(0.88 0.01 78);
+  --ring: oklch(0.204 0.2 271);
+  --chart-1: oklch(0.204 0.2 271);
+  --chart-2: oklch(0.839 0.17 87);
+  --chart-3: oklch(0.55 0.1 220);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.975 0.004 78);
+  --sidebar-foreground: oklch(0.185 0.004 78);
+  --sidebar-primary: oklch(0.204 0.2 271);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: oklch(0.94 0.006 78);
+  --sidebar-accent-foreground: oklch(0.204 0.004 78);
+  --sidebar-border: oklch(0.9 0.008 78);
+  --sidebar-ring: oklch(0.204 0.2 271);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.17 0.003 78);
+  --foreground: oklch(0.97 0.003 78);
+  --card: oklch(0.21 0.004 78);
+  --card-foreground: oklch(0.97 0.003 78);
+  --popover: oklch(0.21 0.004 78);
+  --popover-foreground: oklch(0.97 0.003 78);
+  --primary: oklch(0.67 0.16 271);
+  --primary-foreground: oklch(0.15 0.02 271);
+  --secondary: oklch(0.27 0.005 78);
+  --secondary-foreground: oklch(0.97 0.003 78);
+  --muted: oklch(0.27 0.005 78);
+  --muted-foreground: oklch(0.7 0.01 78);
+  --accent: oklch(0.27 0.005 78);
+  --accent-foreground: oklch(0.97 0.003 78);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
+  --ring: oklch(0.67 0.16 271);
+  --chart-1: oklch(0.67 0.16 271);
+  --chart-2: oklch(0.839 0.17 87);
+  --chart-3: oklch(0.6 0.12 220);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar: oklch(0.2 0.004 78);
+  --sidebar-foreground: oklch(0.97 0.003 78);
+  --sidebar-primary: oklch(0.67 0.16 271);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.27 0.005 78);
+  --sidebar-accent-foreground: oklch(0.97 0.003 78);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
-
-.input-default {
-  @apply h-9;
-}
-.input-lg {
-  @apply h-10;
-}
-.input-sm {
-  @apply h-8;
-}
-.input-size-lg {
-  @apply size-10;
+  --sidebar-ring: oklch(0.67 0.16 271);
 }
 
 [data-slot='button'].h-10:not(.px-6),
@@ -202,7 +190,7 @@ input[type='number']::-webkit-outer-spin-button {
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply bg-background font-sans;
   }
 }
 
@@ -226,53 +214,58 @@ input[type='number']::-webkit-outer-spin-button {
 }
 
 /* ==========================================================================
-   Academic layer — merek petrol + alias kompatibilitas + utilitas gerak.
+   Lapisan akademik — alias kompatibilitas + utilitas gerak.
    Token lama (paper/ink/rule/accent) dipetakan ke token shadcn agar semua
-   komponen hasil port tetap jalan tanpa rewrite massal.
+   komponen hasil port tetap jalan tanpa rewrite massal. Token semantik
+   tambahan (brand/strong/warn) punya nilai terang & gelap sendiri.
    ========================================================================== */
 
 :root {
-  --primary: oklch(0.43 0.075 198);
-  --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.43 0.075 198);
-  --sidebar-primary: oklch(0.43 0.075 198);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-ring: oklch(0.43 0.075 198);
+  --accent-wash: oklch(0.968 0.005 78);
+  --warn: oklch(0.55 0.13 66);
+  --warn-wash: oklch(0.96 0.045 87);
+  --brand: oklch(0.204 0.2 271);
+  --brand-foreground: oklch(0.985 0 0);
+  --strong: oklch(0.185 0.004 78);
+  --strong-foreground: oklch(0.975 0.003 78);
+  --strong-accent: oklch(0.74 0.12 266);
+  --shadow-card: 0 24px 48px -28px rgba(26, 24, 21, 0.28);
+  color-scheme: light;
 }
 
 .dark {
-  --primary: oklch(0.68 0.09 195);
-  --primary-foreground: oklch(0.145 0 0);
-  --ring: oklch(0.68 0.09 195);
-  --sidebar-primary: oklch(0.68 0.09 195);
-  --sidebar-primary-foreground: oklch(0.145 0 0);
-  --sidebar-ring: oklch(0.68 0.09 195);
+  --accent-wash: oklch(0.3 0.045 271);
+  --warn: oklch(0.8 0.13 80);
+  --warn-wash: oklch(0.3 0.05 80);
+  --brand: oklch(0.4 0.17 271);
+  --brand-foreground: oklch(0.98 0.005 271);
+  --strong: oklch(0.145 0.003 78);
+  --strong-foreground: oklch(0.975 0.003 78);
+  --strong-accent: oklch(0.76 0.12 266);
+  --shadow-card: 0 24px 48px -28px rgba(0, 0, 0, 0.7);
+  color-scheme: dark;
 }
 
 @theme inline {
   /* Alias kompatibilitas: nama lama → token shadcn */
   --color-paper: var(--background);
   --color-paper-2: var(--muted);
-  --color-paper-3: var(--border);
-  --color-paper-4: var(--border);
   --color-ink: var(--foreground);
   --color-ink-2: var(--muted-foreground);
   --color-ink-3: var(--muted-foreground);
   --color-ink-4: var(--muted-foreground);
   --color-rule: var(--border);
   --color-rule-2: var(--input);
-  --color-accent: var(--primary);
-  --color-accent-2: var(--primary);
-  --color-accent-3: var(--primary);
-  --color-accent-wash: var(--muted);
-  --color-accent-line: var(--border);
-  --color-abyss: var(--foreground);
-  --color-abyss-2: var(--card);
-  --color-abyss-3: var(--border);
+  --color-accent-wash: var(--accent-wash);
   --color-danger: var(--destructive);
-  --color-warn: var(--chart-4);
-  --color-warn-wash: var(--muted);
-  --font-archivo: var(--font-archivo);
+  --color-warn: var(--warn);
+  --color-warn-wash: var(--warn-wash);
+  /* Token semantik baru */
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-strong: var(--strong);
+  --color-strong-foreground: var(--strong-foreground);
+  --color-strong-accent: var(--strong-accent);
 }
 
 ::selection {
@@ -282,44 +275,20 @@ input[type='number']::-webkit-outer-spin-button {
 
 /* Angka/ID/hash selalu monospace tabular agar kolom rata. */
 .tnum {
-  font-family: var(--font-mono-plex), var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
 }
 
-/* Halaman publik memakai Archivo sebagai sans utama. */
-.font-editorial,
-.font-editorial body {
-  font-family: var(--font-archivo), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+/* Tekstur titik (dot grid) menggantikan kertas grafik. */
+.dot-grid {
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 22px 22px;
 }
-.font-editorial {
-  font-family: var(--font-archivo), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-}
-
-/* Tekstur kertas grafik + grain (fixed, tanpa repaint saat scroll). */
-.graph-paper {
-  background-image:
-    linear-gradient(to right, color-mix(in oklch, var(--foreground) 5%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklch, var(--foreground) 5%, transparent) 1px, transparent 1px);
-  background-size: 28px 28px;
-}
-.graph-paper-fade {
+.dot-grid-fade {
   -webkit-mask-image: radial-gradient(120% 90% at 78% 12%, #000 0%, transparent 68%);
   mask-image: radial-gradient(120% 90% at 78% 12%, #000 0%, transparent 68%);
 }
-.grain-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  pointer-events: none;
-  opacity: 0.045;
-  mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-.hatch {
-  background-image: repeating-linear-gradient(-45deg, var(--primary) 0 1px, transparent 1px 5px);
-}
-
 /* Gerak: hanya transform/opacity. */
 @keyframes rise-in {
   from { opacity: 0; transform: translate3d(0, 16px, 0); }
@@ -332,10 +301,6 @@ input[type='number']::-webkit-outer-spin-button {
 @keyframes breathe {
   0%, 100% { opacity: 0.3; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.4); }
-}
-@keyframes marquee-x {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(-50%, 0, 0); }
 }
 @keyframes shimmer-sweep {
   from { transform: translate3d(-110%, 0, 0); }
@@ -366,13 +331,12 @@ input[type='number']::-webkit-outer-spin-button {
   position: absolute;
   inset: 0;
   transform: translate3d(-100%, 0, 0);
-  background: linear-gradient(90deg, transparent 0%, color-mix(in oklch, var(--background) 85%, transparent) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, color-mix(in oklch, var(--foreground) 7%, transparent) 50%, transparent 100%);
   animation: shimmer-sweep 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 .animate-shimmer { animation: shimmer-sweep 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
 .fade-in { animation: fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-ping-ring { animation: ping-ring 2.4s cubic-bezier(0, 0, 0.2, 1) infinite; }
-.animate-marquee { animation: marquee-x var(--marquee-duration, 46s) linear infinite; }
 .animate-stamp { animation: stamp-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.9s both; }
 .animate-trace { stroke-dasharray: 1; animation: trace-draw 2.2s cubic-bezier(0.65, 0, 0.35, 1) 0.35s both; }
 .caret::after {
@@ -382,7 +346,7 @@ input[type='number']::-webkit-outer-spin-button {
   height: 1em;
   margin-left: 0.15em;
   vertical-align: text-bottom;
-  background-color: var(--primary);
+  background-color: currentColor;
   animation: caret-blink 1.15s steps(1, end) infinite;
 }
 
@@ -422,5 +386,4 @@ img.chart {
   nav, button, select, input, textarea { display: none !important; }
   body { background: #fff; }
   main { max-width: 100%; padding: 0; }
-  .grain-layer { display: none !important; }
 }

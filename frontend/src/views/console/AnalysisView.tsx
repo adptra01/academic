@@ -202,7 +202,7 @@ const AnalysisView = () => {
   return (
     <div className='space-y-4'>
       <div>
-        <h1 className='text-2xl font-semibold tracking-tight'>
+        <h1 className='text-3xl leading-[1.05] font-bold tracking-[-0.03em]'>
           {r.method_name || d.method}{' '}
           <span className='text-muted-foreground font-mono text-sm font-normal'>{d.analysis_uid}</span>
         </h1>
@@ -245,13 +245,13 @@ const AnalysisView = () => {
         <TabsContent value='hasil'>
           <Card>
             <CardHeader>
-              <CardTitle>Tabel statistik (n = {String(r.n ?? '-')})</CardTitle>
+              <CardTitle className='font-semibold tracking-[-0.02em]'>Tabel statistik (n = {String(r.n ?? '-')})</CardTitle>
             </CardHeader>
             <CardContent>
               <StatTable data={r.statistics} />
               {r.effect_size && (
                 <>
-                  <h3 className='mt-4 text-base font-semibold'>Effect size</h3>
+                  <h3 className='mt-4 text-base font-semibold tracking-[-0.02em]'>Effect size</h3>
                   <StatTable data={r.effect_size} />
                 </>
               )}
@@ -260,7 +260,7 @@ const AnalysisView = () => {
           {(r.assumptions || []).length > 0 && (
             <Card className='mt-4'>
               <CardHeader>
-                <CardTitle>Asumsi</CardTitle>
+                <CardTitle className='font-semibold tracking-[-0.02em]'>Asumsi</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -297,7 +297,7 @@ const AnalysisView = () => {
         <TabsContent value='grafik'>
           <Card>
             <CardHeader>
-              <CardTitle>Grafik akademik</CardTitle>
+              <CardTitle className='font-semibold tracking-[-0.02em]'>Grafik akademik</CardTitle>
             </CardHeader>
             <CardContent className='space-y-2'>
               <div className='flex gap-2'>
@@ -361,15 +361,15 @@ const AnalysisView = () => {
         <TabsContent value='formula'>
           <Card>
             <CardHeader>
-              <CardTitle>Formula</CardTitle>
+              <CardTitle className='font-semibold tracking-[-0.02em]'>Formula</CardTitle>
             </CardHeader>
             <CardContent>
               <Formula latex={r.formula_latex} />
-              <h3 className='mt-4 text-base font-semibold'>Parameters & variables</h3>
+              <h3 className='mt-4 text-base font-semibold tracking-[-0.02em]'>Parameters & variables</h3>
               <pre className='bg-muted mt-2 overflow-x-auto rounded p-3 font-mono text-xs'>
                 {JSON.stringify({ variables: d.variables, params: d.params }, null, 2)}
               </pre>
-              <h3 className='mt-4 text-base font-semibold'>Calculation</h3>
+              <h3 className='mt-4 text-base font-semibold tracking-[-0.02em]'>Calculation</h3>
               <ol className='mt-1 list-decimal space-y-1 pl-5 text-sm'>
                 {(r.calculation || []).map((c, i) => (
                   <li key={i}>{c}</li>
@@ -377,7 +377,7 @@ const AnalysisView = () => {
               </ol>
               {(r.warnings || []).length > 0 && (
                 <>
-                  <h3 className='mt-4 text-base font-semibold'>Warnings</h3>
+                  <h3 className='mt-4 text-base font-semibold tracking-[-0.02em]'>Warnings</h3>
                   <ul className='mt-1 list-disc space-y-1 pl-5 text-sm'>
                     {r.warnings!.map((w, i) => (
                       <li key={i}>{w}</li>
@@ -391,7 +391,7 @@ const AnalysisView = () => {
         <TabsContent value='export'>
           <Card>
             <CardHeader>
-              <CardTitle>Export</CardTitle>
+              <CardTitle className='font-semibold tracking-[-0.02em]'>Export</CardTitle>
             </CardHeader>
             <CardContent>
               <div className='flex flex-wrap gap-2'>
@@ -407,10 +407,10 @@ const AnalysisView = () => {
         <TabsContent value='repro'>
           <Card>
             <CardHeader>
-              <CardTitle>Reproducibility</CardTitle>
+              <CardTitle className='font-semibold tracking-[-0.02em]'>Reproducibility</CardTitle>
             </CardHeader>
             <CardContent>
-              <h4 className='text-sm font-semibold'>Bagikan publik</h4>
+              <h4 className='text-sm font-semibold tracking-[-0.02em]'>Bagikan publik</h4>
               {shareTok ? (
                 <>
                   <p className='mt-1 text-sm break-all text-primary'>
@@ -437,7 +437,7 @@ const AnalysisView = () => {
                 </Button>
               )}
               {shareMsg && <p className='text-muted-foreground mt-2 text-sm'>{shareMsg}</p>}
-              <h4 className='mt-4 text-sm font-semibold'>Rerun</h4>
+              <h4 className='mt-4 text-sm font-semibold tracking-[-0.02em]'>Rerun</h4>
               <Button variant='secondary' size='sm' onClick={() => void rerun()}>
                 Rerun (verifikasi identik)
               </Button>
@@ -451,7 +451,7 @@ const AnalysisView = () => {
         <TabsContent value='lapor'>
           <Card>
             <CardHeader>
-              <CardTitle>Report a Problem</CardTitle>
+              <CardTitle className='font-semibold tracking-[-0.02em]'>Report a Problem</CardTitle>
             </CardHeader>
             <CardContent>
               <p className='text-muted-foreground text-xs'>
@@ -473,6 +473,7 @@ const AnalysisView = () => {
                 </Select>
                 <Textarea
                   aria-label='Deskripsi masalah'
+                  className='rounded-lg'
                   rows={3}
                   placeholder='Jelaskan masalahnya (min 10 karakter)...'
                   value={fbDesc}

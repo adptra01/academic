@@ -2,6 +2,7 @@ import Link from "next/link";
 import Wordmark from "./wordmark";
 import PublicNav from "./public-nav";
 import { MobileNav, SessionLinks } from "./nav-parts";
+import ModeToggle from "@/components/layout/ModeToggle";
 
 export const NAV_ITEMS = [
   { href: "/", label: "Beranda" },
@@ -12,8 +13,8 @@ export const NAV_ITEMS = [
 
 export default function SiteHeader() {
   return (
-    <header className="sticky top-0 z-30 border-b border-rule/80 bg-paper/85 shadow-[inset_0_-1px_0_rgba(255,255,255,0.55)] backdrop-blur-md backdrop-saturate-150">
-      <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-6 px-5 sm:px-8">
+    <header className="sticky top-0 z-30 bg-paper/70 backdrop-blur-sm">
+      <div className="mx-auto flex h-[72px] max-w-[1400px] items-center justify-between gap-6 px-5 sm:px-8">
         <Link href="/" className="ring-accent rounded-md" aria-label="Academic Platform — beranda">
           <Wordmark />
         </Link>
@@ -23,6 +24,7 @@ export default function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-2">
+          <ModeToggle className="hidden sm:inline-flex" />
           <SessionLinks />
           <MobileNav items={NAV_ITEMS} />
         </div>

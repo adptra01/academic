@@ -30,13 +30,13 @@ const MethodRow = memo(function MethodRow({ m }: { m: Method }) {
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span
             className={`tnum text-[11px] transition-colors duration-300 ${
-              fase2 ? "text-ink-4" : "text-ink-4 group-hover:text-accent"
+              fase2 ? "text-ink-4" : "text-ink-4 group-hover:text-primary"
             }`}
           >
             {m.id}
           </span>
           <h4
-            className={`text-[15px] font-medium leading-snug tracking-tight ${
+            className={`text-[15px] font-medium leading-snug tracking-[-0.02em] ${
               fase2 ? "text-ink-2" : "text-ink"
             }`}
           >
@@ -59,12 +59,12 @@ const MethodRow = memo(function MethodRow({ m }: { m: Method }) {
       </div>
       <div className="md:pt-1 md:text-right">
         {fase2 ? (
-          <span className="tnum inline-block rounded border border-warn/35 bg-warn-wash px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-warn">
+          <span className="font-mono inline-block rounded border border-warn/35 bg-warn-wash px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.2em] text-warn">
             fase 2
           </span>
         ) : (
-          <span className="tnum inline-flex items-center gap-1.5 text-[10.5px] text-ink-3">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+          <span className="font-mono inline-flex items-center gap-1.5 text-[10.5px] text-ink-3">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
             tersedia
           </span>
         )}
@@ -98,12 +98,12 @@ export default function MethodsIndex() {
   const empty = shown === 0;
 
   return (
-    <section id="metode" className="scroll-mt-24 border-b border-rule">
-      <div className="mx-auto max-w-[1400px] px-5 py-14 sm:px-8 lg:py-16">
+    <section id="metode" className="scroll-mt-24">
+      <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8 lg:py-20">
         <div className="grid gap-x-10 gap-y-9 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <Reveal>
-              <h2 className="max-w-[18ch] text-[1.35rem] font-semibold leading-snug tracking-tight text-ink">
+              <h2 className="max-w-[18ch] text-[1.6rem] font-bold leading-[1.02] tracking-[-0.035em] text-ink">
                 Saring menurut kelompok, atau cari satu metode.
               </h2>
               <p className="mt-4 max-w-[40ch] text-[14px] leading-[1.7] text-ink-2">
@@ -128,9 +128,9 @@ export default function MethodsIndex() {
                         type="button"
                         aria-pressed={active}
                         onClick={() => setFamily(f.key)}
-                        className={`pressable ring-accent rounded border px-2.5 py-1.5 text-[12px] font-medium ${
+                        className={`pressable ring-accent rounded-full border px-2.5 py-1.5 text-[12px] font-medium ${
                           active
-                            ? "border-accent bg-accent text-paper"
+                            ? "border-primary bg-primary text-primary-foreground"
                             : "border-rule-2 text-ink-2 hover:border-ink-4 hover:text-ink"
                         }`}
                       >
@@ -143,7 +143,7 @@ export default function MethodsIndex() {
                 <div className="w-full sm:max-w-[17rem]">
                   <label
                     htmlFor="method-search"
-                    className="block text-[11px] font-medium uppercase tracking-[0.14em] text-ink-4"
+                    className="block font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-4"
                   >
                     Cari metode
                   </label>
@@ -160,14 +160,14 @@ export default function MethodsIndex() {
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       placeholder="anova, wilcoxon…"
-                      className="ring-accent w-full rounded border border-rule-2 bg-white py-2 pl-8 pr-8 text-[13px] text-ink placeholder:text-ink-4 focus:border-accent focus:outline-none"
+                      className="ring-accent w-full rounded-full border border-rule-2 bg-background py-2 pl-8 pr-8 text-[13px] text-ink placeholder:text-ink-4 focus:border-primary focus:outline-none"
                     />
                     {query && (
                       <button
                         type="button"
                         onClick={() => setQuery("")}
                         aria-label="Bersihkan pencarian"
-                        className="pressable ring-accent absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-ink-4 hover:text-ink"
+                        className="pressable ring-accent absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-ink-4 hover:text-ink"
                       >
                         <X size={13} strokeWidth={1.5} />
                       </button>
@@ -190,11 +190,11 @@ export default function MethodsIndex() {
             {/* daftar */}
             <div className="mt-9">
               {empty ? (
-                <div className="rounded-md border border-dashed border-rule-2 px-6 py-14 text-center">
+                <div className="rounded-xl border border-dashed border-rule-2 px-6 py-14 text-center">
                   <span
                     aria-hidden="true"
                     className="mx-auto block h-8 w-8 border border-rule-2"
-                    style={{ backgroundImage: "repeating-linear-gradient(-45deg, var(--color-paper-3) 0 1px, transparent 1px 6px)" }}
+                    style={{ backgroundImage: "repeating-linear-gradient(-45deg, var(--border) 0 1px, transparent 1px 6px)" }}
                   />
                   <p className="mt-5 text-[15px] font-medium text-ink">
                     Metode tidak ditemukan
@@ -209,7 +209,7 @@ export default function MethodsIndex() {
                       setFamily("all");
                       setQuery("");
                     }}
-                    className="pressable ring-accent mt-5 rounded border border-rule-2 px-3.5 py-2 text-[13px] font-medium text-ink hover:border-ink-4 hover:bg-paper-2"
+                    className="pressable ring-accent mt-5 rounded-full border border-rule-2 px-3.5 py-2 text-[13px] font-medium text-ink transition-all duration-200 hover:-translate-y-0.5 hover:border-ink-4 hover:bg-paper-2"
                   >
                     Tampilkan semua metode
                   </button>
@@ -218,7 +218,7 @@ export default function MethodsIndex() {
                 groups.map((g) => (
                   <div key={g.family} className="mb-10 last:mb-0">
                     <div className="grid gap-x-6 md:grid-cols-[12rem_minmax(0,1fr)]">
-                      <h3 className="tnum pb-1 text-[10.5px] font-medium uppercase tracking-[0.16em] text-ink-4 md:pt-1">
+                      <h3 className="font-mono pb-1 text-[11px] font-medium uppercase tracking-[0.2em] text-ink-4 md:pt-1">
                         {FAMILY_LABEL[g.family]}
                       </h3>
                       <ul>

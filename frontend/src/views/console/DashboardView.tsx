@@ -162,7 +162,7 @@ const DashboardView = () => {
   return (
     <div className='space-y-6'>
       <div>
-        <h1 className='text-2xl font-semibold tracking-tight'>Dashboard</h1>
+        <h1 className='text-3xl leading-[1.05] font-bold tracking-[-0.03em]'>Dashboard</h1>
         <p className='text-muted-foreground mt-1 text-sm'>
           Satu penelitian = satu project. Mulai dari judul, lalu unggah data.
         </p>
@@ -183,8 +183,8 @@ const DashboardView = () => {
         <Card className='xl:col-span-7'>
           <CardHeader>
             <div className='flex items-baseline justify-between gap-4'>
-              <CardTitle>Buat Project Baru</CardTitle>
-              <span className='text-muted-foreground font-mono text-[11px] tracking-widest uppercase'>
+              <CardTitle className='font-semibold tracking-[-0.02em]'>Buat Project Baru</CardTitle>
+              <span className='text-muted-foreground font-mono text-[11px] font-medium uppercase tracking-[0.2em]'>
                 Tahap 01
               </span>
             </div>
@@ -199,6 +199,7 @@ const DashboardView = () => {
                   <FieldLabel htmlFor='p-title'>1. Judul penelitian</FieldLabel>
                   <Input
                     id='p-title'
+                    className='rounded-lg'
                     value={title}
                     onChange={e => setTitle(e.target.value)}
                     placeholder='mis. Pengaruh beban kerja terhadap produktivitas'
@@ -231,6 +232,7 @@ const DashboardView = () => {
                   <FieldLabel htmlFor='p-desc'>3. Catatan (opsional)</FieldLabel>
                   <Textarea
                     id='p-desc'
+                    className='rounded-lg'
                     value={description}
                     onChange={e => setDescription(e.target.value)}
                     placeholder='opsional — hipotesis, sumber data, atau catatan metodologi'
@@ -252,7 +254,7 @@ const DashboardView = () => {
 
         <Card className='xl:col-span-5'>
           <CardHeader>
-            <CardTitle>Setelah project dibuat, Anda akan</CardTitle>
+            <CardTitle className='font-semibold tracking-[-0.02em]'>Setelah project dibuat, Anda akan</CardTitle>
           </CardHeader>
           <CardContent>
             <ol className='space-y-4'>
@@ -281,11 +283,11 @@ const DashboardView = () => {
       <Card>
         <CardHeader>
           <div className='flex items-center justify-between gap-4'>
-            <CardTitle className='flex items-center gap-2'>
+            <CardTitle className='flex items-center gap-2 font-semibold tracking-[-0.02em]'>
               <FolderOpenIcon className='size-4 text-primary' />
               Project Saya
             </CardTitle>
-            <span className='text-muted-foreground font-mono text-[11px] tracking-widest uppercase'>
+            <span className='text-muted-foreground font-mono text-[11px] font-medium uppercase tracking-[0.2em]'>
               {loading ? 'memuat…' : `${projects.length} project`}
             </span>
           </div>
@@ -301,7 +303,7 @@ const DashboardView = () => {
               ))}
             </ul>
           ) : projects.length === 0 ? (
-            <div className='rounded-md border border-dashed px-6 py-12 text-center'>
+            <div className='rounded-xl border border-dashed px-6 py-12 text-center'>
               <p className='mt-4 text-sm font-medium'>Belum ada project</p>
               <p className='text-muted-foreground mx-auto mt-1.5 max-w-md text-xs leading-relaxed'>
                 Buat project di atas untuk mulai. Setelah itu file data bisa langsung diunggah dan
@@ -356,6 +358,7 @@ const DashboardView = () => {
               <FieldLabel htmlFor='old'>Password lama</FieldLabel>
               <Input
                 id='old'
+                className='rounded-lg'
                 type='password'
                 value={oldPw}
                 onChange={e => setOldPw(e.target.value)}
@@ -366,6 +369,7 @@ const DashboardView = () => {
               <FieldLabel htmlFor='new'>Password baru</FieldLabel>
               <Input
                 id='new'
+                className='rounded-lg'
                 type='password'
                 value={newPw}
                 onChange={e => setNewPw(e.target.value)}

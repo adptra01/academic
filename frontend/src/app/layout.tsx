@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 
 // Next Imports
 import type { Metadata } from 'next'
-import { Archivo, Geist, Geist_Mono, IBM_Plex_Mono } from 'next/font/google'
+import { Geist, Geist_Mono } from 'next/font/google'
 
 // Third-party Imports
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
@@ -30,19 +30,6 @@ const geistMono = Geist_Mono({
   subsets: ['latin']
 })
 
-// Dipakai halaman publik: Arquivo untuk teks, IBM Plex Mono untuk angka/ID/hash
-const archivo = Archivo({
-  variable: '--font-archivo',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700']
-})
-
-const plexMono = IBM_Plex_Mono({
-  variable: '--font-mono-plex',
-  subsets: ['latin'],
-  weight: ['400', '500', '600']
-})
-
 export const metadata: Metadata = {
   title: 'Academic Research Platform — Mesin Statistik Deterministik',
   description:
@@ -65,8 +52,6 @@ const RootLayout = ({ children }: Readonly<{ children: ReactNode }>) => {
       className={cn(
         geistSans.variable,
         geistMono.variable,
-        archivo.variable,
-        plexMono.variable,
         'flex min-h-full w-full antialiased'
       )}
       data-scroll-behavior='smooth'
@@ -74,7 +59,7 @@ const RootLayout = ({ children }: Readonly<{ children: ReactNode }>) => {
     >
       <body className='flex min-h-full w-full flex-auto flex-col'>
         <NuqsAdapter>
-          <Providers sidebarDefaultOpen={true}>
+          <Providers>
             <TooltipProvider>{children}</TooltipProvider>
           </Providers>
         </NuqsAdapter>

@@ -35,14 +35,14 @@ const AUDIENCE: Audience[] = [
 
 export default function Audience() {
   return (
-    <section className="border-b border-rule">
-      <div className="mx-auto max-w-[1400px] px-5 py-20 sm:px-8 lg:py-28">
+    <section>
+      <div className="mx-auto max-w-[1400px] px-5 py-24 sm:px-8 lg:py-32">
         <Reveal>
           <div className="grid gap-x-10 gap-y-6 lg:grid-cols-12">
-            <p className="tnum text-[10.5px] font-medium uppercase tracking-[0.22em] text-ink-3 lg:col-span-3">
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-3 lg:col-span-3">
               Untuk siapa
             </p>
-            <h2 className="max-w-[24ch] text-[2rem] font-semibold leading-[1.05] tracking-tight text-ink lg:col-span-6 lg:text-[2.6rem]">
+            <h2 className="max-w-[24ch] text-[2.25rem] font-bold leading-[1.02] tracking-[-0.035em] text-ink lg:col-span-6 lg:text-[2.9rem]">
               Dibuat untuk pekerjaan yang hasilnya ditanggung.
             </h2>
           </div>
@@ -59,11 +59,11 @@ export default function Audience() {
               }`}
             >
               <div className="flex items-baseline justify-between gap-4">
-                <h3 className="text-[17px] font-medium tracking-tight text-ink">
+                <h3 className="text-[17px] font-medium tracking-[-0.02em] text-ink">
                   {a.role}
                 </h3>
                 <span
-                  className="h-1.5 w-1.5 shrink-0 bg-rule-2 transition-colors duration-500 group-hover:bg-accent"
+                  className="h-1.5 w-1.5 shrink-0 rounded-full bg-rule-2 transition-colors duration-500 group-hover:bg-primary"
                   aria-hidden="true"
                 />
               </div>

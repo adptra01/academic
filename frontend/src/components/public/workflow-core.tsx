@@ -28,19 +28,19 @@ const CORE = [
 /** Empat langkah inti saja; delapan langkah lengkap ada di `/alur`. */
 export default function WorkflowCore() {
   return (
-    <section className="border-b border-rule">
-      <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8 lg:py-20">
+    <section>
+      <div className="mx-auto max-w-[1400px] px-5 py-24 sm:px-8 lg:py-32">
         <div className="grid gap-x-10 gap-y-8 lg:grid-cols-12">
           <Reveal className="lg:col-span-4">
-            <p className="tnum text-[10.5px] font-medium uppercase tracking-[0.22em] text-ink-3">
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-3">
               Alur kerja
             </p>
-            <h2 className="mt-5 max-w-[16ch] text-[1.9rem] font-semibold leading-[1.06] tracking-tight text-ink lg:text-[2.3rem]">
+            <h2 className="mt-5 max-w-[16ch] text-[2.15rem] font-bold leading-[1.02] tracking-[-0.035em] text-ink lg:text-[2.55rem]">
               Dari file mentah ke hasil bertanda tangan.
             </h2>
             <Link
               href="/alur"
-              className="pressable ring-accent group mt-6 inline-flex items-center gap-1.5 text-[13.5px] font-medium text-accent hover:text-accent-2"
+              className="pressable ring-accent group mt-6 inline-flex items-center gap-1.5 text-[13.5px] font-medium text-primary hover:text-primary"
             >
               Lihat delapan langkah lengkap
               <ArrowUpRight
@@ -66,10 +66,10 @@ export default function WorkflowCore() {
                 >
                   <span
                     aria-hidden="true"
-                    className="absolute left-0 top-0 hidden h-2 w-2 -translate-y-[3px] bg-accent xl:block"
+                    className="absolute left-0 top-0 hidden h-2 w-2 -translate-y-[3px] rounded-full bg-primary xl:block"
                   />
                   <p className="tnum text-[10.5px] text-ink-4">{s.n}</p>
-                  <h3 className="mt-2 text-[15.5px] font-medium tracking-tight text-ink">
+                  <h3 className="mt-2 text-[15.5px] font-medium tracking-[-0.02em] text-ink">
                     {s.title}
                   </h3>
                   <p className="mt-2.5 max-w-[34ch] text-[13px] leading-[1.7] text-ink-3">

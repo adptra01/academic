@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiUrl } from "@/lib/api";
+import ModeToggle from "@/components/layout/ModeToggle";
 import type { NavItem } from "./public-nav";
 
 /** Status sesi untuk header publik — logika token mirroring lib/api. */
@@ -34,7 +35,7 @@ export function SessionLinks() {
       <div className="flex items-center gap-2">
         <a
           href="/dashboard"
-          className="pressable ring-accent hidden rounded-md border border-rule-2 px-3.5 py-2 text-[13px] font-medium text-ink hover:border-ink-3 hover:bg-paper-2 sm:inline-block"
+          className="pressable ring-accent hidden rounded-full border border-rule-2 px-4 py-2 text-[13.5px] font-medium text-ink transition-all duration-200 hover:-translate-y-0.5 hover:border-ink-3 hover:bg-paper-2 sm:inline-block"
         >
           Dashboard
         </a>
@@ -42,7 +43,7 @@ export function SessionLinks() {
           type="button"
           onClick={() => void logout()}
           disabled={busy}
-          className="pressable ring-accent rounded-md border border-rule-2 px-3.5 py-2 text-[13px] font-medium text-ink-3 hover:border-ink-3 hover:text-ink disabled:opacity-50"
+          className="pressable ring-accent rounded-full border border-rule-2 px-4 py-2 text-[13.5px] font-medium text-ink-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-ink-3 hover:text-ink disabled:opacity-50 disabled:hover:translate-y-0"
         >
           {busy ? "Keluar…" : "Keluar"}
         </button>
@@ -54,13 +55,13 @@ export function SessionLinks() {
     <div className="flex items-center gap-2">
       <a
         href="/login"
-        className="pressable ring-accent hidden rounded-md px-3.5 py-2 text-[13px] font-medium text-ink-2 hover:text-ink sm:inline-block"
+        className="pressable ring-accent hidden rounded-full px-4 py-2 text-[13.5px] font-medium text-ink-2 transition-colors duration-200 hover:text-ink sm:inline-block"
       >
         Masuk
       </a>
       <a
         href="/register"
-        className="pressable ring-accent rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-paper hover:bg-accent-2"
+        className="pressable ring-accent rounded-full bg-primary px-5 py-2 text-[13.5px] font-semibold text-primary-foreground transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90"
       >
         Buat akun
       </a>
@@ -89,7 +90,7 @@ export function MobileNav({ items }: { items: NavItem[] }) {
         aria-expanded={open}
         aria-controls="mobile-nav-panel"
         aria-label={open ? "Tutup menu" : "Buka menu"}
-        className="pressable ring-accent flex h-10 w-10 items-center justify-center rounded-md border border-rule-2 text-ink"
+        className="pressable ring-accent flex h-10 w-10 items-center justify-center rounded-full border border-rule-2 text-ink hover:bg-paper-2"
       >
         <span className="relative block h-3 w-4">
           <span
@@ -128,18 +129,19 @@ export function MobileNav({ items }: { items: NavItem[] }) {
             <Link
               href="/login"
               onClick={() => setOpen(false)}
-              className="pressable ring-accent flex-1 rounded-md border border-rule-2 py-2.5 text-center text-[13px] font-medium text-ink"
+              className="pressable ring-accent flex-1 rounded-full border border-rule-2 py-2.5 text-center text-[13.5px] font-medium text-ink"
             >
               Masuk
             </Link>
             <Link
               href="/register"
               onClick={() => setOpen(false)}
-              className="pressable ring-accent flex-1 rounded-md bg-accent py-2.5 text-center text-[13px] font-medium text-paper"
+              className="pressable ring-accent flex-1 rounded-full bg-primary py-2.5 text-center text-[13.5px] font-semibold text-primary-foreground"
             >
               Buat akun
             </Link>
           </div>
+          <ModeToggle withLabel className="mt-3 w-full justify-center" />
         </nav>
       </div>
     </div>

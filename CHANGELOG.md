@@ -205,3 +205,12 @@
 - Backend: refactor scraper (guard_url/download_guarded/list_tables/inspect_url) — fetch() perilaku identik; endpoint presets + inspect (tanpa simpan)
 - UI: preset select + URL + Cek tabel → pilih tabel visual (bentuk/kolom/contoh) → Fetch; advanced JSON tetap ada sebagai toggle
 - Verified: pytest 12 connectors, E2E deny allowlist + pesan merah jelas di UI, screenshot wizard
+
+## [2026-10-10] — Redesain UI frontend mengikuti ngulikdata.com
+- Referensi visual diekstrak dari DOM ngulikdata.com (bukan screenshot): Geist/Geist Mono, primer `oklch(0.204 0.2 271)` (diverifikasi sama dengan tombol referensi), netral hangat hue 78, radius 12px, pil, header 72px transparan, dot-grid, section berselang tanpa border, blok CTA biru penuh
+- Cakupan: token `globals.css`, font root (`Archivo`/`IBM Plex Mono` dibuang), primitif `ui/button.tsx`, 18 komponen `components/public/*`, header/sidebar console, 4 view console, 3 view auth — hanya lapisan visual; fitur, alur, dan copy tidak berubah
+- Akar masalah desain lama: `.graph-paper` (kertas grafik) + grain + aksen petrol diganti dot-grid + biru pekat
+- **Fix bug pra-existing**: `SidebarProvider` dipindah dari `Providers` root ke layout `(pages)`; sebelumnya wrapper flex-row shadcn membuat halaman publik/auth tersusun horizontal (scrollWidth 1939px vs viewport 1280px)
+- Verified: `tsc` bersih, `next build` 11/11, audit computed-style + cek overflow/console-error seluruh halaman publik via agent-browser (desktop 1440 + mobile 390); QA console dengan login demo (dashboard + project view, desktop + 390) tanpa overflow
+- Akibat insiden DB: `ddev-academic-db` mati → login 500 (`/health` 200); dipulihkan via `ddev start` (init.sql jalan ulang = DB fresh), akun demo dibuat ulang + 1 project uji
+- Backup pra-perubahan: `/mnt/DiskD/Workspace/Backups/academic-frontend-pre-redesign-ngulikdata-20261010-1510.tar.gz`

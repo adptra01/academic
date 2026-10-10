@@ -95,7 +95,7 @@ const LoginView = () => {
             <Logo className='gap-3' />
           </Link>
           <div>
-            <CardTitle className='mb-2 text-2xl font-semibold'>Masuk</CardTitle>
+            <CardTitle className='mb-2 text-3xl leading-[1.05] font-bold tracking-[-0.03em]'>Masuk</CardTitle>
             <CardDescription className='text-base'>
               Satu akun untuk menyimpan dataset, variabel, dan riwayat analisis penelitian Anda.
             </CardDescription>
@@ -112,6 +112,7 @@ const LoginView = () => {
                   </FieldLabel>
                   <Input
                     type='email'
+                    className='rounded-lg'
                     id='email'
                     autoComplete='username'
                     placeholder='nama@kampus.ac.id'
@@ -123,7 +124,7 @@ const LoginView = () => {
                   <FieldLabel htmlFor='password' className='leading-5'>
                     Password
                   </FieldLabel>
-                  <InputGroup>
+                  <InputGroup className='rounded-lg'>
                     <InputGroupInput
                       id='password'
                       type={showPw ? 'text' : 'password'}
@@ -182,12 +183,12 @@ const LoginView = () => {
               <summary className='cursor-pointer text-sm font-medium hover:underline'>
                 API tidak bisa dihubungi?
               </summary>
-              <div className='mt-3 space-y-3 rounded-md border p-4'>
+              <div className='mt-3 space-y-3 rounded-xl border p-4'>
                 <Field className='gap-2'>
                   <FieldLabel htmlFor='api-url' className='leading-5'>
                     URL API
                   </FieldLabel>
-                  <Input id='api-url' value={apiUrlVal} onChange={e => setApiUrlVal(e.target.value)} />
+                  <Input id='api-url' className='rounded-lg' value={apiUrlVal} onChange={e => setApiUrlVal(e.target.value)} />
                   <p className='text-muted-foreground text-xs'>
                     DDEV memetakan backend container ke host <span className='font-mono'>localhost:8100</span> —
                     bukan 8000. Cek <span className='font-mono'>{apiUrlVal}/health</span> di tab baru.

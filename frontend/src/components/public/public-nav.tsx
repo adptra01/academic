@@ -20,17 +20,11 @@ export default function PublicNav({ items }: { items: NavItem[] }) {
               <Link
                 href={l.href}
                 aria-current={active ? "page" : undefined}
-                className={`ring-accent group relative rounded-sm py-1 text-[13.5px] font-medium transition-colors duration-300 hover:text-ink ${
-                  active ? "text-ink" : "text-ink-2"
+                className={`ring-accent relative rounded-full px-4 py-2 text-[14px] transition-colors duration-200 hover:bg-paper-2 hover:text-ink ${
+                  active ? "bg-paper-2 font-medium text-ink" : "text-ink-2"
                 }`}
               >
                 {l.label}
-                <span
-                  aria-hidden="true"
-                  className={`absolute -bottom-0.5 left-0 h-px w-full origin-left bg-accent transition-transform duration-300 ${
-                    active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
-                  }`}
-                />
               </Link>
             </li>
           );

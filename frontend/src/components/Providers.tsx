@@ -3,20 +3,21 @@ import type { ReactNode } from 'react'
 
 // Component Imports
 import { ThemeProvider } from './ThemeProvider'
-import { SidebarProvider } from './ui/sidebar'
 import { TooltipProvider } from './ui/tooltip'
 
 type Props = {
   children: ReactNode
-  sidebarDefaultOpen?: boolean
 }
 
-const Providers = ({ children, sidebarDefaultOpen }: Props) => {
+/**
+ * Provider global (tema + tooltip). Shell sidebar TIDAK di sini: ia hanya
+ * dipakai layout `(pages)` supaya halaman publik & auth tidak ikut ter-
+ * bungkus wrapper flex sidebar.
+ */
+const Providers = ({ children }: Props) => {
   return (
     <ThemeProvider attribute='class' defaultTheme='system' enableSystem={true}>
-      <TooltipProvider>
-        <SidebarProvider defaultOpen={sidebarDefaultOpen}>{children}</SidebarProvider>
-      </TooltipProvider>
+      <TooltipProvider>{children}</TooltipProvider>
     </ThemeProvider>
   )
 }

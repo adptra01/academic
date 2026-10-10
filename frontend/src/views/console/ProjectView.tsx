@@ -473,7 +473,7 @@ const ProjectView = () => {
             <ChevronLeftIcon />
             Dashboard
           </Button>
-          <h1 className='mt-2 truncate text-2xl font-semibold tracking-tight'>
+          <h1 className='mt-2 truncate text-3xl leading-[1.05] font-bold tracking-[-0.03em]'>
             {loading ? 'Memuat…' : (meta?.title ?? 'Project')}
           </h1>
           <div className='mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5'>
@@ -509,11 +509,11 @@ const ProjectView = () => {
           <Card className='xl:col-span-7'>
             <CardHeader>
               <div className='flex items-baseline justify-between gap-4'>
-                <CardTitle className='flex items-center gap-2'>
+                <CardTitle className='flex items-center gap-2 font-semibold tracking-[-0.02em]'>
                   <DatabaseIcon className='size-4 text-primary' />
                   Unggah File Data
                 </CardTitle>
-                <span className='text-muted-foreground font-mono text-[10px] tracking-widest uppercase'>Tahap 02</span>
+                <span className='text-muted-foreground font-mono text-[11px] font-medium uppercase tracking-[0.2em]'>Tahap 02</span>
               </div>
               <CardDescription>
                 Pilih file dari komputer Anda. Format CSV, XLSX, XLS, SAV, dan JSON diterima, maksimal
@@ -524,7 +524,7 @@ const ProjectView = () => {
               <form onSubmit={upload} className='space-y-3'>
                 <Field className='gap-2'>
                   <FieldLabel htmlFor='ds-file'>Pilih file dari komputer</FieldLabel>
-                  <Input id='ds-file' type='file' name='file' accept='.csv,.xlsx,.xls,.sav,.json' />
+                  <Input id='ds-file' className='rounded-lg' type='file' name='file' accept='.csv,.xlsx,.xls,.sav,.json' />
                 </Field>
                 {uploadPct != null ? (
                   <div className='space-y-1.5'>
@@ -553,7 +553,7 @@ const ProjectView = () => {
       ) : (
         <div id='langkah-kerja' className='grid scroll-mt-24 gap-6 lg:grid-cols-[17.5rem_minmax(0,1fr)]'>
           <div className='bg-muted/40 min-w-0 rounded-lg border p-3 lg:sticky lg:top-20 lg:self-start'>
-            <p className='text-muted-foreground px-2 pt-1 pb-2 font-mono text-[10px] tracking-widest uppercase'>
+            <p className='text-muted-foreground px-2 pt-1 pb-2 font-mono text-[11px] font-medium uppercase tracking-[0.2em]'>
               Daftar tahap
             </p>
             <StepNav
@@ -573,10 +573,10 @@ const ProjectView = () => {
           <div className='min-w-0'>
             <Card>
               <CardHeader>
-                <p className='text-primary font-mono text-[10px] font-medium tracking-widest uppercase'>
+                <p className='text-primary font-mono text-[11px] font-medium uppercase tracking-[0.2em]'>
                   Tahap {STEP_NUMBER[tab as StepKey]} dari 06
                 </p>
-                <CardTitle className='mt-1 text-lg'>{TAB_LABEL[tab]}</CardTitle>
+                <CardTitle className='mt-1 text-lg font-semibold tracking-[-0.02em]'>{TAB_LABEL[tab]}</CardTitle>
                 <CardDescription>{TAB_HINT[tab]}</CardDescription>
               </CardHeader>
             </Card>
@@ -587,11 +587,11 @@ const ProjectView = () => {
                   <Card>
                     <CardHeader>
                       <div className='flex items-baseline justify-between gap-4'>
-                        <CardTitle className='flex items-center gap-2'>
+                        <CardTitle className='flex items-center gap-2 font-semibold tracking-[-0.02em]'>
                           <DatabaseIcon className='size-4 text-primary' />
                           File Data Anda
                         </CardTitle>
-                        <span className='text-muted-foreground font-mono text-[10px] tracking-widest uppercase'>
+                        <span className='text-muted-foreground font-mono text-[11px] font-medium uppercase tracking-[0.2em]'>
                           {datasets.length} file
                         </span>
                       </div>
@@ -644,7 +644,7 @@ const ProjectView = () => {
                   <details className='group rounded-lg border bg-card'>
                     <summary className='flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4'>
                       <span className='text-sm font-semibold'>Ambil Data dari Web atau API</span>
-                      <span className='text-muted-foreground font-mono text-[10px] tracking-widest uppercase'>
+                      <span className='text-muted-foreground font-mono text-[11px] font-medium uppercase tracking-[0.2em]'>
                         Opsional
                       </span>
                     </summary>
@@ -664,7 +664,7 @@ const ProjectView = () => {
                           <>
                             <select
                               aria-label='Preset'
-                              className='border-input w-full rounded-md border px-3 py-2 text-sm'
+                              className='border-input w-full rounded-lg border px-3 py-2 text-sm'
                               value=''
                               onChange={e => {
                                 const pr = presets.find(x => x.id === e.target.value)
@@ -681,6 +681,7 @@ const ProjectView = () => {
                             <div className='flex gap-2'>
                               <Input
                                 placeholder='https://domain-allowlisted/halaman'
+                                className='rounded-lg'
                                 value={scrapeUrl}
                                 onChange={e => setScrapeUrl(e.target.value)}
                                 aria-label='URL halaman'
@@ -732,7 +733,7 @@ const ProjectView = () => {
                           </>
                         ) : (
                           <>
-                            <Textarea rows={6} value={srcConfig} onChange={e => setSrcConfig(e.target.value)} />
+                            <Textarea rows={6} className='rounded-lg' value={srcConfig} onChange={e => setSrcConfig(e.target.value)} />
                             <div className='flex items-center gap-2'>
                               <Button type='submit'>Fetch → dataset versioned</Button>
                               {srcProvider === 'html_table' && (
@@ -779,7 +780,7 @@ const ProjectView = () => {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Isi File: {selDs.filename}</CardTitle>
+                      <CardTitle className='font-semibold tracking-[-0.02em]'>Isi File: {selDs.filename}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <p className='text-sm'>
@@ -853,7 +854,7 @@ const ProjectView = () => {
                       )}
                       {profile && (
                         <>
-                          <h3 className='mt-5 text-sm font-semibold'>Gambaran Umum Data</h3>
+                          <h3 className='mt-5 text-sm font-semibold tracking-[-0.02em]'>Gambaran Umum Data</h3>
                           <p className='text-muted-foreground font-mono text-[11px]'>
                             {profile.rows} baris · {profile.cols} kolom · {profile.missing_pct}% data kosong ·{' '}
                             {profile.duplicate_rows} baris duplikat
@@ -890,7 +891,7 @@ const ProjectView = () => {
               {tab === 'variables' && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Pengaturan Kolom (versi {ver})</CardTitle>
+                    <CardTitle className='font-semibold tracking-[-0.02em]'>Pengaturan Kolom (versi {ver})</CardTitle>
                     <CardDescription>
                       Klik jenis atau peran untuk mengubah — tersimpan otomatis.
                     </CardDescription>
@@ -948,7 +949,7 @@ const ProjectView = () => {
                 <div className='space-y-4'>
                   <Card>
                     <CardHeader>
-                      <CardTitle>Langkah Pembersihan</CardTitle>
+                      <CardTitle className='font-semibold tracking-[-0.02em]'>Langkah Pembersihan</CardTitle>
                       <CardDescription>
                         Langkah ditambahkan ke daftar di bawah, lalu dijalankan sekaligus. Setiap
                         dijalankan membuat versi baru — file asli tetap utuh.
@@ -976,7 +977,7 @@ const ProjectView = () => {
                           placeholder='Nama kolom, mis. service_quality'
                           value={opCol}
                           onChange={e => setOpCol(e.target.value)}
-                          className='min-w-44 flex-1'
+                          className='min-w-44 flex-1 rounded-lg'
                         />
                         <Button type='submit' variant='secondary'>
                           Tambah Langkah
@@ -984,7 +985,7 @@ const ProjectView = () => {
                       </form>
                       <Input
                         aria-label='Pilihan tambahan'
-                        className='mt-2 font-mono'
+                        className='mt-2 rounded-lg font-mono'
                         placeholder='Pilihan tambahan, mis. {"strategy":"median"}'
                         value={opParams}
                         onChange={e => setOpParams(e.target.value)}
@@ -994,7 +995,7 @@ const ProjectView = () => {
                           {chain.map((c, i) => (
                             <li
                               key={i}
-                              className='bg-muted/50 flex items-center gap-3 rounded-md border px-3 py-2'
+                              className='bg-muted/50 flex items-center gap-3 rounded-lg border px-3 py-2'
                             >
                               <span className='text-muted-foreground shrink-0 font-mono text-[10px]'>{i + 1}</span>
                               <span className='min-w-0 flex-1'>
@@ -1028,17 +1029,17 @@ const ProjectView = () => {
                   </Card>
 
                   <div className='rounded-lg border border-dashed bg-muted/40 p-4'>
-                    <p className='text-muted-foreground font-mono text-[10px] tracking-widest uppercase'>
+                    <p className='text-muted-foreground font-mono text-[11px] font-medium uppercase tracking-[0.2em]'>
                       Opsional — setelah ada 2 versi atau lebih
                     </p>
                     <Card className='mt-2'>
                       <CardHeader>
-                        <CardTitle>Bandingkan Dua Versi</CardTitle>
+                        <CardTitle className='font-semibold tracking-[-0.02em]'>Bandingkan Dua Versi</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <form onSubmit={showDiff} className='flex flex-wrap gap-2'>
-                          <Input aria-label='Versi lama' value={diffFrom} onChange={e => setDiffFrom(e.target.value)} className='w-28' />
-                          <Input aria-label='Versi baru' value={diffTo} onChange={e => setDiffTo(e.target.value)} className='w-28' />
+                          <Input aria-label='Versi lama' value={diffFrom} onChange={e => setDiffFrom(e.target.value)} className='w-28 rounded-lg' />
+                          <Input aria-label='Versi baru' value={diffTo} onChange={e => setDiffTo(e.target.value)} className='w-28 rounded-lg' />
                           <Button type='submit' variant='secondary'>
                             Bandingkan
                           </Button>
@@ -1084,7 +1085,7 @@ const ProjectView = () => {
               {tab === 'analysis' && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Jalankan Analisis (dari versi {ver})</CardTitle>
+                    <CardTitle className='font-semibold tracking-[-0.02em]'>Jalankan Analisis (dari versi {ver})</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={runAnalysis} className='max-w-xl space-y-5'>
@@ -1121,7 +1122,7 @@ const ProjectView = () => {
                           rows={4}
                           value={varsJson}
                           onChange={e => setVarsJson(e.target.value)}
-                          className='font-mono'
+                          className='rounded-lg font-mono'
                           aria-describedby='m-vars-help'
                         />
                         <p id='m-vars-help' className='text-muted-foreground text-xs leading-relaxed'>
@@ -1142,7 +1143,7 @@ const ProjectView = () => {
               {tab === 'log' && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Riwayat Semua Analisis ({analyses.length})</CardTitle>
+                    <CardTitle className='font-semibold tracking-[-0.02em]'>Riwayat Semua Analisis ({analyses.length})</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <Button variant='outline' onClick={downloadLogCsv}>
@@ -1189,7 +1190,7 @@ const ProjectView = () => {
               {tab === 'exports' && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>File yang Sudah Diunduh ({exports.length})</CardTitle>
+                    <CardTitle className='font-semibold tracking-[-0.02em]'>File yang Sudah Diunduh ({exports.length})</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {exports.length === 0 ? (

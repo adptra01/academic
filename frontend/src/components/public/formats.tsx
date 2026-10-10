@@ -66,7 +66,7 @@ function Group({
   return (
     <section>
       <div className="flex items-baseline justify-between gap-4 border-t border-ink/25 pt-3">
-        <h3 className="text-[13px] font-medium tracking-tight text-ink">{title}</h3>
+        <h3 className="text-[13px] font-medium tracking-[-0.02em] text-ink">{title}</h3>
         <span className="tnum shrink-0 text-[11px] text-ink-4">{count}</span>
       </div>
       <div className="mt-5">{children}</div>
@@ -76,7 +76,7 @@ function Group({
 
 function SubHead({ children }: { children: React.ReactNode }) {
   return (
-    <p className="tnum text-[10px] font-medium uppercase tracking-[0.16em] text-ink-4">
+    <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-4">
       {children}
     </p>
   );
@@ -97,7 +97,7 @@ function FormatRows({
         <li key={f} className="flex items-baseline gap-4 py-2.5">
           <span
             className={`tnum w-11 shrink-0 text-[12px] font-medium ${
-              accent ? "text-accent" : "text-ink"
+              accent ? "text-primary" : "text-ink"
             }`}
           >
             {f}
@@ -111,22 +111,22 @@ function FormatRows({
 
 export default function Formats() {
   return (
-    <section id="format" className="scroll-mt-24 border-b border-rule">
-      <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8 lg:py-20">
+    <section id="format" className="scroll-mt-24">
+      <div className="mx-auto max-w-[1400px] px-5 py-24 sm:px-8 lg:py-32">
         <div className="grid gap-x-10 gap-y-12 lg:grid-cols-12">
           {/* kiri: konteks, ikut menempel saat sisi kanan digulir */}
           <Reveal className="lg:col-span-4 lg:sticky lg:top-28 lg:self-start">
-            <p className="tnum text-[10.5px] font-medium uppercase tracking-[0.22em] text-ink-3">
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-3">
               Format
             </p>
-            <h2 className="mt-5 max-w-[15ch] text-[1.9rem] font-semibold leading-[1.06] tracking-tight text-ink lg:text-[2.3rem]">
+            <h2 className="mt-5 max-w-[15ch] text-[2.15rem] font-bold leading-[1.02] tracking-[-0.035em] text-ink lg:text-[2.55rem]">
               Masuk sebagai file apa adanya.
             </h2>
             <p className="mt-5 max-w-[36ch] text-[14px] leading-[1.7] text-ink-2">
               Tidak ada importer khusus SPSS, tidak ada langkah konversi manual.
               Metadata yang bisa dibaca tetap dibaca.
             </p>
-            <p className="mt-6 border-l-2 border-accent pl-3.5 text-[12.5px] leading-[1.7] text-ink-3">
+            <p className="mt-6 border-l-2 border-primary pl-3.5 text-[12.5px] leading-[1.7] text-ink-3">
               Operasi preprocessing berjalan berurutan dan setiap langkah
               menulis versi dataset baru. Berkas asli tidak pernah diubah.
             </p>
@@ -155,7 +155,7 @@ export default function Formats() {
 
             <Reveal index={2}>
               <Group title="Tipe grafik" count={`${CHART_TYPES.length} tipe`}>
-                <div className="grid grid-cols-2 overflow-hidden border-l border-t border-rule sm:grid-cols-3">
+                <div className="grid grid-cols-2 overflow-hidden rounded-xl border-l border-t border-rule sm:grid-cols-3">
                   {CHART_TYPES.map((c) => (
                     <span
                       key={c}

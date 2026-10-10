@@ -67,7 +67,7 @@ const StepNav = ({ steps, onSelect, className }: StepNavProps) => {
                 >
                   {s.label}
                 </span>
-                <span className='text-muted-foreground mt-0.5 block font-mono text-[10px] tracking-widest uppercase'>
+                <span className='text-muted-foreground mt-0.5 block font-mono text-[11px] font-medium uppercase tracking-[0.2em]'>
                   Tahap {s.n}
                   {s.summary ? ` · ${s.summary}` : ''}
                 </span>

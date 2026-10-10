@@ -39,7 +39,7 @@ const CallbackView = () => {
     <div className='relative flex h-auto min-h-screen items-center justify-center px-4 py-10'>
       <Card className='z-1 w-full sm:max-w-md'>
         <CardHeader>
-          <CardTitle>Login Google</CardTitle>
+          <CardTitle className='font-semibold tracking-[-0.02em]'>Login Google</CardTitle>
         </CardHeader>
         <CardContent>
           {err ? (

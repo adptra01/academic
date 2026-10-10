@@ -58,14 +58,14 @@ const SharedView = () => {
   return (
     <div className='space-y-4'>
       <div>
-        <h1 className='text-2xl font-semibold tracking-tight'>{d.result?.method_name || d.method}</h1>
+        <h1 className='text-3xl leading-[1.05] font-bold tracking-[-0.03em]'>{d.result?.method_name || d.method}</h1>
         <p className='text-muted-foreground mt-1 font-mono text-xs'>
           Tautan publik read-only · {d.analysis_uid} · dataset {d.dataset.filename} v{d.dataset.version}
         </p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Hasil</CardTitle>
+          <CardTitle className='font-semibold tracking-[-0.02em]'>Hasil</CardTitle>
         </CardHeader>
         <CardContent>
           <p className='text-sm'>

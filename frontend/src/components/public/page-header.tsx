@@ -15,14 +15,14 @@ type PageHeaderProps = {
 /** Header untuk halaman public di dalam situs (bukan welcome). */
 export default function PageHeader({ eyebrow, title, lede, parent, facts }: PageHeaderProps) {
   return (
-    <section className="relative overflow-hidden border-b border-rule">
-      <div className="graph-paper graph-paper-fade absolute inset-0" aria-hidden="true" />
-      <div className="relative mx-auto max-w-[1400px] px-5 pb-14 pt-12 sm:px-8 lg:pb-16 lg:pt-16">
+    <section className="relative overflow-hidden">
+      <div className="dot-grid dot-grid-fade absolute inset-0" aria-hidden="true" />
+      <div className="relative mx-auto max-w-[1400px] px-5 pb-16 pt-14 sm:px-8 lg:pb-20 lg:pt-20">
         {parent && (
           <Reveal>
             <Link
               href={parent.href}
-              className="ring-accent group inline-flex items-center gap-1.5 rounded-sm text-[12px] font-medium text-ink-3 transition-colors duration-300 hover:text-accent"
+              className="ring-accent group inline-flex items-center gap-1.5 rounded-sm text-[12px] font-medium text-ink-3 transition-colors duration-300 hover:text-primary"
             >
               <ChevronLeft
                 size={13}
@@ -37,12 +37,12 @@ export default function PageHeader({ eyebrow, title, lede, parent, facts }: Page
         <div className="grid gap-x-10 gap-y-9 lg:grid-cols-12">
           <div className={parent ? "lg:col-span-8" : "lg:col-span-8"}>
             <Reveal index={parent ? 1 : 0}>
-              <p className="tnum text-[10.5px] font-medium uppercase tracking-[0.22em] text-ink-3">
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-3">
                 {eyebrow}
               </p>
             </Reveal>
             <Reveal index={parent ? 2 : 1}>
-              <h1 className="mt-5 max-w-[18ch] text-[2.3rem] font-semibold leading-[1.03] tracking-tight text-ink sm:text-[2.9rem] lg:text-[3.3rem]">
+              <h1 className="mt-5 max-w-[18ch] text-[2.4rem] font-bold leading-[1.0] tracking-[-0.035em] text-ink sm:text-[3rem] lg:text-[3.4rem]">
                 {title}
               </h1>
             </Reveal>

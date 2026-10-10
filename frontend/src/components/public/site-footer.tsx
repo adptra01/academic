@@ -23,8 +23,8 @@ const COLUMNS = [
 
 export default function SiteFooter() {
   return (
-    <footer className="border-t border-rule bg-paper-2/50">
-      <div className="mx-auto max-w-[1400px] px-5 py-14 sm:px-8 lg:py-16">
+    <footer className="bg-paper-2/60">
+      <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8 lg:py-20">
         <div className="grid gap-x-10 gap-y-10 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <Wordmark />
@@ -37,7 +37,7 @@ export default function SiteFooter() {
 
           {COLUMNS.map((col) => (
             <nav key={col.title} aria-label={col.title} className="lg:col-span-2">
-              <h2 className="tnum text-[10px] font-medium uppercase tracking-[0.16em] text-ink-4">
+              <h2 className="font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-ink-4">
                 {col.title}
               </h2>
               <ul className="mt-4 space-y-2.5">
@@ -45,7 +45,7 @@ export default function SiteFooter() {
                   <li key={l.label}>
                     <Link
                       href={l.href}
-                      className="ring-accent rounded-sm text-[13px] text-ink-2 transition-colors duration-300 hover:text-accent"
+                      className="ring-accent rounded-sm text-[13px] text-ink-2 transition-colors duration-300 hover:text-primary"
                     >
                       {l.label}
                     </Link>
@@ -56,7 +56,7 @@ export default function SiteFooter() {
           ))}
 
           <div className="lg:col-span-3">
-            <h2 className="tnum text-[10px] font-medium uppercase tracking-[0.16em] text-ink-4">
+            <h2 className="font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-ink-4">
               Batasan yang disengaja
             </h2>
             <p className="mt-4 text-[12.5px] leading-[1.7] text-ink-3">
