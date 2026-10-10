@@ -27,8 +27,16 @@ minio-data/
 *.xls
 *.sav
 *.json
-!**/fixtures/*.csv
 !**/fixtures/*.json
+# PENGECUALIAN WAJIB: tanpa berkas ini repo tidak bisa di-build dari clone segar
+# (npm ci butuh package-lock; TypeScript butuh tsconfig; konfigurasi shadcn/prettier).
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/tsconfig.json
+!frontend/components.json
+!frontend/.prettierrc.json
+# Bukti validasi ilmiah (FR-25) — bukan dataset
+!docs/validation-evidence/engine_outputs.json
 
 # Dokumen penelitian user (skripsi/tesis) & notebook hasil scrape — JANGAN commit.
 # Berisi karya pihak ketiga dan/atau data sensitif; repositori ini publik.

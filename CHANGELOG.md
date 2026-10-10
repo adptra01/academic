@@ -264,3 +264,30 @@
 
 ### Catatan kode (bukan bagian CI)
 - `backend/app/routers/datasets.py` masih memakai path hardcode `/tmp/opencode/...` untuk berkas unduhan preview — sisa lingkungan pengembangan. Sebaiknya pakai `tempfile`.
+
+## [2026-10-10] — Fix CI jalan pertama + repo tak bisa di-build
+
+### Bug kritis: repo tidak bisa dibuild dari clone segar
+Aturan `*.json` di `.gitignore` (dimaksudkan untuk mencegah commit dataset user)
+ikut memblokir berkas konfigurasi frontend. Akibatnya di GitHub **tidak ada satu
+pun berkas `.json` ter-track**, termasuk:
+- `frontend/package.json` — manifest; tanpa itu `npm install`/`npm ci` mustahil
+- `frontend/package-lock.json` — wajib untuk `npm ci` di CI
+- `frontend/tsconfig.json`, `frontend/components.json`, `frontend/.prettierrc.json`
+- `docs/validation-evidence/engine_outputs.json` — bukti validasi ilmiah (FR-25)
+
+Perbaikan: tambah negasi eksplisit untuk kelima berkas itu + bukti validasi, di
+`.gitignore`. Berkas data JSON (mis. `docs/beta-synthetic/report-*.json`,
+dataset) tetap terblokir.
+
+### Fix run CI #1
+- **Frontend gagal di "Setup Node"** (`Some specified paths were not resolved,
+  unable to cache dependencies`) — sebabnya `cache-dependency-path:
+  frontend/package-lock.json` menunjuk berkas yang tidak ter-commit. Teratasi
+  oleh fix gitignore di atas.
+- **Backend gagal di "Apply schema"** — `psql "$DATABASE_URL"` memakai URI
+  `postgresql+psycopg://...`; prefiks `+psycopg` milik SQLAlchemy tidak dikenali
+  libpq sehingga psql diam-diam jatuh ke Unix socket. Diganti flag eksplisit
+  `-h localhost -p 5432 -U postgres -d academic_test`.
+- Lockfile diverifikasi sinkron dengan `package.json` (`npm ls
+  --package-lock-only` tanpa ketidaksesuaian).

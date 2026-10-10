@@ -1,0 +1,1129 @@
+[
+  {
+    "file": "bench_descriptive.csv",
+    "method": "descriptive",
+    "variables": {
+      "columns": [
+        "v"
+      ]
+    },
+    "analysis_uid": "ANL-20261004-AHQ0WE",
+    "result": {
+      "method": "descriptive",
+      "method_name": "Descriptive Statistics",
+      "alpha": 0.05,
+      "n": 60,
+      "statistics": {
+        "v": {
+          "n": 60,
+          "mean": 101.39666666666668,
+          "median": 100.1,
+          "mode": [
+            92.5,
+            96.7,
+            100.1,
+            116.3
+          ],
+          "min": 58.3,
+          "max": 132.2,
+          "range": 73.89999999999999,
+          "variance": 256.755581920904,
+          "std": 16.023594538083643,
+          "q1": 89.45,
+          "q3": 113.525,
+          "iqr": 24.075000000000003,
+          "skewness": -0.09516095148050883,
+          "kurtosis": -0.3306887627588093,
+          "missing": 0
+        }
+      },
+      "assumptions": [],
+      "formula_latex": "\\bar{x}=\\frac{\\sum x}{n},\\quad s^2=\\frac{\\sum(x-\\bar{x})^2}{n-1}",
+      "parameters": {
+        "columns": [
+          "v"
+        ]
+      },
+      "calculation": [
+        "Kolom 'v': n=60, mean=101.39666666666668"
+      ],
+      "decision": null,
+      "effect_size": null,
+      "interpretation": "Statistik deskriptif 1 kolom dari n=60 baris.",
+      "warnings": []
+    },
+    "result_hash": "ff6790b04bc66df605eee3b096156ee7b5b5559929f24f8aefea724a45102a29"
+  },
+  {
+    "file": "bench_normality.csv",
+    "method": "normality",
+    "variables": {
+      "column": "v_normal"
+    },
+    "analysis_uid": "ANL-20261004-VEHEKR",
+    "result": {
+      "method": "normality",
+      "method_name": "Normality Test",
+      "alpha": 0.05,
+      "n": 50,
+      "statistics": {
+        "test": "Shapiro-Wilk",
+        "statistic": 0.9803305257676685,
+        "p_value": 0.5659859005263397,
+        "normal": true
+      },
+      "assumptions": [
+        {
+          "name": "independensi observasi",
+          "passed": null,
+          "note": "tidak dapat diuji otomatis \u2014 pastikan sampling/desain independen"
+        }
+      ],
+      "formula_latex": "W=\\frac{(\\sum a_i x_{(i)})^2}{\\sum(x-\\bar{x})^2}",
+      "parameters": {
+        "column": "v_normal",
+        "method": "Shapiro-Wilk"
+      },
+      "calculation": [
+        "Shapiro-Wilk: statistik=0.9803, p = 0.566, \u03b1=0.05",
+        "Keputusan: data konsisten dengan distribusi normal (Gagal menolak H0)"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 0.5659859005263397,
+        "reject_h0": false,
+        "text": "Gagal menolak H0"
+      },
+      "effect_size": null,
+      "interpretation": "Uji normalitas Shapiro-Wilk pada 'v_normal' (n=50): statistik=0.9803, p = 0.566. Data dapat dianggap normal \u2014 uji parametrik boleh digunakan.",
+      "warnings": []
+    },
+    "result_hash": "b5f350bff1f4859331207a534438c67ce7544108ab5afed3143a70dc2919a72c"
+  },
+  {
+    "file": "bench_corr.csv",
+    "method": "pearson",
+    "variables": {
+      "x": "x",
+      "y": "y"
+    },
+    "analysis_uid": "ANL-20261004-5ZNEEB",
+    "result": {
+      "method": "pearson",
+      "method_name": "Pearson Correlation",
+      "alpha": 0.05,
+      "n": 40,
+      "statistics": {
+        "r": 0.7896721859809136,
+        "p_value": 1.3904110014055712e-09,
+        "ci95": {
+          "lower": 0.6341600341032391,
+          "upper": 0.8837802049853293
+        },
+        "strength": "kuat"
+      },
+      "assumptions": [
+        {
+          "name": "normalitas X (Shapiro-Wilk)",
+          "p_value": 0.8353947437659389,
+          "passed": true,
+          "note": "Pearson sensitif terhadap non-normalitas/outlier"
+        },
+        {
+          "name": "normalitas Y (Shapiro-Wilk)",
+          "p_value": 0.47009474531317846,
+          "passed": true,
+          "note": "Pearson sensitif terhadap non-normalitas/outlier"
+        }
+      ],
+      "formula_latex": "r=\\frac{\\mathrm{cov}(X,Y)}{s_X s_Y},\\quad t=\\frac{r\\sqrt{n-2}}{\\sqrt{1-r^2}},\\ df=n-2",
+      "parameters": {
+        "x": "x",
+        "y": "y"
+      },
+      "calculation": [
+        "n=40, r=0.7897, p < .001, CI 95% [0.634, 0.884]",
+        "Keputusan: Tolak H0 (\u03b1=0.05)"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 1.3904110014055712e-09,
+        "reject_h0": true,
+        "text": "Tolak H0"
+      },
+      "effect_size": {
+        "r": 0.7896721859809136,
+        "interpretation": "korelasi kuat"
+      },
+      "interpretation": "Korelasi Pearson x\u2013y (n=40): r=0.790 (kuat), p < .001. Hubungan signifikan \u2014 x menjelaskan ~62.4% varians y (R\u00b2=0.624).",
+      "warnings": []
+    },
+    "result_hash": "439d5d4b4e31b5f370587691d8542bdb6de3216b84666bfb64b9243271aa6662"
+  },
+  {
+    "file": "bench_corr.csv",
+    "method": "spearman",
+    "variables": {
+      "x": "x",
+      "y": "y"
+    },
+    "analysis_uid": "ANL-20261004-XAP7YQ",
+    "result": {
+      "method": "spearman",
+      "method_name": "Spearman Correlation",
+      "alpha": 0.05,
+      "n": 40,
+      "statistics": {
+        "rho": 0.83324733897192,
+        "p_value": 2.5371037959898614e-11,
+        "ci95": {
+          "lower": 0.7046364936650055,
+          "upper": 0.9088513028984316
+        },
+        "strength": "sangat kuat"
+      },
+      "assumptions": [
+        {
+          "name": "hubungan monotonik",
+          "passed": null,
+          "note": "periksa scatter plot \u2014 Spearman tidak butuh normalitas"
+        }
+      ],
+      "formula_latex": "\\rho=\\mathrm{Pearson}(\\mathrm{rank}(X),\\mathrm{rank}(Y))",
+      "parameters": {
+        "x": "x",
+        "y": "y"
+      },
+      "calculation": [
+        "n=40, \u03c1=0.8332, p < .001",
+        "Keputusan: Tolak H0 (\u03b1=0.05)"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 2.5371037959898614e-11,
+        "reject_h0": true,
+        "text": "Tolak H0"
+      },
+      "effect_size": {
+        "rho": 0.83324733897192,
+        "interpretation": "korelasi sangat kuat"
+      },
+      "interpretation": "Korelasi Spearman x\u2013y (n=40): \u03c1=0.833 (sangat kuat), p < .001. Hubungan monotonik signifikan.",
+      "warnings": []
+    },
+    "result_hash": "ba682b9935d3d72597568387579b6be0fdf25b74243ab23fcc978b54d64b8df9"
+  },
+  {
+    "file": "bench_ttest_onesamp.csv",
+    "method": "ttest_1samp",
+    "variables": {
+      "column": "v",
+      "mu": 100
+    },
+    "analysis_uid": "ANL-20261004-3RWRHS",
+    "result": {
+      "method": "ttest_1samp",
+      "method_name": "One-Sample t-Test",
+      "alpha": 0.05,
+      "n": 40,
+      "statistics": {
+        "mean": 102.31,
+        "std": 10.958027147911205,
+        "mu": 100.0,
+        "t": 1.3332438944324756,
+        "df": 39,
+        "p_value": 0.19018760280524322,
+        "ci_mean_diff": {
+          "lower": -1.1945471010942375,
+          "upper": 5.8145471010942344
+        }
+      },
+      "assumptions": [
+        {
+          "name": "normalitas 'v' (Shapiro-Wilk)",
+          "statistic": 0.9839652778472678,
+          "p_value": 0.8313752568633987,
+          "passed": true,
+          "note": "otomatis"
+        }
+      ],
+      "formula_latex": "t=\\frac{\\bar{x}-\\mu_0}{s/\\sqrt{n}},\\quad df=n-1,\\quad d=\\frac{\\bar{x}-\\mu_0}{s}",
+      "parameters": {
+        "column": "v",
+        "mu": 100.0
+      },
+      "calculation": [
+        "mean=102.3100, SD=10.9580, n=40, \u03bc\u2080=100.0",
+        "t(39)=1.3332, p = 0.190, CI 95% selisih [-1.1945, 5.8145], d=0.211",
+        "Keputusan: Gagal menolak H0 (\u03b1=0.05)"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 0.19018760280524322,
+        "reject_h0": false,
+        "text": "Gagal menolak H0"
+      },
+      "effect_size": {
+        "cohens_d": 0.21080436914598533
+      },
+      "interpretation": "One-sample t-test 'v' vs \u03bc\u2080=100.0 (n=40): t(39)=1.333, p = 0.190, d=0.21. Tidak ada bukti rata-rata berbeda dari \u03bc\u2080.",
+      "warnings": []
+    },
+    "result_hash": "08fa46666e38e741288e7fe406f833108e13532c851085404024fa9319e813e6"
+  },
+  {
+    "file": "bench_ttest_ind.csv",
+    "method": "ttest_ind",
+    "variables": {
+      "column": "v",
+      "group": "g"
+    },
+    "analysis_uid": "ANL-20261004-R1RXSL",
+    "result": {
+      "method": "ttest_ind",
+      "method_name": "Independent Samples t-Test",
+      "alpha": 0.05,
+      "n": 60,
+      "statistics": {
+        "variant": "Student",
+        "group_a": "A",
+        "n_a": 30,
+        "mean_a": 50.843333333333334,
+        "sd_a": 8.133060811337854,
+        "group_b": "B",
+        "n_b": 30,
+        "mean_b": 55.64666666666666,
+        "sd_b": 9.081498180113362,
+        "levene_p": 0.5386245659519739,
+        "t": -2.158063925711022,
+        "df": 58,
+        "p_value": 0.03507543112709108,
+        "mean_diff": -4.8033333333333275,
+        "ci_diff": {
+          "lower": -9.25867694060997,
+          "upper": -0.3479897260566842
+        }
+      },
+      "assumptions": [
+        {
+          "name": "normalitas grup 'A' (Shapiro-Wilk)",
+          "statistic": 0.9814204515844352,
+          "p_value": 0.8619388525737111,
+          "passed": true,
+          "note": "otomatis"
+        },
+        {
+          "name": "normalitas grup 'B' (Shapiro-Wilk)",
+          "statistic": 0.97159718047064,
+          "p_value": 0.583742869438791,
+          "passed": true,
+          "note": "otomatis"
+        },
+        {
+          "name": "homogenitas (Levene) p=0.5386",
+          "p_value": 0.5386245659519739,
+          "passed": true,
+          "note": "dipakai Student"
+        }
+      ],
+      "formula_latex": "t=\\frac{\\bar{x}_1-\\bar{x}_2}{\\sqrt{s_1^2/n_1+s_2^2/n_2}}\\ (\\mathrm{Welch}),\\quad d=\\frac{\\bar{x}_1-\\bar{x}_2}{s_{pooled}}",
+      "parameters": {
+        "column": "v",
+        "group": "g",
+        "groups": [
+          "A",
+          "B"
+        ]
+      },
+      "calculation": [
+        "A: M=50.8433, SD=8.1331, n=30; B: M=55.6467, SD=9.0815, n=30",
+        "Levene p=0.5386 \u2192 Student; t(58.0)=-2.1581, p = 0.035, selisih=-4.8033 CI 95% [-9.2587, -0.3480], d=-0.557",
+        "Keputusan: Tolak H0 (\u03b1=0.05)"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 0.03507543112709108,
+        "reject_h0": true,
+        "text": "Tolak H0"
+      },
+      "effect_size": {
+        "cohens_d": -0.5572097096219858
+      },
+      "interpretation": "Independent t-test (Student) 'v' A vs B: t(58.0)=-2.158, p = 0.035, d=-0.56. Rata-rata kedua grup berbeda signifikan.",
+      "warnings": []
+    },
+    "result_hash": "62dc27f738ab8863c1be231a5de14a26e5c9cec00637e06b3ad36c3a3acdb8e2"
+  },
+  {
+    "file": "bench_ttest_welch.csv",
+    "method": "ttest_ind",
+    "variables": {
+      "column": "v",
+      "group": "g"
+    },
+    "analysis_uid": "ANL-20261004-RNWSDR",
+    "result": {
+      "method": "ttest_ind",
+      "method_name": "Independent Samples t-Test",
+      "alpha": 0.05,
+      "n": 60,
+      "statistics": {
+        "variant": "Welch",
+        "group_a": "A",
+        "n_a": 30,
+        "mean_a": 48.72999999999999,
+        "sd_a": 4.589354248017155,
+        "group_b": "B",
+        "n_b": 30,
+        "mean_b": 55.29333333333334,
+        "sd_b": 11.539824098741066,
+        "levene_p": 0.00010961112058816354,
+        "t": -2.8946833564449377,
+        "df": 37.949573460089645,
+        "p_value": 0.006260705008793516,
+        "mean_diff": -6.563333333333347,
+        "ci_diff": {
+          "lower": -11.153594813640776,
+          "upper": -1.9730718530259175
+        }
+      },
+      "assumptions": [
+        {
+          "name": "normalitas grup 'A' (Shapiro-Wilk)",
+          "statistic": 0.9690114559160065,
+          "p_value": 0.5124927689443826,
+          "passed": true,
+          "note": "otomatis"
+        },
+        {
+          "name": "normalitas grup 'B' (Shapiro-Wilk)",
+          "statistic": 0.9721044895667149,
+          "p_value": 0.5982204981764442,
+          "passed": true,
+          "note": "otomatis"
+        },
+        {
+          "name": "homogenitas (Levene) p=0.0001",
+          "p_value": 0.00010961112058816354,
+          "passed": false,
+          "note": "dipakai Welch"
+        }
+      ],
+      "formula_latex": "t=\\frac{\\bar{x}_1-\\bar{x}_2}{\\sqrt{s_1^2/n_1+s_2^2/n_2}}\\ (\\mathrm{Welch}),\\quad d=\\frac{\\bar{x}_1-\\bar{x}_2}{s_{pooled}}",
+      "parameters": {
+        "column": "v",
+        "group": "g",
+        "groups": [
+          "A",
+          "B"
+        ]
+      },
+      "calculation": [
+        "A: M=48.7300, SD=4.5894, n=30; B: M=55.2933, SD=11.5398, n=30",
+        "Levene p=0.0001 \u2192 Welch; t(37.9)=-2.8947, p = 0.006, selisih=-6.5633 CI 95% [-11.1536, -1.9731], d=-0.747",
+        "Keputusan: Tolak H0 (\u03b1=0.05)"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 0.006260705008793516,
+        "reject_h0": true,
+        "text": "Tolak H0"
+      },
+      "effect_size": {
+        "cohens_d": -0.7474040288036687
+      },
+      "interpretation": "Independent t-test (Welch) 'v' A vs B: t(37.9)=-2.895, p = 0.006, d=-0.75. Rata-rata kedua grup berbeda signifikan.",
+      "warnings": [
+        "Varians tidak homogen (Levene p=0.000) \u2014 otomatis memakai koreksi Welch"
+      ]
+    },
+    "result_hash": "f4171995e547fa57f0e594e81f198decfcd66ea633afa3db551d562f29b29f4a"
+  },
+  {
+    "file": "bench_ttest_paired.csv",
+    "method": "ttest_paired",
+    "variables": {
+      "col1": "pre",
+      "col2": "post"
+    },
+    "analysis_uid": "ANL-20261004-8X2AC5",
+    "result": {
+      "method": "ttest_paired",
+      "method_name": "Paired Samples t-Test",
+      "alpha": 0.05,
+      "n": 25,
+      "statistics": {
+        "mean_diff": -5.283999999999999,
+        "sd_diff": 2.562823963261361,
+        "t": -10.30894059784692,
+        "df": 24,
+        "p_value": 2.7043249094730357e-10,
+        "ci_diff": {
+          "lower": -6.3418817382961885,
+          "upper": -4.226118261703809
+        }
+      },
+      "assumptions": [
+        {
+          "name": "normalitas selisih (d) (Shapiro-Wilk)",
+          "statistic": 0.94716923626616,
+          "p_value": 0.21628961259947915,
+          "passed": true,
+          "note": "otomatis"
+        }
+      ],
+      "formula_latex": "t=\\frac{\\bar{d}}{s_d/\\sqrt{n}},\\quad df=n-1,\\quad d_z=\\frac{\\bar{d}}{s_d}",
+      "parameters": {
+        "col1": "pre",
+        "col2": "post"
+      },
+      "calculation": [
+        "selisih mean=-5.2840, SD=2.5628, n=25",
+        "t(24)=-10.3089, p < .001, CI 95% [-6.3419, -4.2261], dz=-2.062",
+        "Keputusan: Tolak H0 (\u03b1=0.05)"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 2.7043249094730357e-10,
+        "reject_h0": true,
+        "text": "Tolak H0"
+      },
+      "effect_size": {
+        "cohens_dz": -2.0617881195693846
+      },
+      "interpretation": "Paired t-test pre vs post (n=25): t(24)=-10.309, p < .001, dz=-2.06. Ada perbedaan signifikan antar pengukuran berpasangan.",
+      "warnings": []
+    },
+    "result_hash": "eec372004c57ec9d8a2ac5beec45940d3ec70346139c2a4cfc25a55a64533026"
+  },
+  {
+    "file": "bench_anova.csv",
+    "method": "anova_oneway",
+    "variables": {
+      "column": "v",
+      "group": "g"
+    },
+    "analysis_uid": "ANL-20261004-GLK7XV",
+    "result": {
+      "method": "anova_oneway",
+      "method_name": "One-Way ANOVA",
+      "alpha": 0.05,
+      "n": 60,
+      "statistics": {
+        "k": 3,
+        "groups": [
+          "a",
+          "b",
+          "c"
+        ],
+        "group_means": {
+          "a": 9.995000000000001,
+          "b": 13.13,
+          "c": 16.445
+        },
+        "group_ns": {
+          "a": 20,
+          "b": 20,
+          "c": 20
+        },
+        "ssb": 416.1329999999999,
+        "ssw": 268.7810000000002,
+        "dfb": 2,
+        "dfw": 57,
+        "msb": 208.06649999999996,
+        "msw": 4.71545614035088,
+        "f": 44.12436332925318,
+        "p_value": 2.643819940879743e-12,
+        "posthoc": {
+          "method": "Tukey HSD",
+          "rows_text": [
+            "a      b    3.135 0.0001 1.4825 4.7875   True",
+            "a      c     6.45    0.0 4.7975 8.1025   True",
+            "b      c    3.315    0.0 1.6625 4.9675   True"
+          ],
+          "summary": "Multiple Comparison of Means - Tukey HSD, FWER=0.05\n==================================================\ngroup1 group2 meandiff p-adj  lower  upper  reject\n--------------------------------------------------\n     a      b    3.135 0.0001 1.4825 4.7875   True\n     a      c     6.45    0.0 4.7975 8.1025   True\n     b      c    3.315    0.0 1.6625 4.9675   True\n--------------------------------------------------"
+        }
+      },
+      "assumptions": [
+        {
+          "name": "normalitas grup 'a' (Shapiro-Wilk)",
+          "statistic": 0.9756566472178404,
+          "p_value": 0.8667132628209944,
+          "passed": true,
+          "note": "otomatis"
+        },
+        {
+          "name": "normalitas grup 'b' (Shapiro-Wilk)",
+          "statistic": 0.9579025576012977,
+          "p_value": 0.5028473723267551,
+          "passed": true,
+          "note": "otomatis"
+        },
+        {
+          "name": "normalitas grup 'c' (Shapiro-Wilk)",
+          "statistic": 0.9731749969111054,
+          "p_value": 0.8199958234895632,
+          "passed": true,
+          "note": "otomatis"
+        },
+        {
+          "name": "homogenitas (Levene) p=0.3131",
+          "p_value": 0.31308871710382685,
+          "passed": true,
+          "note": "asumsi terpenuhi"
+        }
+      ],
+      "formula_latex": "F=\\frac{MSB}{MSW}=\\frac{SSB/(k-1)}{SSW/(N-k)},\\quad \\eta^2=\\frac{SSB}{SST}",
+      "parameters": {
+        "column": "v",
+        "group": "g",
+        "groups": [
+          "a",
+          "b",
+          "c"
+        ]
+      },
+      "calculation": [
+        "k=3 grup, N=60; SSB=416.1330 (df=2), SSW=268.7810 (df=57)",
+        "F(2,57)=44.1244, p < .001, \u03b7\u00b2=0.608",
+        "Keputusan: Tolak H0 (\u03b1=0.05)",
+        "Post-hoc Tukey HSD signifikan \u2014 3 pasangan berbeda"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 2.643819940879743e-12,
+        "reject_h0": true,
+        "text": "Tolak H0"
+      },
+      "effect_size": {
+        "eta_squared": 0.6075697094817741
+      },
+      "interpretation": "One-Way ANOVA 'v' antar 3 grup (N=60): F(2,57)=44.124, p < .001, \u03b7\u00b2=0.608. Minimal satu grup berbeda signifikan \u2014 lihat Tukey HSD.",
+      "warnings": []
+    },
+    "result_hash": "23844652afb98dce4fe3be8bf482fdb181187be9556a29767d68254d1fbca0bb"
+  },
+  {
+    "file": "bench_chi2.csv",
+    "method": "chi2_independence",
+    "variables": {
+      "col1": "c1",
+      "col2": "c2"
+    },
+    "analysis_uid": "ANL-20261004-6I35FC",
+    "result": {
+      "method": "chi2_independence",
+      "method_name": "Chi-Square Test of Independence",
+      "alpha": 0.05,
+      "n": 100,
+      "statistics": {
+        "chi2": 15.041666666666668,
+        "df": 1,
+        "p_value": 0.00010516355403363114,
+        "contingency": {
+          "tidak": {
+            "l": 10,
+            "p": 40
+          },
+          "ya": {
+            "l": 30,
+            "p": 20
+          }
+        },
+        "expected_min": 20.0
+      },
+      "assumptions": [
+        {
+          "name": "expected frequency \u2265 5",
+          "passed": true,
+          "note": "min expected = 20.00"
+        }
+      ],
+      "formula_latex": "\\chi^2=\\sum\\frac{(O-E)^2}{E},\\quad df=(r-1)(c-1),\\quad V=\\sqrt{\\frac{\\chi^2}{n(\\min(r,c)-1)}}",
+      "parameters": {
+        "col1": "c1",
+        "col2": "c2"
+      },
+      "calculation": [
+        "Tabel 2x2, n=100",
+        "\u03c7\u00b2(1)=15.0417, p < .001, Cramer's V=0.388",
+        "Keputusan: Tolak H0 (\u03b1=0.05)"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 0.00010516355403363114,
+        "reject_h0": true,
+        "text": "Tolak H0"
+      },
+      "effect_size": {
+        "cramers_v": 0.38783587594066987
+      },
+      "interpretation": "Chi-Square c1 \u00d7 c2 (n=100): \u03c7\u00b2(1)=15.042, p < .001, V=0.39. Ada hubungan signifikan antar variabel.",
+      "warnings": []
+    },
+    "result_hash": "9736393c8860a93618cd50235de17dc73cab3325a3b7bc237a3bd3191c922686"
+  },
+  {
+    "file": "bench_gof.csv",
+    "method": "chi2_gof",
+    "variables": {
+      "column": "k"
+    },
+    "analysis_uid": "ANL-20261004-NUQZVT",
+    "result": {
+      "method": "chi2_gof",
+      "method_name": "Chi-Square Goodness of Fit",
+      "alpha": 0.05,
+      "n": 100,
+      "statistics": {
+        "chi2": 14.000000000000002,
+        "df": 2,
+        "p_value": 0.0009118819655545153,
+        "observed": {
+          "A": 50,
+          "B": 30,
+          "C": 20
+        },
+        "expected": {
+          "A": 33.33333333333333,
+          "B": 33.33333333333333,
+          "C": 33.33333333333333
+        }
+      },
+      "assumptions": [
+        {
+          "name": "expected \u2265 5",
+          "passed": true,
+          "note": "0 kategori expected < 5"
+        }
+      ],
+      "formula_latex": "\\chi^2=\\sum\\frac{(O-E)^2}{E},\\quad df=k-1",
+      "parameters": {
+        "column": "k",
+        "expected_proportions": [
+          0.3333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ]
+      },
+      "calculation": [
+        "k=3 kategori, n=100",
+        "\u03c7\u00b2(2)=14.0000, p < .001",
+        "Keputusan: Tolak H0 (\u03b1=0.05)"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 0.0009118819655545153,
+        "reject_h0": true,
+        "text": "Tolak H0"
+      },
+      "effect_size": null,
+      "interpretation": "Goodness-of-fit 'k' (n=100): \u03c7\u00b2(2)=14.000, p < .001. Distribusi berbeda signifikan dari yang diharapkan.",
+      "warnings": []
+    },
+    "result_hash": "e65f2a8e657e8c5b1fea872005954cae2778f4b903bae00046219110fc1af2ac"
+  },
+  {
+    "file": "bench_mannwhitney.csv",
+    "method": "mannwhitney",
+    "variables": {
+      "column": "v",
+      "group": "g"
+    },
+    "analysis_uid": "ANL-20261004-59EIWA",
+    "result": {
+      "method": "mannwhitney",
+      "method_name": "Mann-Whitney U Test",
+      "alpha": 0.05,
+      "n": 50,
+      "statistics": {
+        "u": 264.0,
+        "z_approx": -0.9410382251409719,
+        "p_value": 0.35160998135119537,
+        "n_a": 25,
+        "n_b": 25,
+        "groups": [
+          "A",
+          "B"
+        ],
+        "median_a": 6.6,
+        "median_b": 10.3
+      },
+      "assumptions": [
+        {
+          "name": "independensi + skala ordinal+",
+          "passed": null,
+          "note": "dipakai saat normalitas gagal untuk 2 grup independen"
+        }
+      ],
+      "formula_latex": "U=n_1n_2+\\frac{n_1(n_1+1)}{2}-R_1,\\quad r_{rb}=1-\\frac{2U}{n_1n_2}",
+      "parameters": {
+        "column": "v",
+        "group": "g",
+        "groups": [
+          "A",
+          "B"
+        ]
+      },
+      "calculation": [
+        "A: median=6.6000, n=25; B: median=10.3000, n=25",
+        "U=264.0, z\u2248-0.941, p = 0.352, r_rb=0.1552",
+        "Keputusan: Gagal menolak H0 (\u03b1=0.05)"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 0.35160998135119537,
+        "reject_h0": false,
+        "text": "Gagal menolak H0"
+      },
+      "effect_size": {
+        "rank_biserial_r": 0.1552
+      },
+      "interpretation": "Mann-Whitney 'v' A vs B: U=264.0, p = 0.352. Tidak ada bukti perbedaan.",
+      "warnings": []
+    },
+    "result_hash": "b4a06a3324239282b01d4f37439aa36cb355536358e47f36340ccfde4424d307"
+  },
+  {
+    "file": "bench_wilcoxon.csv",
+    "method": "wilcoxon",
+    "variables": {
+      "col1": "pre",
+      "col2": "post"
+    },
+    "analysis_uid": "ANL-20261004-EU6L2U",
+    "result": {
+      "method": "wilcoxon",
+      "method_name": "Wilcoxon Signed-Rank Test",
+      "alpha": 0.05,
+      "n": 20,
+      "statistics": {
+        "w": 0.0,
+        "z_approx": 4.763001034267814,
+        "p_value": 1.9073486328125e-06
+      },
+      "assumptions": [
+        {
+          "name": "selisih simetris",
+          "passed": null,
+          "note": "dipakai saat selisih tidak normal; nol-selisi dibuang otomatis"
+        }
+      ],
+      "formula_latex": "W=\\min(R_+,R_-)",
+      "parameters": {
+        "col1": "pre",
+        "col2": "post"
+      },
+      "calculation": [
+        "n=20 pasangan",
+        "W=0.0, p < .001",
+        "Keputusan: Tolak H0 (\u03b1=0.05)"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 1.9073486328125e-06,
+        "reject_h0": true,
+        "text": "Tolak H0"
+      },
+      "effect_size": {
+        "matched_rank_biserial": 1.0650394089524637
+      },
+      "interpretation": "Wilcoxon pre vs post (n=20): W=0.0, p < .001. Ada perbedaan signifikan.",
+      "warnings": []
+    },
+    "result_hash": "3a212f642e3d48b7039bde5fec2e0fc2b2b608d8e8cd07b6256a19fe0b75927f"
+  },
+  {
+    "file": "bench_kruskal.csv",
+    "method": "kruskal",
+    "variables": {
+      "column": "v",
+      "group": "g"
+    },
+    "analysis_uid": "ANL-20261004-TSIXQV",
+    "result": {
+      "method": "kruskal",
+      "method_name": "Kruskal-Wallis Test",
+      "alpha": 0.05,
+      "n": 60,
+      "statistics": {
+        "h": 8.784657606581058,
+        "df": 2,
+        "p_value": 0.012371883961932771,
+        "groups": [
+          "a",
+          "b",
+          "c"
+        ],
+        "posthoc": {
+          "method": "Pairwise Mann-Whitney + Bonferroni",
+          "comparisons": [
+            {
+              "pair": "a vs b",
+              "p_raw": 0.9460688199873727,
+              "p_bonferroni": 1.0,
+              "significant": false
+            },
+            {
+              "pair": "a vs c",
+              "p_raw": 0.005558238268715279,
+              "p_bonferroni": 0.016674714806145838,
+              "significant": true
+            },
+            {
+              "pair": "b vs c",
+              "p_raw": 0.0214658417809263,
+              "p_bonferroni": 0.0643975253427789,
+              "significant": false
+            }
+          ]
+        }
+      },
+      "assumptions": [
+        {
+          "name": "independensi + skala ordinal+",
+          "passed": null,
+          "note": "alternatif non-parametrik ANOVA"
+        }
+      ],
+      "formula_latex": "H=\\frac{12}{N(N+1)}\\sum\\frac{R_i^2}{n_i}-3(N+1),\\quad \\epsilon^2=\\frac{H}{(N^2-1)/(N+1)}",
+      "parameters": {
+        "column": "v",
+        "group": "g",
+        "groups": [
+          "a",
+          "b",
+          "c"
+        ]
+      },
+      "calculation": [
+        "k=3 grup, N=60",
+        "H(2)=8.7847, p = 0.012, \u03b5\u00b2=0.149",
+        "Keputusan: Tolak H0 (\u03b1=0.05)"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 0.012371883961932771,
+        "reject_h0": true,
+        "text": "Tolak H0"
+      },
+      "effect_size": {
+        "epsilon_squared": 0.1488925018064586
+      },
+      "interpretation": "Kruskal-Wallis 'v' antar 3 grup: H=8.785, p = 0.012. Minimal satu grup berbeda \u2014 lihat post-hoc.",
+      "warnings": []
+    },
+    "result_hash": "808cd4afecc2a5097c766ae134cd65b4605f40466e6ba163916c808e5a983cce"
+  },
+  {
+    "file": "bench_regression.csv",
+    "method": "linreg_simple",
+    "variables": {
+      "x": "x1",
+      "y": "y"
+    },
+    "analysis_uid": "ANL-20261004-N24R0T",
+    "result": {
+      "method": "linreg_simple",
+      "method_name": "Simple Linear Regression",
+      "alpha": 0.05,
+      "n": 50,
+      "statistics": {
+        "coefs": [
+          {
+            "term": "const",
+            "coef": -1.4855590203945563,
+            "se": 0.6973798031081321,
+            "t": -2.13020080847425,
+            "p_value": 0.03830780778161739
+          },
+          {
+            "term": "x",
+            "coef": 1.4559097541016481,
+            "se": 0.06611713927986519,
+            "t": 22.020156497379187,
+            "p_value": 9.755287975382882e-27
+          }
+        ],
+        "r_squared": 0.9099246675509558,
+        "adj_r_squared": 0.908048098124934,
+        "f_stat": 484.88729216907075,
+        "f_p": 9.755287975383031e-27,
+        "nobs": 50,
+        "ci": {
+          "const": {
+            "lower": -2.88773509178891,
+            "upper": -0.08338294900020271
+          },
+          "x": {
+            "lower": 1.322972335790869,
+            "upper": 1.5888471724124273
+          }
+        },
+        "equation": "Y = -1.4856 + 1.4559\u00b7X"
+      },
+      "assumptions": [
+        {
+          "name": "linearitas",
+          "passed": null,
+          "note": "periksa scatter X\u2013Y"
+        },
+        {
+          "name": "normalitas residual (Shapiro-Wilk)",
+          "statistic": 0.9792937608131264,
+          "p_value": 0.5225746150171635,
+          "passed": true,
+          "note": "otomatis"
+        },
+        {
+          "name": "homoskedastisitas (Breusch-Pagan) p=0.4787",
+          "statistic": 0.5018021269398376,
+          "p_value": 0.4787093517350639,
+          "passed": true,
+          "note": "otomatis"
+        }
+      ],
+      "formula_latex": "\\hat{Y}=a+bX,\\quad b=\\frac{\\mathrm{cov}(X,Y)}{\\mathrm{var}(X)}",
+      "parameters": {
+        "x": "x1",
+        "y": "y"
+      },
+      "calculation": [
+        "n=50",
+        "Y = -1.4856 + 1.4559\u00b7X; b: t=22.020, p < .001; R\u00b2=0.910, adj-R\u00b2=0.908; F=484.887, p < .001",
+        "Keputusan slope: Tolak H0 (\u03b1=0.05)"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 9.755287975382882e-27,
+        "reject_h0": true,
+        "text": "Tolak H0"
+      },
+      "effect_size": {
+        "r_squared": 0.9099246675509558
+      },
+      "interpretation": "Regresi y atas x1 (n=50): p < .001, R\u00b2=0.910. Setiap +1 x1 \u2192 y berubah 1.456 (signifikan).",
+      "warnings": []
+    },
+    "result_hash": "9c78cc2fe23fd156192a9af222538fb49a9cb2aeab9dbc1859ffbfeb2360ba09"
+  },
+  {
+    "file": "bench_regression.csv",
+    "method": "linreg_multiple",
+    "variables": {
+      "xs": [
+        "x1",
+        "x2"
+      ],
+      "y": "y"
+    },
+    "analysis_uid": "ANL-20261004-4JXW1S",
+    "result": {
+      "method": "linreg_multiple",
+      "method_name": "Multiple Linear Regression",
+      "alpha": 0.05,
+      "n": 50,
+      "statistics": {
+        "coefs": [
+          {
+            "term": "const",
+            "coef": 0.8570449430253501,
+            "se": 0.9628628990811431,
+            "t": 0.8901007026475163,
+            "p_value": 0.3779454826742017
+          },
+          {
+            "term": "x1",
+            "coef": 1.4521571844270318,
+            "se": 0.06040578982227974,
+            "t": 24.04003306139085,
+            "p_value": 4.701269207361362e-28
+          },
+          {
+            "term": "x2",
+            "coef": -0.4726742780278072,
+            "se": 0.1456835108463836,
+            "t": -3.244528329127241,
+            "p_value": 0.002169640260809364
+          }
+        ],
+        "r_squared": 0.9264077169216265,
+        "adj_r_squared": 0.9232761304076531,
+        "f_stat": 295.8269595260856,
+        "f_p": 2.3472453933897267e-27,
+        "nobs": 50,
+        "ci": {
+          "const": {
+            "lower": -1.0799853602234801,
+            "upper": 2.79407524627418
+          },
+          "x1": {
+            "lower": 1.3306364097777066,
+            "upper": 1.573677959076357
+          },
+          "x2": {
+            "lower": -0.7657516989798667,
+            "upper": -0.17959685707574763
+          }
+        },
+        "vif": {
+          "x1": 1.0003667384938912,
+          "x2": 1.0003667384938915
+        }
+      },
+      "assumptions": [
+        {
+          "name": "linearitas",
+          "passed": null,
+          "note": "periksa scatter per-X"
+        },
+        {
+          "name": "non-multikolinearitas (VIF<10)",
+          "passed": true,
+          "note": "VIF={'x1': 1.0003667384938912, 'x2': 1.0003667384938915}"
+        },
+        {
+          "name": "normalitas residual (Shapiro-Wilk)",
+          "statistic": 0.979899170033132,
+          "p_value": 0.5477188204612164,
+          "passed": true,
+          "note": "otomatis"
+        },
+        {
+          "name": "homoskedastisitas (Breusch-Pagan) p=0.1997",
+          "statistic": 3.22190500311072,
+          "p_value": 0.19969731145799793,
+          "passed": true,
+          "note": "otomatis"
+        }
+      ],
+      "formula_latex": "\\hat{Y}=b_0+b_1X_1+\\cdots+b_kX_k",
+      "parameters": {
+        "xs": [
+          "x1",
+          "x2"
+        ],
+        "y": "y"
+      },
+      "calculation": [
+        "n=50, k=2",
+        "R\u00b2=0.926, adj-R\u00b2=0.923; F=295.827, p < .001",
+        "Prediktor signifikan: ['x1', 'x2']",
+        "Keputusan model: Tolak H0 (\u03b1=0.05)"
+      ],
+      "decision": {
+        "alpha": 0.05,
+        "p": 2.3472453933897267e-27,
+        "reject_h0": true,
+        "text": "Tolak H0"
+      },
+      "effect_size": {
+        "r_squared": 0.9264077169216265,
+        "adj_r_squared": 0.9232761304076531
+      },
+      "interpretation": "Regresi berganda y atas ['x1', 'x2'] (n=50): R\u00b2=0.926, p < .001. Prediktor signifikan: ['x1', 'x2'].",
+      "warnings": []
+    },
+    "result_hash": "3bc5c68fd4f987e87d1c4ff61057e1f2d3f81d9a0319889fb604e39f985336f5"
+  }
+]

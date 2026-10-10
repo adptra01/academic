@@ -66,8 +66,10 @@ jobs:
       # Sumber skema = db/init.sql (baseline). Migrasi alembic TIDAK dijalankan
       # pada DB fresh karena isinya sudah termasuk di init.sql — lihat catatan
       # drift skema di CHANGELOG. `stamp head` menandai versi tanpa eksekusi.
+      # Catatan: pakai flag -h/-p/-U/-d, BUKAN URI — psql (libpq) tidak mengenal
+      # prefiks `postgresql+psycopg://` milik SQLAlchemy.
       - name: Apply schema (init.sql baseline)
-        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../db/init.sql
+        run: psql -h localhost -p 5432 -U postgres -d academic_test -v ON_ERROR_STOP=1 -f ../db/init.sql
         env:
           PGPASSWORD: postgres
 
