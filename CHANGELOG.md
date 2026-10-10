@@ -226,3 +226,9 @@
 - **Fix beranda breadcrumb**: prop `parent` di `PageHeader` dihapus (remah roti "Beranda" tidak lagi dirender di `/metode`, `/alur`, `/reproduksi`)
 - Verified: `tsc` bersih, `next build` 11/11 route, screenshot + cek computed-style & overflow di `/`, `/reproduksi`, `/login`, `/dashboard`, `/projects/[id]` pada viewport 1440 untuk mode terang dan gelap; login demo → dashboard → project tanpa error konsol
 - Insiden lingkungan: kontainer ddev `db` exited → login backend 500; dipulihkan via `ddev start` (tabel lama masih ada, data tidak terhapus)
+
+## [2026-10-10] — Keamanan sebelum publikasi repo
+- `.ddev/docker-compose.academic.yaml`: hapus `OAUTH_ENCRYPTION_KEY` asli (Fernet 32-byte) yang ter-commit — sekarang dibaca dari env host (`${OAUTH_ENCRYPTION_KEY}`); bila kosong backend memakai fallback dev berbasis `JWT_SECRET` yang ditandai `dev-fallback` di metadata koneksi
+- Kredensial S3 dev (`minioadmin`/`minioadmin123`) diganti interpolasi `${S3_ACCESS_KEY:-minioadmin}`/`${S3_SECRET_KEY:-minioadmin}`
+- Verifikasi: tidak ada kunci asli tersisa di berkas ter-track; `ddev restart` + health 200 + login demo tetap normal; tidak ada token OAuth tersimpan di DB lokal sehingga rotasi tidak merusak data
+- Audit lain: `.env`/`.env.local` ter-gitignore (hanya `.env.example` ter-track), `db_snapshots` & `.ddev-docker-*.yaml` ter-gitignore, tidak ada dump DB, berkas terbesar 424K (`og-image.png`)
