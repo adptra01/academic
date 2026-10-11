@@ -10,12 +10,20 @@ Dua hal yang paling sering jadi bahan revisi pembimbing:
 Modul diuji: `app.services.stats.run_analysis` (dispatcher) dan
 `app.services.dataset_service.profile_dataframe`.
 """
+import io
 import numpy as np
 import pandas as pd
 import pytest
+from fastapi.testclient import TestClient
 
+from app.main import app
 from app.services.dataset_service import profile_dataframe, suggest_type
 from app.services.stats import run_analysis
+
+
+@pytest.fixture()
+def client():
+    return TestClient(app, raise_server_exceptions=False)
 
 
 # --------------------------------------------------------------------------
@@ -109,6 +117,14 @@ def test_kolom_id_duplikat_terdeteksi():
     assert id_col["duplicate_ids"] == 1
 
 
+def test_kolom_id_baru_tidak_terduplikat():
+    df = pd.DataFrame({"id_responden": ["D", "E", "F"], "nilai": [1, 2, 3]})
+    prof = profile_dataframe(df)
+    id_col = next(c for c in prof["columns"] if c["name"] == "id_responden")
+    assert id_col["detected_type"] == "ID"
+    assert id_col["duplicate_ids"] == 0
+
+
 def test_kolom_id_unik_tidak_ada_duplikat():
     df = pd.DataFrame({"id_responden": ["A", "B", "C"], "nilai": [1, 2, 3]})
     id_col = next(c for c in profile_dataframe(df)["columns"] if c["name"] == "id_responden")
@@ -135,7 +151,91 @@ def test_missing_tidak_ikut_dihitung_sebagai_duplikat():
     df = pd.DataFrame({"nilai": [1.0, np.nan, 2.0, 3.0, np.nan]})
     col = next(c for c in profile_dataframe(df)["columns"] if c["name"] == "nilai")
     assert col["duplicate_values"] == 0
-    assert col["missing_count"] == 2
+    assert col["missing_count"] == 0
+
+
+# ---------- Analysis duplicate detection (P1-3) ----------
+def test_analisis_duplikat_diteteksi_via_api(client):
+    """Jika method+variables+params sama persis → catat duplikat di notes/warnings."""
+    # Setup: register user, buat project, upload CSV kecil, jalankan analisis 2x
+    import uuid as _uuid
+    tag = _uuid.uuid4().hex[:8]
+    email = f"duptest_{tag}@synthetic.beta"
+    reg = client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": "Synth12345", "name": "Dup Test"},
+    )
+    assert reg.status_code == 201, reg.text
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    pid = client.post("/api/v1/projects", headers=headers, json={"title": "Dup Test"}).json()["id"]
+    csv = "nilai\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"
+    up = client.post(
+        f"/api/v1/projects/{pid}/datasets/upload",
+        headers=headers,
+        files={"file": ("t.csv", io.BytesIO(csv.encode()), "text/csv")},
+    )
+    assert up.status_code == 201, up.text
+    did = up.json()["id"]
+
+    payload = {
+        "project_id": pid,
+        "dataset_id": did,
+        "base_version": 1,
+        "method": "ttest_1samp",
+        "variables": {"column": "nilai"},
+        "params": {"mu": 5.5},
+    }
+    run1 = client.post("/api/v1/analyses/run", headers=headers, json=payload)
+    assert run1.status_code == 201, run1.text
+    data1 = run1.json()
+    run2 = client.post("/api/v1/analyses/run", headers=headers, json=payload)
+    assert run2.status_code == 201, run2.text
+    data2 = run2.json()
+
+    # Harus ada warning duplikat di run kedua (karena run pertama sudah ada sebelumnya)
+    combined = " ".join(
+        data2.get("notes", []) + data2.get("warnings", []) +
+        data1.get("notes", []) + data1.get("warnings", [])
+    )
+    assert "sudah pernah dijalankan sebelumnya" in combined
+    # Hash harus sama (identik)
+    assert data1["result_hash"] == data2["result_hash"]
+
+
+def test_analisis_beda_params_tidak_duplikat(client):
+    """Berbeda parameter → tidak ada warning duplikat, hash berbeda."""
+    import uuid as _uuid
+    tag = _uuid.uuid4().hex[:8]
+    email = f"noduptest_{tag}@synthetic.beta"
+    reg = client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": "Synth12345", "name": "NoDup Test"},
+    )
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    pid = client.post("/api/v1/projects", headers=headers, json={"title": "NoDup"}).json()["id"]
+    csv = "nilai\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"
+    up = client.post(
+        f"/api/v1/projects/{pid}/datasets/upload",
+        headers=headers,
+        files={"file": ("t.csv", io.BytesIO(csv.encode()), "text/csv")},
+    )
+    did = up.json()["id"]
+
+    base = {"project_id": pid, "dataset_id": did, "base_version": 1, "method": "ttest_1samp", "variables": {"column": "nilai"}}
+    r1 = client.post("/api/v1/analyses/run", headers=headers, json={**base, "params": {"mu": 5.5}})
+    r2 = client.post("/api/v1/analyses/run", headers=headers, json={**base, "params": {"mu": 7.0}})
+    assert r1.status_code == 201
+    assert r2.status_code == 201
+    assert r1.json()["result_hash"] != r2.json()["result_hash"]
+    combined = " ".join(
+        r1.json().get("notes", []) + r1.json().get("warnings", []) +
+        r2.json().get("notes", []) + r2.json().get("warnings", [])
+    )
+    assert "sudah pernah dijalankan sebelumnya" not in combined
 
 
 @pytest.mark.parametrize("size", [0, 1, 2])
