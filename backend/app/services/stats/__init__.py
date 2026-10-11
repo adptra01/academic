@@ -77,6 +77,20 @@ def result_hash(result: dict) -> str:
     return hashlib.sha256(canon.encode("utf-8")).hexdigest()
 
 
+def analysis_hash(context: dict, result: dict) -> str:
+    """Hash deterministik dari context + result untuk deteksi duplikat analisis.
+    context berisi: method, variables, params, dataset_version_id, project_id.
+    Duplikat = kombinasi context + result identik → hash sama.
+    """
+    payload = {
+        "context": {k: context.get(k) for k in
+                    ("method", "variables", "params", "dataset_version_id", "project_id")},
+        "result": result,
+    }
+    canon = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
+    return hashlib.sha256(canon.encode("utf-8")).hexdigest()
+
+
 def decision(p: float, alpha: float) -> dict:
     reject = bool(p < alpha)
     return {"alpha": alpha, "p": clean(p), "reject_h0": reject, "text": "Tolak H0" if reject else "Gagal menolak H0"}

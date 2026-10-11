@@ -146,6 +146,8 @@ class RunOut(BaseModel):
     method: str
     result: dict
     result_hash: str
+    warnings: list[str] = []
+    notes: list[str] = []
 
 
 def _get_ds(db: Session, user: User, project_id: uuid.UUID, dataset_id: uuid.UUID):
@@ -223,13 +225,29 @@ def run(request: Request, body: RunIn, db: Session = Depends(get_db), user: User
     uid = make_uid()
     h = result_hash(result)
     ts = datetime.now(timezone.utc)
+
+    # Deteksi analisis duplikat (konfigurasi & hasil identik pada dataset yang sama)
+    prev = db.query(Analysis).filter(
+        Analysis.project_id == body.project_id,
+        Analysis.dataset_version_id == base.id,
+        Analysis.method == body.method,
+    ).order_by(Analysis.created_at.desc()).first()
+    if prev and prev.variables == body.variables and (prev.params or {}) == (body.params or {}):
+        dup_note = f"Analisis dengan spesifikasi yang sama sudah pernah dijalankan sebelumnya ({prev.analysis_uid})."
+        result.setdefault("notes", [])
+        if dup_note not in result["notes"]:
+            result["notes"].append(dup_note)
+        result.setdefault("warnings", [])
+        if dup_note not in result["warnings"]:
+            result["warnings"].append(dup_note)
+
     analysis = Analysis(project_id=body.project_id, dataset_version_id=base.id, analysis_uid=uid, method=body.method, variables=body.variables, params=body.params or {}, status="done")
     db.add(analysis)
     db.flush()
     db.add(AnalysisResult(analysis_id=analysis.id, result=result, result_hash=h, software_version=settings.software_version))
     db.add(ResearchLog(analysis_id=analysis.id, dataset_version_id=base.id, method=body.method, variables=body.variables, params=body.params or {}, software_version=settings.software_version, timestamp=ts))
     db.commit()
-    return RunOut(analysis_uid=uid, method=body.method, result=result, result_hash=h)
+    return RunOut(analysis_uid=uid, method=body.method, result=result, result_hash=h, warnings=result.get("warnings", []), notes=result.get("notes", []))
 
 
 def _out_detail(analysis: Analysis, db: Session) -> dict:

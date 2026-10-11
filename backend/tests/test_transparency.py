@@ -151,7 +151,7 @@ def test_missing_tidak_ikut_dihitung_sebagai_duplikat():
     df = pd.DataFrame({"nilai": [1.0, np.nan, 2.0, 3.0, np.nan]})
     col = next(c for c in profile_dataframe(df)["columns"] if c["name"] == "nilai")
     assert col["duplicate_values"] == 0
-    assert col["missing_count"] == 0
+    assert col["missing_count"] == 2
 
 
 # ---------- Analysis duplicate detection (P1-3) ----------
@@ -177,7 +177,7 @@ def test_analisis_duplikat_diteteksi_via_api(client):
         files={"file": ("t.csv", io.BytesIO(csv.encode()), "text/csv")},
     )
     assert up.status_code == 201, up.text
-    did = up.json()["id"]
+    did = up.json()["dataset"]["id"]
 
     payload = {
         "project_id": pid,
@@ -223,7 +223,7 @@ def test_analisis_beda_params_tidak_duplikat(client):
         headers=headers,
         files={"file": ("t.csv", io.BytesIO(csv.encode()), "text/csv")},
     )
-    did = up.json()["id"]
+    did = up.json()["dataset"]["id"]
 
     base = {"project_id": pid, "dataset_id": did, "base_version": 1, "method": "ttest_1samp", "variables": {"column": "nilai"}}
     r1 = client.post("/api/v1/analyses/run", headers=headers, json={**base, "params": {"mu": 5.5}})
