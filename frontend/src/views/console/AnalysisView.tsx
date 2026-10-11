@@ -53,6 +53,19 @@ function flatten(obj: unknown, prefix = ''): [string, string][] {
   return rows
 }
 
+/**
+ * Format p-value gaya APA (PRD: "p < .001 jika sangat kecil").
+ * `toFixed(4)` membuat p=1e-9 tampil "0.0000" yang menyesatkan secara ilmiah.
+ */
+const fmtPValue = (v: unknown): string => {
+  const n = Number(v)
+
+  if (!Number.isFinite(n)) return String(v)
+  if (n < 0.001) return 'p < .001'
+
+  return `p = ${n.toFixed(3).replace(/^0/, '')}`
+}
+
 function StatTable({ data }: { data: unknown }) {
   return (
     <Table>
@@ -68,7 +81,7 @@ function StatTable({ data }: { data: unknown }) {
             <TableCell>
               <code>{k}</code>
             </TableCell>
-            <TableCell>{v}</TableCell>
+            <TableCell>{/(^|\.)p_value$|_p$/.test(k) ? fmtPValue(v) : v}</TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -300,7 +313,7 @@ const AnalysisView = () => {
                       <TableRow key={i}>
                         <TableCell>
                           {a.name}
-                          {a.p_value != null ? ` (p=${Number(a.p_value).toFixed(4)})` : ''}
+                          {a.p_value != null ? ` (${fmtPValue(a.p_value)})` : ''}
                         </TableCell>
                         <TableCell>
                           {a.passed == null ? (

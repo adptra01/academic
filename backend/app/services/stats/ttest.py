@@ -97,7 +97,7 @@ def run_ind(df: pd.DataFrame, variables: dict, alpha: float, params: dict) -> di
         "statistics": {"variant": variant, "group_a": levels[0], "n_a": int(len(a)), "mean_a": clean(float(a.mean())), "sd_a": clean(float(a.std(ddof=1))), "group_b": levels[1], "n_b": int(len(b)), "mean_b": clean(float(b.mean())), "sd_b": clean(float(b.std(ddof=1))), "levene_p": clean(float(p_levene)), "t": t, "df": clean(dfree), "p_value": p, "mean_diff": clean(mdiff), "ci_diff": {"lower": clean(mdiff - h), "upper": clean(mdiff + h)}},
         "assumptions": [
             na, nb,
-            {"name": f"homogenitas (Levene) p={p_levene:.4f}", "p_value": clean(float(p_levene)), "passed": not welch, "note": "dipakai Welch" if welch else "dipakai Student"},
+            {"name": "homogenitas varians (Levene)", "p_value": clean(float(p_levene)), "passed": not welch, "note": "dipakai Welch" if welch else "dipakai Student"},
         ],
         "formula_latex": r"t=\frac{\bar{x}_1-\bar{x}_2}{\sqrt{s_1^2/n_1+s_2^2/n_2}}\ (\mathrm{Welch}),\quad d=\frac{\bar{x}_1-\bar{x}_2}{s_{pooled}}",
         "parameters": {"column": col, "group": grp, "groups": levels},

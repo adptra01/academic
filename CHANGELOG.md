@@ -355,3 +355,25 @@ bukan sintetis, jadi hasilnya menguji engine pada data kotor & sangat miring.
 ### Catatan operasional
 - Kontainer `ddev-academic-db` hilang total saat server restart (gejala: `/health` 200 tapi login 500). Dipulihkan via `ddev start`; **volume lama utuh sehingga data uji tidak hilang**.
 - Frontend `next start` perlu dijalankan dengan `setsid nohup` agar bertahan melewati restart sesi.
+
+## [2026-10-11] — Perbaikan 4 bug dari uji end-to-end
+
+Semua diperbaiki & diverifikasi ulang pada dataset asli 5.022 baris:
+
+1. **Ekspor CSV menduplikasi `p_value`** — `build_csv` menulis `p_value` dari
+   `flatten_stats(statistics)` DAN dari `decision.p` (nilai sama). Kini hanya
+   ditulis bila belum ada. Verifikasi: jumlah baris `p_value` di CSV turun 2 -> 1.
+2. **p-value tampil `0.0000`** (menyesatkan; p tak pernah tepat nol). Helper
+   `fmtPValue` gaya APA dipakai di tabel statistik + tabel asumsi:
+   `p < .001` bila kecil, `p = .717` bila normal. Berlaku juga untuk `levene_p` dll.
+3. **Breadcrumb menampilkan UUID** — `Header.tsx` punya `labelFor()`: rute
+   dikenal dipetakan, Analysis ID jadi `ANL 11 Okt 2026 · XH9NGL`, UUID
+   dipendekkan. `projects`/`analyses`/dst kini tampil jelas.
+4. **Path hardcode `/tmp/opencode/`** di `datasets.py` — ganti `tempfile.NamedTemporaryFile` + `BackgroundTask` auto-hapus setelah respons terkirim.
+
+Kosmetik lanjutan: nama asumsi Levene di `ttest.py`/`anova.py` diubah ke
+`homogenitas varians (Levene)` (tanpa angka) supaya angka p hanya tampil sekali
+lewat kolom `p_value`.
+
+Verified: 61 pytest pass, `tsc` bersih, `eslint` 0, `next build` 11/11, dan
+analisis baru `ANL-20261011-XH9NGL` menampilkan seluruh perbaikan di browser.

@@ -1,15 +1,10 @@
-'use client'
-
-// Next Imports
+// Third-party Imports
 import { Fragment } from 'react'
 
 import { usePathname } from 'next/navigation'
 
-// Third-party Imports
-
 // Component Imports
-import ModeToggle from '@/components/layout/ModeToggle'
-import ProfileDropdown from '@/components/shared/ProfileDropdown'
+import { Separator } from '@/components/ui/separator'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -18,8 +13,52 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator
 } from '@/components/ui/breadcrumb'
-import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+
+// Component Imports
+import ModeToggle from '@/components/layout/ModeToggle'
+import ProfileDropdown from '@/components/shared/ProfileDropdown'
+
+const ROUTE_LABELS: Record<string, string> = {
+  dashboard: 'Dashboard',
+  projects: 'Projects',
+  analyses: 'Analyses',
+  shared: 'Shared',
+  auth: 'Auth',
+  callback: 'Callback'
+}
+
+/** Samarkan UUID di URL jadi bentuk ringkas + awal ("8fd3c2a1-…"). */
+const shortId = (s: string): string => (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(s) ? `${s.slice(0, 8)}…` : s)
+
+/** Label tanggal Indonesia ringkas: "11 Okt 2026". */
+const fmtDateID = (s: string): string => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s)
+
+  if (!m) return s
+  const bln = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+
+  return `${Number(m[3])} ${bln[Number(m[2]) - 1]} ${m[1]}`
+}
+
+const labelFor = (segment: string): string => {
+  const known = ROUTE_LABELS[segment.toLowerCase()]
+
+  if (known) return known
+
+  // /analyses/ANL-20261010-2R35I8 -> "ANL 11 Okt 2026 · 2R35I8"
+  const anl = /^ANL-(\d{4})(\d{2})(\d{2})-(.+)$/i.exec(segment)
+
+  if (anl) return `ANL ${fmtDateID(`${anl[1]}-${anl[2]}-${anl[3]}`)} · ${anl[4]}`
+
+  // /projects/<uuid> -> UUID ringkas, bukan UUID penuh yang memenuhi layar
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(segment)) return shortId(segment)
+
+  // /shared/<token> -> "Tautan …<akhir token>"
+  if (segment.length > 24) return `${segment.slice(0, 8)}…`
+
+  return segment.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
 
 const Header = () => {
   const pathname = usePathname()
@@ -36,13 +75,13 @@ const Header = () => {
             <BreadcrumbList>
               {segments.map((segment, index) => {
                 const isLast = index === segments.length - 1
-                const label = segment.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                const label = labelFor(segment)
                 const href = '/' + segments.slice(0, index + 1).join('/')
 
                 return (
                   <Fragment key={href}>
                     <BreadcrumbItem>
-                      {isLast ? <BreadcrumbPage>{label}</BreadcrumbPage> : <BreadcrumbLink>{label}</BreadcrumbLink>}
+                      {isLast ? <BreadcrumbPage>{label}</BreadcrumbPage> : <BreadcrumbLink href={href}>{label}</BreadcrumbLink>}
                     </BreadcrumbItem>
                     {!isLast && <BreadcrumbSeparator />}
                   </Fragment>

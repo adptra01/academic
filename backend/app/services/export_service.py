@@ -23,8 +23,13 @@ def build_csv(result: dict) -> bytes:
     rows = [("method", result.get("method_name", "")), ("n", str(result.get("n")))]
     rows += flatten_stats(result.get("statistics"))
     dec = result.get("decision") or {}
-    rows.append(("decision", dec.get("text", "-")))
-    rows.append(("p_value", str(dec.get("p", "-"))))
+    if dec.get("text"):
+        rows.append(("decision", dec.get("text", "-")))
+    # `statistics` pada sebagian metode sudah memuat `p_value`, dan `decision.p`
+    # berisi nilai yang sama. Sebelumnya keduanya ditulis -> kunci `p_value`
+    # muncul dua kali dalam satu CSV. Sekarang hanya ditulis bila belum ada.
+    if "p_value" not in {k for k, _ in rows}:
+        rows.append(("p_value", str(dec.get("p", "-"))))
     eff = result.get("effect_size") or {}
     for k, v in eff.items():
         rows.append((f"effect_{k}", str(v)))

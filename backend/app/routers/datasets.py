@@ -1,6 +1,10 @@
 """Dataset router: upload + preview + profile + versioning immutable. US-004/005/006 (FR-5/6/7)."""
+import os
+import tempfile
 import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
+from starlette.background import BackgroundTask
 from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.deps import get_current_user
@@ -12,6 +16,18 @@ from app.services.dataset_service import ALLOWED_EXTS, profile_dataframe, previe
 from app.services.version_io import load_version_df
 
 router = APIRouter(prefix="/api/v1", tags=["datasets"])
+
+
+def _cleanup_tmp(path: str) -> BackgroundTask:
+    """Hapus berkas sementara setelah respons selesai dikirim."""
+
+    def _rm() -> None:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+
+    return BackgroundTask(_rm)
 
 MAX_BYTES = 50 * 1024 * 1024  # di-override via settings.max_upload_mb jika diset
 
@@ -144,13 +160,14 @@ def download_version(dataset_id: uuid.UUID, version: int = Query(1, ge=1), db: S
     if not v:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Version v{version} tidak ditemukan")
     df = load_version_df(ds, v)
-    from pathlib import Path as _P
-
-    _P("/tmp/opencode").mkdir(parents=True, exist_ok=True)
-    out = f"/tmp/opencode/dl_{ds.id}_v{version}.csv"
+    # Berkas sementara dibuat lewat tempfile: path sebelumnya di-hardcode ke
+    # /tmp/opencode (sisa lingkungan pengembangan) dan bisa tidak ada di server.
+    with tempfile.NamedTemporaryFile(suffix=f"_v{version}.csv", delete=False) as tmp:
+        out = tmp.name
     df.to_csv(out, index=False, encoding="utf-8")
     base = ds.filename.rsplit(".", 1)[0]
-    return _FR(out, media_type="text/csv", filename=f"{base}_v{version}.csv")
+    return _FR(out, media_type="text/csv", filename=f"{base}_v{version}.csv",
+               background=_cleanup_tmp(out))
 
 
 @router.get("/datasets/{dataset_id}/diff")

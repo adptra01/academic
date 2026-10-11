@@ -35,7 +35,7 @@ def run_oneway(df: pd.DataFrame, variables: dict, alpha: float, params: dict) ->
     norm_checks = [_norm_check(g, alpha, f"grup '{lv}'") for g, lv in zip(groups, levels)]
     assumptions = [
         *norm_checks,
-        {"name": f"homogenitas (Levene) p={float(p_levene):.4f}", "p_value": clean(float(p_levene)), "passed": bool(p_levene >= alpha), "note": "ANOVA cukup robust — lanjutkan dengan catatan" if p_levene < alpha else "asumsi terpenuhi"},
+        {"name": "homogenitas varians (Levene)", "p_value": clean(float(p_levene)), "passed": bool(p_levene >= alpha), "note": "ANOVA cukup robust — lanjutkan dengan catatan" if p_levene < alpha else "asumsi terpenuhi"},
     ]
     calc = [f"k={k} grup, N={n_total}; SSB={ssb:.4f} (df={dfb}), SSW={ssw:.4f} (df={dfw})", f"F({dfb},{dfw})={f:.4f}, {fmt_p(p)}, η²={eta2:.3f}", f"Keputusan: {dec['text']} (α={alpha})"]
     warnings: list[str] = []
