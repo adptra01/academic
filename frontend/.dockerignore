@@ -1,0 +1,33 @@
+# Turunan dari node_modules host (sering beda platform) & hasil build lama.
+# Tanpa berkas ini, konteks build sempat 1,4 GB dan isinya bisa basi.
+node_modules
+.next
+out
+npm-debug.log*
+*.tsbuildinfo
+
+# Data penelitian user & dokumen pihak ketiga (lihat .gitignore root)
+# HATI-HATI: jangan pakai `*.json` di sini — package.json, package-lock.json,
+# tsconfig.json, dan components.json WAJIB masuk image, kalau tidak build gagal.
+sample/
+*.csv
+*.xlsx
+*.xls
+*.sav
+*.docx
+*.pdf
+*.ipynb
+
+# Repo & lingkungan
+.git
+.gitignore
+.dockerignore
+Dockerfile
+.env
+.env.local
+
+# Dokumentasi & alat pengembang (tidak masuk image)
+README.md
+.vscode
+.idea
+.eslintcache

@@ -1,0 +1,27 @@
+# Bytecode & cache Python host
+__pycache__
+*.py[cod]
+.pytest_cache
+.venv
+.uv
+*.egg-info
+
+# Skema & lingkungan
+.git
+.gitignore
+.dockerignore
+Dockerfile
+.env
+.env.local
+
+# Data penelitian user (jangan masuk image)
+sample/
+*.csv
+*.xlsx
+*.docx
+*.pdf
+*.ipynb
+
+# Alat pengembang
+.vscode
+.idea

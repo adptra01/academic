@@ -49,6 +49,13 @@ services:
     env_file: [.env]
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      STORAGE_DIR: /code/storage
+    # Volume WAJIB: storage dataset user harus hidup lintas redeploy, dan harus
+    # bisa dibaca oleh service worker (lihat service `worker` di bawah).
+    # Sebelumnya tidak ada volume sama sekali -> file hanya ada di layer
+    # container, hilang saat restart, dan worker tak pernah bisa membacanya.
+    volumes:
+      - backend_storage:/code/storage
     depends_on:
       db:
         condition: service_healthy
@@ -64,6 +71,10 @@ services:
     env_file: [.env]
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      STORAGE_DIR: /code/storage
+    # Volume yang SAMA dengan backend — beda container, beda filesystem.
+    volumes:
+      - backend_storage:/code/storage
     depends_on:
       redis:
         condition: service_healthy
@@ -71,11 +82,15 @@ services:
         condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      # NEXT_PUBLIC_* di-inline Next.js saat BUILD, bukan saat runtime. Karena
+      # itu nilainya dikirim sebagai build arg, bukan environment. Salah ini
+      # bikin image frontend nunjuk ke API yang salah dan hanya ketahuan saat
+      # dijalankan. Set FRONTEND_URL/https-domain Anda sebelum build.
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     restart: unless-stopped
-    env_file: [.env]
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
     ports:
       - "3000:3000"
     depends_on:
@@ -96,3 +111,6 @@ volumes:
   pgdata:
   redisdata:
   miniodata:
+  # Dataset user yang diunggah (STORAGE_DIR backend & worker).
+  # Untuk produksi: arahkan ke block volume supaya aman & besar.
+  backend_storage:

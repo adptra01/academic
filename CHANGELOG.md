@@ -320,3 +320,38 @@ Dihapus (122 baris). Tidak ada tambahan pengecualian `.gitignore` — akar masal
 (nama folder sumber bertabrakan dengan aturan ignore data) hilang, bukan ditambal.
 
 `use-mobile.ts` tetap ada dan masih dipakai (1 pemakai).
+
+## [2026-10-10] — Uji end-to-end dengan dataset asli (sample penelitian)
+
+Uji alur nyata peneliti memakai `sample/ANALISIS SENTIMEN.../dataset_AI_Girlfriend.xlsx`
+(5.022 baris komentar TikTok x 17 kolom, 5.887 nilai kosong = 6,9%). Dataset siswa
+bukan sintetis, jadi hasilnya menguji engine pada data kotor & sangat miring.
+
+### Lolos (15/15)
+| Fitur | Hasil | Verifikasi mandiri |
+| --- | --- | --- |
+| Unggah XLSX 5.022x17 + profil | 5.022 baris - 17 kolom - 6,9% kosong - 0 duplikat | Persis: 5.887/(5022x17) = 6,895% |
+| Auto-deteksi jenis kolom | `likedByAuthor` -> Binary, `diggCount` -> Numerical | Benar |
+| Atur peran (type + role) | Tersimpan otomatis | ya |
+| Descriptive | mean=11,4512, SD=381,4646, skewness=44,75, kurtosis=2110,12 | Cocok persis dengan pandas |
+| Normality n>5.000 | **Auto-ganti D'Agostino-Pearson** sesuai PRD, p<.001, tolak H0, saran non-parametrik | Benar |
+| t-test independent | t=0,3626, df=5020, p=0,7169, d=0,0211, Levene p=0,6835 | **Cocok persis dengan scipy** (varian Student) |
+| Format Analysis ID | `ANL-20261010-2R35I8` (PRD US-021) | sesuai |
+| Formula KaTeX | Render LaTeX benar + parameters + langkah kalkulasi | ya |
+| Grafik PNG | `<img class="chart">` 1050x630 dari blob | 200, image/png, 39.798 byte |
+| Grafik interaktif | Canvas ECharts 1424x360 (boxplot 2 grup) | 200, viz JSON valid |
+| **Mode gelap pada grafik** | Grid & label berubah otomatis dari variabel CSS | Terverifikasi screenshot terang vs gelap |
+| Ekspor 6 format | CSV/XLSX/PDF/DOCX/TEX/JSON semua 200 + magic byte benar | Ya |
+| Repro (rerun) | **"identik: YA"**, hash sama `0bebc93131909501...` | ya |
+| Bagikan publik | Baca-saja, **tidak membocorkan email user** | ya |
+| Preprocessing + versioning | `remove_outlier_iqr` diggCount: 5022 -> 4436 baris, **v1 tetap 5.022** | **586 baris dibuang — cocok persis dengan pandas** |
+
+### Bug ditemukan (belum diperbaiki)
+1. **Ekspor CSV menduplikasi kunci `p_value`** — muncul 2x dalam satu CSV. Perlu cek `build_csv` di `app/services/export_service.py`.
+2. **p-value tampil `0.0000`** di tabel statistik & asumsi (mis. normality & Shapiro grup). PRD minta format `p < .001` bila sangat kecil. Menyesatkan secara ilmiah — p-value tidak pernah tepat nol.
+3. **Breadcrumb project menampilkan UUID** (`15f5238c C834 4319 Baa5 D0c9c9011660`) bukan judul project.
+4. `backend/app/routers/datasets.py` masih memakai path hardcode `/tmp/opencode/` untuk berkas unduhan preview (sisa lingkungan pengembangan; seharusnya `tempfile`).
+
+### Catatan operasional
+- Kontainer `ddev-academic-db` hilang total saat server restart (gejala: `/health` 200 tapi login 500). Dipulihkan via `ddev start`; **volume lama utuh sehingga data uji tidak hilang**.
+- Frontend `next start` perlu dijalankan dengan `setsid nohup` agar bertahan melewati restart sesi.
