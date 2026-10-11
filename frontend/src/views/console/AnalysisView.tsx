@@ -9,6 +9,7 @@ import { useParams } from 'next/navigation'
 
 // Third-party Imports
 import katex from 'katex'
+import { TriangleAlertIcon } from 'lucide-react'
 
 // Component Imports
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -249,6 +250,50 @@ const AnalysisView = () => {
         </p>
       </div>
 
+      {/* PERHATIAN — muncul SEBELUM angka & keputusan. Info paling kritis secara
+          metodologis (asumsi gagal, n berkurang) tidak boleh terkubur di tab
+          "Formula": itu seperti menaruh rem darurat di laci yang tidak diberi label. */}
+      {(() => {
+        const warns = r.warnings ?? []
+        const failed = (r.assumptions ?? []).filter(a => a.passed === false)
+
+        if (warns.length === 0 && failed.length === 0) return null
+
+        return (
+          <Card className='border-warn/45 bg-warn-wash/40'>
+            <CardContent>
+              <p className='font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-warn'>
+                Perhatian sebelum membaca hasil
+              </p>
+              {warns.length > 0 && (
+                <ul className='mt-2 space-y-1.5'>
+                  {warns.map((w, i) => (
+                    <li key={i} className='flex items-start gap-2 text-[13px] leading-relaxed text-ink'>
+                      <TriangleAlertIcon className='mt-0.5 size-3.5 shrink-0 text-warn' aria-hidden='true' />
+                      <span>{w}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {failed.length > 0 && (
+                <ul className='mt-2 space-y-1.5'>
+                  {failed.map((a, i) => (
+                    <li key={i} className='flex items-start gap-2 text-[13px] leading-relaxed text-ink'>
+                      <TriangleAlertIcon className='mt-0.5 size-3.5 shrink-0 text-warn' aria-hidden='true' />
+                      <span>
+                        Asumsi <strong className='font-semibold'>{a.name}</strong> tidak
+                        terpenuhi{a.p_value != null && <> ({fmtPValue(a.p_value)})</>} — pertimbangkan
+                        metode alternatif bila tersedia.
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
+
       <Card>
         <CardContent>
           <p className='text-sm'>
@@ -412,16 +457,8 @@ const AnalysisView = () => {
                   <li key={i}>{c}</li>
                 ))}
               </ol>
-              {(r.warnings || []).length > 0 && (
-                <>
-                  <h3 className='mt-4 text-base font-semibold tracking-[-0.02em]'>Warnings</h3>
-                  <ul className='mt-1 list-disc space-y-1 pl-5 text-sm'>
-                    {r.warnings!.map((w, i) => (
-                      <li key={i}>{w}</li>
-                    ))}
-                  </ul>
-                </>
-              )}
+              {/* Warnings sengaja TIDAK diulang di sini — sudah tampil di blok
+                  "PerAttention" di atas tab, jauh lebih terlihat. */}
             </CardContent>
           </Card>
         </TabsContent>

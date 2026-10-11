@@ -467,3 +467,46 @@ ada di DOCX & TeX. Copy dikoreksi; dicatat di `claims-registry.md` sebagai
 `unsupported` (C-23) dengan alasan.
 
 Registry kini 24 klaim (tambah C-23 lampiran PDF, C-24 env UI bertipe).
+
+## [2026-10-11] — Gate sebelum analisis + warnings di atas hasil
+
+Dua perbaikan alur yang paling merusak pengalaman peneliti.
+
+### 1. Pre-flight gate (P0) — kesalahan muncul sebelum tombol ditekan
+Sebelumnya tidak ada satu pun pemeriksaan sebelum `POST /analyses/run`; semua
+validasi muncul sebagai `422` di **Alert paling atas halaman**, jauh dari form
+yang diklik.
+
+- **Baru** `backend/app/services/stats/preflight.py` — pemeriksaan deterministik
+  dari spec + data. Mengembalikan daftar isu berstruktur:
+  `{level: blocking|warn, key, message, fix}`. Rules keras hanya untuk kondisi
+  yang membuat hasil tidak bermakna (kolom tidak ada, jenis kolom salah,
+  parameter wajib kosong, kolom pengelompok <2 level).
+- **Baru** endpoint `POST /api/v1/analyses/preflight` — mengecek tanpa
+  menjalankan, dipanggil frontend (debounce 350ms) tiap pilihan berubah.
+- `POST /analyses/run` kini memanggil preflight lebih dulu dan menolak dengan
+  payload terstruktur. `HTTPException` sengaja diletakkan **di luar** blok
+  `try` agar tidak tertelan `except Exception`.
+- **Frontend**: isu tampil **inline di bawah field** + tombol "Jalankan Analisis"
+  nonaktif selama ada isu blocking.
+
+Verified via API: `ttest_1samp` tanpa μ → blocking "Nilai pembanding (μ₀): belum
+diisi"; kolom `kolom_hantu` → blocking dengan daftar kolom tersedia; kolom
+numerik dipakai sebagai `group` → blocking "butuh kolom kategorikal"; konfig
+valid → `ok: true`. Di UI: tombol nonaktif saat isu ada, aktif setelah terisi.
+
+### 2. Warnings naik ke atas (P0) — info kritis tidak lagi terkubur
+`r.warnings` (mis. "data tidak normal, pakai Wilcoxon") hanya muncul di tab
+**"Formula"** — seperti rem darurat di laci yang tidak diberi label.
+
+- **Baru** kartu **"Perhatian sebelum membaca hasil"** di atas angka & keputusan,
+  menggabungkan warnings engine **dan** asumsi yang GAGAL, dengan ikon & warna
+  amber.
+- Blok warning lama di tab Formula dihapus (jangan duplikat).
+
+Verified di UI (`ANL-20261011-7OUHX3`, one-sample t-test, data sangat miring):
+blok amber tampil sebelum "Keputusan", memuat
+"Data tidak normal — hasil t-test meragukan, pertimbangkan Wilcoxon" dan
+"Asumsi normalitas 'diggCount' (D'Agostino-Pearson) tidak terpenuhi (p < .001)".
+
+Verified: 61 pytest pass, tsc bersih, eslint 0, next build 11/11.

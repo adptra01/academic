@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.deps import get_current_user
 from app.core.rate import limiter
+from app.services.stats.preflight import preflight
 from app.core.config import settings
 from app.models import Analysis, AnalysisResult, Dataset, DatasetVersion, Project, ResearchLog, User
 from app.services.stats import METHOD_IDS, METHOD_NAMES, new_uid as make_uid, result_hash, run_analysis
@@ -174,6 +175,32 @@ def method_spec(method_id: str) -> dict:
     }
 
 
+def _preflight_or_raise(df, method: str, variables: dict, params: dict) -> None:
+    """Tolak lebih awal bila ada isu blocking — dengan pesan terstruktur."""
+    issues = preflight(df, METHOD_SPEC[method], variables, params)
+    blocking = [i for i in issues if i["level"] == "blocking"]
+    if blocking:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"message": "Analisis belum bisa dijalankan — perbaiki dulu isian di bawah.",
+                    "issues": blocking},
+        )
+
+
+@router.post("/analyses/preflight")
+def preflight_endpoint(request: Request, body: RunIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
+    """Cek syarat analisis tanpa menjalankannya. Dipanggil frontend saat form berubah."""
+    if body.method not in METHOD_SPEC:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Method '{body.method}' tidak dikenal")
+    _, ds, vs = _get_ds(db, user, body.project_id, body.dataset_id)
+    base = next((v for v in vs if v.version_number == body.base_version), None)
+    if not base:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Version v{body.base_version} tidak ditemukan")
+    df = load_version_df(ds, base)
+    issues = preflight(df, METHOD_SPEC[body.method], body.variables, body.params)
+    return {"ok": not any(i["level"] == "blocking" for i in issues), "issues": issues}
+
+
 @router.post("/analyses/run", response_model=RunOut, status_code=status.HTTP_201_CREATED)
 @limiter.limit("30/minute")
 def run(request: Request, body: RunIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> RunOut:
@@ -187,6 +214,8 @@ def run(request: Request, body: RunIn, db: Session = Depends(get_db), user: User
         df = load_version_df(ds, base)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Gagal membaca dataset: {e}")
+    # Di luar try: HTTPException dari preflight tidak boleh tertelan except Exception.
+    _preflight_or_raise(df, body.method, body.variables, body.params)
     try:
         result = run_analysis(df, body.method, body.variables, body.params or {})
     except ValueError as e:

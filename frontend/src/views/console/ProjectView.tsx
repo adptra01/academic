@@ -162,6 +162,11 @@ const ProjectView = () => {
   const [picked, setPicked] = useState<Record<string, string[]>>({})
   const [pickedParams, setPickedParams] = useState<Record<string, string>>({})
 
+  // Pre-flight: isu validasi dari backend, ditampilkan inline di bawah field.
+  type Issue = { level: 'blocking' | 'warn'; key: string; message: string; fix: string }
+  const [issues, setIssues] = useState<Issue[]>([])
+  const [checking, setChecking] = useState(false)
+
   // Spec bertipe: `multi` menentukan kolom dikirim sebagai array atau string.
   const syncPicked = (next: Record<string, string[]>) => {
     setPicked(next)
@@ -268,6 +273,30 @@ const ProjectView = () => {
   useEffect(() => {
     api<{ variables?: Record<string, ColSpec>; params?: Record<string, ParamSpec> }>(`/api/v1/methods/${method}`).then(setMethodSpec).catch(() => setMethodSpec(null))
   }, [method])
+
+  // Pre-flight: cek backend setiap kali metode/versi/kolom/parameter berubah.
+  // Debounce ringan supaya tidak memanggil API pada tiap ketikan.
+  const activeDatasetId = sel || datasets[0]?.id
+
+  useEffect(() => {
+    if (tab !== 'analysis') return
+
+    if (!activeDatasetId) return
+    let cancelled = false
+
+    const t = setTimeout(() => {
+      setChecking(true)
+      api<{ ok: boolean; issues: Issue[] }>(`/api/v1/analyses/preflight`, {
+        method: 'POST',
+        body: JSON.stringify({ project_id: id, dataset_id: activeDatasetId, base_version: ver, method, variables: JSON.parse(varsJson || '{}'), params: buildParams() })
+      }).then(r => { if (!cancelled) setIssues(r.issues ?? []) })
+        .catch(() => { if (!cancelled) setIssues([]) })
+        .finally(() => { if (!cancelled) setChecking(false) })
+    }, 350)
+
+    return () => { cancelled = true; clearTimeout(t) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- buildParams diturunkan dari pickedParams & methodSpec (keduanya ada di deps)
+  }, [method, ver, varsJson, pickedParams, activeDatasetId, tab, id])
 
   async function upload(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -1290,7 +1319,41 @@ const ProjectView = () => {
                           </p>
                         </details>
                       </Field>
-                      <Button type='submit' size='lg'>
+
+                      {/* Pre-flight: isu validasi tampil DI BAWAH field, bukan di
+                          Alert paling atas halaman. Tombol Jalankan nonaktif
+                          selama masih ada isu blocking. */}
+                      {(issues.length > 0 || checking) && (
+                        <div
+                          role='status'
+                          aria-live='polite'
+                          className='rounded-xl border border-rule bg-paper-2/60 p-3.5'
+                        >
+                          <p className='font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-ink-4'>
+                            {checking ? 'Memeriksa isian…' : 'Sebelum dijalankan'}
+                          </p>
+                          <ul className='mt-2 space-y-1.5'>
+                            {issues.map((iss, i) => (
+                              <li key={`${iss.key}-${i}`} className='flex items-start gap-2 text-[12.5px] leading-relaxed'>
+                                <span
+                                  aria-hidden='true'
+                                  className={`mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full ${
+                                    iss.level === 'blocking' ? 'bg-destructive' : 'bg-warn'
+                                  }`}
+                                />
+                                <span className='min-w-0'>
+                                  <span className={iss.level === 'blocking' ? 'text-ink' : 'text-ink-2'}>
+                                    {iss.message}
+                                  </span>
+                                  <span className='text-ink-3'> — {iss.fix}</span>
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <Button type='submit' size='lg' disabled={checking || issues.some(i => i.level === 'blocking')}>
                         <PlayIcon />
                         Jalankan Analisis
                       </Button>
