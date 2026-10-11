@@ -73,6 +73,8 @@
 | C-20 | 15 metode statistik tervalidasi | C-05 (32 checks, 15 metode, 0 fail) | 15 metode | `tested` |
 | C-21 | 5 metode fase-2 (ML cluster/classify, TF-IDF, LDA, Apriori) | `backend/tests/test_ml.py` memakai dataset sepele (accuracy selalu 1.0) | 5 metode | `unsupported` — **belum layak diklaim, tidak untuk beta** |
 | C-22 | `chi2_gof` punya test | Grep `backend/tests/` → tidak ada | — | `unsupported` |
+| C-23 | Ekspor **PDF** menyertakan lampiran (appendix) | `export_service.py::build_pdf` menerima `context` tapi **tidak pernah memakainya** — lampiran hanya ada di DOCX & TeX | — | `unsupported` — dikoreksi 2026-10-11 |
+| C-24 | Env dapat dikonfigurasi lewat UI (α, μ₀, n_clusters, dsb.) | `/api/v1/methods/{id}` kini mengirim spec **bertipe** (`variables` vs `params` terpisah); `VariablePicker` merender keduanya | 20 metode | `tested` (diperbaiki 2026-10-11 — sebelumnya 5 metode rusak: `mu`/`n_clusters`/`mode`/`expected`/`min_support` tampil sebagai dropdown kolom) |
 
 ---
 
@@ -95,6 +97,8 @@
 | 2026-10-11 | C-05 | "belum ada bukti R" | "32 perbandingan vs base R, 0 gagal" | Validasi R dijalankan sungguhan (`r_outputs.csv`) |
 | 2026-10-11 | C-08 | "R dan SPSS dipakai sebagai acuan" (di 7 halaman) | R → done; SPSS → `not_run`, disebut eksplisit | `r_outputs.csv` tidak ada; tabel SPSS kosong |
 | 2026-10-11 | C-21 | 20 metode ditampilkan tanpa perbedaan | 5 fase-2 ditandai eksperimental/tidak untuk beta | Tidak ada validasi numerik |
+| 2026-10-11 | C-23 | "PDF sudah membawa ... lampiran" | PDF disebut membawa hasil inti; lampiran hanya DOCX & TeX | `build_pdf` menerima `context` tapi tidak memakainya |
+| 2026-10-11 | C-24 | 5 metode tidak bisa dikonfigurasi (spec string bebas) | `METHOD_SPEC` bertipe; params dipisah dari kolom; α/μ₀ bisa diisi | Heuristik regex di picker salah baca parameter sebagai kolom |
 
 ## Yang harus diisi berikutnya
 

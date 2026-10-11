@@ -6,6 +6,7 @@ import { useMemo } from 'react'
 // Component Imports
 import { Badge } from '@/components/ui/badge'
 import { Field, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -16,67 +17,59 @@ import {
 
 type Variable = { id: string; name: string; var_type: string; var_role: string }
 
-/** Spec `variables` dari backend: kunci → keterangan (mis. "str numerik", "list[str] — 1..N kolom"). */
-type Spec = Record<string, string> | undefined
-
-// Kunci parameter (bukan kolom) yang tidak boleh Offer kolom.
-const PARAM_KEYS = new Set(['method', 'mu', 'alpha', 'n_boot'])
-
 /**
- * Klasifikasikan kunci spec → jenis kolom yang boleh dipilih:
- * - 'multi'   : list[str] — beberapa kolom numerik
- * - 'numeric' : kolom numerik
- * - 'categorical' : kolom kategorikal (nominal/ordinal/binary)
- * - 'group'   : kolom pengelompok (kategorikal)
- * - 'any'     : kolom apa saja
+ * Spec bertipe dari `GET /api/v1/methods/{id}`.
+ *   variables: { kolom dataset }  — kind menentukan kolom mana yang boleh dipilih
+ *   params:     { parameter metode } — number / int / enum / number_list
+ * `kind` dari spec ini dipakai langsung; tidak ada lagi tebakan regex dari
+ * string bebas (tebakan itu dulu membuat `mu`, `n_clusters`, `mode`, dan
+ * `expected` tampil sebagai dropdown kolom, sehingga 5 metode tak bisa dipakai).
  */
-const keyKind = (key: string, desc: string): 'multi' | 'numeric' | 'categorical' | 'group' | 'any' => {
-  if (desc.includes('list[')) return 'multi'
-  if (/grup|kelompok/i.test(desc)) return 'group'
-  if (/numerik|number|numeric/i.test(desc)) return 'numeric'
-  if (/kategor/i.test(desc)) return 'categorical'
+type ColSpec = { kind: 'any' | 'numeric' | 'categorical' | 'group' | 'text'; label: string; multi?: boolean }
 
-  return 'any'
+type ParamSpec = {
+  kind: 'number' | 'int' | 'enum' | 'number_list'
+  label: string
+  required?: boolean
+  default?: string | number
+  options?: string[]
+  min?: number
+  max?: number
+  hint?: string
 }
 
-/** Tebakan peran kolom untuk kunci tertentu (dipakai sebagai saran otomatis). */
+type Spec = {
+  variables?: Record<string, ColSpec>
+  params?: Record<string, ParamSpec>
+}
+
+/** Tebakan peran kolom untuk kunci tertentu (saran otomatis di dropdown). */
 const KEY_ROLE_HINT: Record<string, string> = {
   x: 'Independent',
+  xs: 'Independent',
   col1: 'Independent',
   col2: 'Independent',
   y: 'Dependent',
   column: 'Dependent',
+  target: 'Dependent',
   group: 'Grouping'
 }
 
 const isCategoricalType = (t: string) => /nominal|ordinal|binary|categor/i.test(t)
 const isNumericType = (t: string) => /numerical|numeric|number|int|float|decimal/i.test(t)
+const isTextType = (t: string) => /text/i.test(t)
 
 type Props = {
   spec: Spec
   variables: Variable[]
   value: Record<string, string[]>
+  params: Record<string, string>
   onChange: (next: Record<string, string[]>) => void
+  onParamsChange: (next: Record<string, string>) => void
 }
 
-/**
- * Pemilih kolom per kunci spec — menggantikan obligations mengetik JSON manual.
- * researches: menampilkan hanya kolom yang cocok dengan jenis yang diminta metode,
- * memberi saran kolom sesuai peran yang sudah di setting di Tahap 03.
- */
-const VariablePicker = ({ spec, variables, value, onChange }: Props) => {
-  const entries = useMemo(
-    () => Object.entries(spec ?? {}).filter(([k]) => !PARAM_KEYS.has(k)),
-    [spec]
-  )
-
-  if (entries.length === 0) {
-    return (
-      <p className='text-muted-foreground text-xs leading-relaxed'>
-        Metode ini tidak butuh kolom tambahan.
-      </p>
-    )
-  }
+const VariablePicker = ({ spec, variables, value, params, onChange, onParamsChange }: Props) => {
+  const varEntries = useMemo(() => Object.entries(spec?.variables ?? {}), [spec])
 
   const setCol = (key: string, cols: string[]) => {
     const next = { ...value }
@@ -86,22 +79,32 @@ const VariablePicker = ({ spec, variables, value, onChange }: Props) => {
     onChange(next)
   }
 
-  return (
-    <div className='space-y-4'>
-      {entries.map(([key, desc]) => {
-        const kind = keyKind(key, desc)
+  const setParam = (key: string, v: string) => {
+    const next = { ...params }
 
-        //_filter kolom sesuai jenis_
+    if (v === '') delete next[key]
+    else next[key] = v
+    onParamsChange(next)
+  }
+
+  if (varEntries.length === 0 && Object.keys(spec?.params ?? {}).length === 0) {
+    return <p className='text-muted-foreground text-xs leading-relaxed'>Metode ini tidak butuh kolom atau parameter tambahan.</p>
+  }
+
+  return (
+    <div className='space-y-5'>
+      {varEntries.map(([key, cs]) => {
+        const hint = KEY_ROLE_HINT[key]
+
         const candidates = variables.filter(v => {
-          if (kind === 'numeric' || kind === 'multi') return isNumericType(v.var_type)
-          if (kind === 'categorical' || kind === 'group') return isCategoricalType(v.var_type)
+          if (cs.kind === 'numeric') return isNumericType(v.var_type)
+          if (cs.kind === 'categorical' || cs.kind === 'group') return isCategoricalType(v.var_type)
+          if (cs.kind === 'text') return isTextType(v.var_type)
 
           return true
         })
 
-        // Saran otomatis: kolom yang perannya cocok (mis. y → Dependent).
-        const hint = KEY_ROLE_HINT[key]
-
+        // Kolom yang perannya cocok diurutkan ke atas (saran, bukan paksaan).
         const sorted = [...candidates].sort((a, b) => {
           const ah = hint && a.var_role === hint ? 0 : 1
           const bh = hint && b.var_role === hint ? 0 : 1
@@ -113,16 +116,11 @@ const VariablePicker = ({ spec, variables, value, onChange }: Props) => {
 
         return (
           <Field key={key} className='gap-2'>
-            <FieldLabel htmlFor={`pick-${key}`}>
-              {key === 'columns' ? 'Kolom (boleh beberapa)' : key}
-              <span className='text-muted-foreground ml-1 font-mono text-[10px]'>({desc})</span>
-            </FieldLabel>
+            <FieldLabel htmlFor={`pick-${key}`}>{cs.label}</FieldLabel>
 
-            {kind === 'multi' ? (
+            {cs.multi ? (
               <div className='flex flex-wrap gap-1.5'>
-                {sorted.length === 0 && (
-                  <p className='text-muted-foreground text-xs'>Tidak ada kolom numerik pada versi ini.</p>
-                )}
+                {sorted.length === 0 && <p className='text-muted-foreground text-xs'>Tidak ada kolom yang cocok pada versi ini.</p>}
                 {sorted.map(v => {
                   const on = selected.includes(v.name)
 
@@ -142,10 +140,7 @@ const VariablePicker = ({ spec, variables, value, onChange }: Props) => {
                 })}
               </div>
             ) : (
-              <Select
-                value={selected[0] ?? ''}
-                onValueChange={val => setCol(key, val && val !== '__none' ? [val] : [])}
-              >
+              <Select value={selected[0] ?? ''} onValueChange={val => setCol(key, val && val !== '__none' ? [val] : [])}>
                 <SelectTrigger id={`pick-${key}`}>
                   <SelectValue placeholder='Pilih kolom…' />
                 </SelectTrigger>
@@ -169,6 +164,51 @@ const VariablePicker = ({ spec, variables, value, onChange }: Props) => {
           </Field>
         )
       })}
+
+      {/* Parameter metode: angka & opsi — BUKAN kolom dataset. */}
+      {Object.keys(spec?.params ?? {}).length > 0 && (
+        <div className='space-y-4 border-t border-rule pt-4'>
+          <p className='text-muted-foreground text-[11px] leading-relaxed'>
+            Parameter metode (bukan kolom dari dataset)
+          </p>
+          {Object.entries(spec?.params ?? {}).map(([key, ps]) => (
+            <Field key={key} className='gap-2'>
+              <FieldLabel htmlFor={`param-${key}`}>
+                {ps.label}
+                {ps.required && <span className='text-destructive ml-1'>*</span>}
+              </FieldLabel>
+
+              {ps.kind === 'enum' ? (
+                <Select value={params[key] ?? ps.default ?? ''} onValueChange={v => setParam(key, v ?? '')}>
+                  <SelectTrigger id={`param-${key}`}>
+                    <SelectValue placeholder={ps.default ?? 'Pilih…'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(ps.options ?? []).map(o => (
+                      <SelectItem key={o} value={o}>
+                        {o}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id={`param-${key}`}
+                  type='number'
+                  step={ps.kind === 'int' ? 1 : 'any'}
+                  min={ps.min}
+                  max={ps.max}
+                  value={params[key] ?? ''}
+                  placeholder={ps.hint ?? (ps.default !== undefined ? String(ps.default) : '')}
+                  onChange={e => setParam(key, e.target.value)}
+                />
+              )}
+
+              {ps.hint && <p className='text-muted-foreground text-xs'>{ps.hint}</p>}
+            </Field>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

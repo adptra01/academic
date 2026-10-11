@@ -431,3 +431,39 @@ Termasuk riwayat koreksi klaim (yang lama → yang baru + alasan).
 
 Verified: 61 pytest pass, tsc bersih, eslint 0, next build 11/11, halaman
 /reproduksi menampilkan blok cakupan validasi 5 lapisan dengan benar.
+
+## [2026-10-11] — Perbaiki regresi VariablePicker + koreksi klaim lampiran PDF
+
+Audit alur kerja (subagent + verifikasi ulang) menemukan dua masalah nyata.
+
+### 1. Regresi pada pemilih kolom (5 metode rusak, 2 di antaranya metode MVP)
+`METHOD_VARIABLES_SPEC` menumpuk kolom **dan** parameter dalam satu dict string
+bebas. `VariablePicker` menebak mana kolom lewat regex — tebakan itu salah:
+
+| Metode | Gejala |
+| --- | --- |
+| `ttest_1samp` | `mu` difilter sebagai PARAM_KEYS → **tidak ada input μ₀ sama sekali** (buntu) |
+| `chi2_gof` | `expected` ("list[float] proporsi") → **chip multi-select kolom** |
+| `ml_cluster` | `n_clusters`, `algorithm` → **dropdown kolom** |
+| `text_tfidf` | `mode` → dropdown kolom |
+| `apriori` | `min_support`/`min_confidence`/`min_lift` → dropdown kolom |
+
+**Perbaikan di akar**: `METHOD_SPEC` kini bertipe — `variables` (kolom dataset:
+`kind` = numeric/categorical/group/text/any, `multi`) dan `params` (number/int/
+enum/number_list) **dipisahkan**. `/methods/{id}` mengirim keduanya terpisah.
+`VariablePicker` merender params sebagai input angka/select, bukan dropdown kolom.
+Default `varsJson` yang berisi `x`/`y` placeholder **dihapus** (bom:JSON lama
+bisa terkirim ke metode lain), dan `runAnalysis` kini mengirim `params` terpisah
+(alpha, mu, n_clusters, ...).
+
+**Verified**: `ttest_1samp` yang tadinya buntu → jalankan di UI dengan μ₀=10 &
+α=0.05 → `ANL-20261011-7OUHX3`, t(5021)=0.270, p=0.787 — cocok dengan hitungan
+tangan (11,4512−10)/(381,4646/√5022). 61 pytest pass, tsc, eslint, build 11/11.
+
+### 2. Koreksi klaim lampiran PDF (C-23)
+`audience.tsx` mengklaim "PDF sudah membawa ... lampiran", tetapi
+`build_pdf` menerima `context` dan **tidak pernah memakainya** — lampiran hanya
+ada di DOCX & TeX. Copy dikoreksi; dicatat di `claims-registry.md` sebagai
+`unsupported` (C-23) dengan alasan.
+
+Registry kini 24 klaim (tambah C-23 lampiran PDF, C-24 env UI bertipe).

@@ -53,6 +53,20 @@ type Dataset = { id: string; filename: string; file_type: string; rows_count: nu
 type AnalysisItem = { analysis_uid: string; method: string; created_at: string; dataset_version_number?: number | null; result_hash?: string | null; params?: Record<string, unknown> }
 type ExportItem = { analysis_uid: string; method: string; format: string; created_at: string }
 type Variable = { id: string; name: string; var_type: string; var_role: string }
+
+// Spec bertipe dari GET /api/v1/methods/{id} (lihat VariablePicker).
+type ColSpec = { kind: 'any' | 'numeric' | 'categorical' | 'group' | 'text'; label: string; multi?: boolean }
+
+type ParamSpec = {
+  kind: 'number' | 'int' | 'enum' | 'number_list'
+  label: string
+  required?: boolean
+  default?: string | number
+  options?: string[]
+  min?: number
+  max?: number
+  hint?: string
+}
 type Profile = { rows: number; cols: number; missing_pct: number; duplicate_rows: number; columns: { name: string; detected_type: string; missing_count: number; unique_count: number }[] }
 type Diff = { from: number; to: number; rows_from: number; rows_to: number; rows_delta: number; columns_added: string[]; columns_removed: string[]; numeric_drift: { column: string; mean_from: number | null; mean_to: number | null; missing_from: number; missing_to: number }[] }
 
@@ -140,26 +154,51 @@ const ProjectView = () => {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [variables, setVariables] = useState<Variable[]>([])
   const [method, setMethod] = useState('pearson')
-  const [methodSpec, setMethodSpec] = useState<{ variables?: Record<string, string> } | null>(null)
-  const [varsJson, setVarsJson] = useState('{"x": "service_quality", "y": "satisfaction"}')
+  const [methodSpec, setMethodSpec] = useState<{ variables?: Record<string, ColSpec>; params?: Record<string, ParamSpec> } | null>(null)
+  const [varsJson, setVarsJson] = useState('')
 
-  // Pemilih kolom (UX): menyimpan pilihan kolom per kunci spec. changes
-  // disinkronkan ke `varsJson` supaya endpoint & cara lama tetap kompatibel.
+  // Pemilih kolom (UX): pilihan kolom per kunci spec + parameter metode.
+  // `picked` = kolom, `pickedParams` = angka/opsi (mu, alpha, n_clusters, ...).
   const [picked, setPicked] = useState<Record<string, string[]>>({})
+  const [pickedParams, setPickedParams] = useState<Record<string, string>>({})
 
+  // Spec bertipe: `multi` menentukan kolom dikirim sebagai array atau string.
   const syncPicked = (next: Record<string, string[]>) => {
     setPicked(next)
 
+    const spec = methodSpec?.variables ?? {}
     const out: Record<string, string[] | string> = { ...next }
 
-    // Kunci numerik skalar harus dikirim sebagai string, bukan array.
-    const spec = methodSpec?.variables ?? {}
-
     for (const [k, v] of Object.entries(out)) {
-      if (!spec[k]?.includes('list[') && Array.isArray(v)) out[k] = v[0] ?? ''
+      if (!spec[k]?.multi && Array.isArray(v)) out[k] = v[0] ?? ''
     }
 
     setVarsJson(JSON.stringify(out))
+  }
+
+  // Kirim `mu`, `alpha`, `n_clusters`, dan friends sebagai params terpisah dari
+  // kolom. Nilai string dinormalisasi ke angka kecuali daftar proporsi.
+  const buildParams = (): Record<string, unknown> => {
+    const spec = methodSpec?.params ?? {}
+    const out: Record<string, unknown> = {}
+
+    for (const [k, raw] of Object.entries(pickedParams)) {
+      const ps = spec[k]
+
+      if (!ps) continue
+
+      if (ps.kind === 'number_list') {
+        out[k] = raw.split(/[,\s]+/).filter(Boolean).map(Number)
+      } else if (ps.kind === 'number' || ps.kind === 'int') {
+        const n = Number(raw)
+
+        if (Number.isFinite(n)) out[k] = n
+      } else {
+        out[k] = raw
+      }
+    }
+
+    return out
   }
 
   const [op, setOp] = useState('scale_standard')
@@ -227,7 +266,7 @@ const ProjectView = () => {
      
   }, [])
   useEffect(() => {
-    api<{ variables?: Record<string, string> }>(`/api/v1/methods/${method}`).then(setMethodSpec).catch(() => setMethodSpec(null))
+    api<{ variables?: Record<string, ColSpec>; params?: Record<string, ParamSpec> }>(`/api/v1/methods/${method}`).then(setMethodSpec).catch(() => setMethodSpec(null))
   }, [method])
 
   async function upload(e: React.FormEvent<HTMLFormElement>) {
@@ -392,12 +431,31 @@ const ProjectView = () => {
     e.preventDefault()
     setErr('')
     setMsg('')
+
+    // Cegah terkirimnya JSON placeholder/kontoh milik metode lain.
+    let variables: Record<string, unknown>
+
+    try {
+      variables = JSON.parse(varsJson || '{}')
+    } catch {
+      setErr('Format kolom tidak valid. Periksa bagian "Advanced: edit JSON manual".')
+
+      return
+    }
+
     const t0 = performance.now()
 
     try {
       const j = await api<{ analysis_uid: string }>(`/api/v1/analyses/run`, {
         method: 'POST',
-        body: JSON.stringify({ project_id: id, dataset_id: sel || datasets[0]?.id, base_version: ver, method, variables: JSON.parse(varsJson) })
+        body: JSON.stringify({
+          project_id: id,
+          dataset_id: sel || datasets[0]?.id,
+          base_version: ver,
+          method,
+          variables,
+          params: buildParams()
+        })
       })
 
       setMsg(`Analysis ${j.analysis_uid} selesai dalam ${((performance.now() - t0) / 1000).toFixed(1)}s`)
@@ -1183,19 +1241,21 @@ const ProjectView = () => {
                         {methodSpec?.variables && (
                           <p className='text-muted-foreground text-xs leading-relaxed'>
                             Metode ini butuh:{' '}
-                            {Object.entries(methodSpec.variables)
-                              .map(([k, v]) => `${k} (${v})`)
+                            {Object.values(methodSpec.variables)
+                              .map(v => v.label)
                               .join(', ')}
                           </p>
                         )}
                       </Field>
                       <Field className='gap-2'>
-                        <FieldLabel>2. Tentukan kolom yang dipakai</FieldLabel>
+                        <FieldLabel>2. Tentukan kolom & parameter</FieldLabel>
                         <VariablePicker
-                          spec={methodSpec?.variables}
+                          spec={{ variables: methodSpec?.variables, params: methodSpec?.params }}
                           variables={variables}
                           value={picked}
+                          params={pickedParams}
                           onChange={syncPicked}
+                          onParamsChange={setPickedParams}
                         />
                         <details className='mt-2'>
                           <summary className='text-muted-foreground cursor-pointer text-xs hover:text-ink'>

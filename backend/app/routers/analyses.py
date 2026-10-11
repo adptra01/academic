@@ -14,28 +14,121 @@ from app.services.version_io import load_version_df
 
 router = APIRouter(prefix="/api/v1", tags=["analyses"])
 
-METHOD_VARIABLES_SPEC = {
-    "descriptive": {"columns": "list[str] — 1..N kolom"},
-    "normality": {"column": "str", "method": "auto|shapiro|dagostino (opsional)"},
-    "pearson": {"x": "str numerik", "y": "str numerik"},
-    "spearman": {"x": "str", "y": "str"},
-    "ttest_1samp": {"column": "str numerik", "mu": "float pembanding"},
-    "ttest_ind": {"column": "str numerik", "group": "str tepat 2 grup"},
-    "ttest_paired": {"col1": "str", "col2": "str berpasangan"},
-    "anova_oneway": {"column": "str numerik", "group": "str ≥3 grup"},
-    "chi2_independence": {"col1": "str kategorikal", "col2": "str kategorikal"},
-    "chi2_gof": {"column": "str kategorikal", "expected": "list[float] proporsi (opsional, default uniform)"},
-    "mannwhitney": {"column": "str", "group": "str 2 grup"},
-    "wilcoxon": {"col1": "str", "col2": "str berpasangan"},
-    "kruskal": {"column": "str", "group": "str ≥3 grup"},
-    "linreg_simple": {"x": "str numerik", "y": "str numerik"},
-    "linreg_multiple": {"xs": "list[str] ≥2 numerik", "y": "str numerik"},
-    "ml_classify": {"features": "list[str] numerik", "target": "str kategorikal", "algorithm": "naive_bayes|logistic_regression|decision_tree|random_forest|svm"},
-    "ml_cluster": {"features": "list[str] numerik", "algorithm": "kmeans|hierarchical", "n_clusters": "int 2..20"},
-    "text_tfidf": {"column": "str teks", "mode": "tfidf|bow"},
-    "text_lda": {"column": "str teks", "n_topics": "int 2..10"},
-    "apriori": {"columns": "list[str] item/biner/kategorikal", "min_support": "0<s≤1", "min_confidence": "0..1", "min_lift": "≥0"},
+def _col(kind: str, label: str, multi: bool = False) -> dict:
+    return {"kind": kind, "label": label, "multi": multi}
+
+
+# Spec per metode dengan `variables` (kolom dari dataset) dan `params` (angka/
+# opsi metode) DIPISAHKAN. Sebelumnya keduanya ditumpuk dalam satu dict string
+# bebas, sehingga frontend harus menebak regex mana kolom dan mana parameter —
+# tebakan itu salah untuk `mu`, `expected`, `n_clusters`, `mode`, dan friends.
+METHOD_SPEC: dict[str, dict] = {
+    "descriptive": {
+        "variables": {"columns": _col("any", "Kolom (boleh beberapa)", multi=True)},
+        "params": {},
+    },
+    "normality": {
+        "variables": {"column": _col("numeric", "Kolom numerik")},
+        "params": {"method": {"kind": "enum", "label": "Metode uji",
+                              "options": ["auto", "shapiro", "dagostino"], "default": "auto"}},
+    },
+    "pearson": {
+        "variables": {"x": _col("numeric", "X"), "y": _col("numeric", "Y")},
+        "params": {},
+    },
+    "spearman": {
+        "variables": {"x": _col("numeric", "X"), "y": _col("numeric", "Y")},
+        "params": {},
+    },
+    "ttest_1samp": {
+        "variables": {"column": _col("numeric", "Kolom numerik")},
+        "params": {"mu": {"kind": "number", "label": "Nilai pembanding (μ₀)", "required": True}},
+    },
+    "ttest_ind": {
+        "variables": {"column": _col("numeric", "Kolom numerik"),
+                      "group": _col("group", "Kolom pengelompok (2 grup)")},
+        "params": {},
+    },
+    "ttest_paired": {
+        "variables": {"col1": _col("numeric", "Kolom 1"),
+                      "col2": _col("numeric", "Kolom 2 (berpasangan)")},
+        "params": {},
+    },
+    "anova_oneway": {
+        "variables": {"column": _col("numeric", "Kolom numerik"),
+                      "group": _col("group", "Kolom pengelompok (≥3 grup)")},
+        "params": {},
+    },
+    "chi2_independence": {
+        "variables": {"col1": _col("categorical", "Kolom kategorikal 1"),
+                      "col2": _col("categorical", "Kolom kategorikal 2")},
+        "params": {},
+    },
+    "chi2_gof": {
+        "variables": {"column": _col("categorical", "Kolom kategorikal")},
+        "params": {"expected": {"kind": "number_list", "label": "Proporsi harapan (opsional)",
+                                "hint": "Kosongkan untuk memakai proporsi uniform"}},
+    },
+    "mannwhitney": {
+        "variables": {"column": _col("numeric", "Kolom numerik"),
+                      "group": _col("group", "Kolom pengelompok (2 grup)")},
+        "params": {},
+    },
+    "wilcoxon": {
+        "variables": {"col1": _col("numeric", "Kolom 1"),
+                      "col2": _col("numeric", "Kolom 2 (berpasangan)")},
+        "params": {},
+    },
+    "kruskal": {
+        "variables": {"column": _col("numeric", "Kolom numerik"),
+                      "group": _col("group", "Kolom pengelompok (≥3 grup)")},
+        "params": {},
+    },
+    "linreg_simple": {
+        "variables": {"x": _col("numeric", "X"), "y": _col("numeric", "Y")},
+        "params": {},
+    },
+    "linreg_multiple": {
+        "variables": {"xs": _col("numeric", "X (boleh beberapa)", multi=True),
+                      "y": _col("numeric", "Y")},
+        "params": {},
+    },
+    "ml_classify": {
+        "variables": {"features": _col("numeric", "Fitur", multi=True),
+                      "target": _col("categorical", "Target")},
+        "params": {"algorithm": {"kind": "enum", "label": "Algoritma",
+                                 "options": ["naive_bayes", "logistic_regression", "decision_tree",
+                                             "random_forest", "svm"]}},
+    },
+    "ml_cluster": {
+        "variables": {"features": _col("numeric", "Fitur", multi=True)},
+        "params": {
+            "algorithm": {"kind": "enum", "label": "Algoritma", "options": ["kmeans", "hierarchical"]},
+            "n_clusters": {"kind": "int", "label": "Jumlah cluster", "min": 2, "max": 20},
+        },
+    },
+    "text_tfidf": {
+        "variables": {"column": _col("text", "Kolom teks")},
+        "params": {"mode": {"kind": "enum", "label": "Mode", "options": ["tfidf", "bow"]}},
+    },
+    "text_lda": {
+        "variables": {"column": _col("text", "Kolom teks")},
+        "params": {"n_topics": {"kind": "int", "label": "Jumlah topik", "min": 2, "max": 10}},
+    },
+    "apriori": {
+        "variables": {"columns": _col("categorical", "Item / kolom biner", multi=True)},
+        "params": {
+            "min_support": {"kind": "number", "label": "Min support (0–1)"},
+            "min_confidence": {"kind": "number", "label": "Min confidence (0–1)"},
+            "min_lift": {"kind": "number", "label": "Min lift (≥0)"},
+        },
+    },
 }
+
+# Hanya kolom yang boleh dipilih; sisanya parameter numerik/opsi.
+METHOD_VARIABLES_SPEC = {mid: {k: v["label"] for k, v in spec["variables"].items()}
+                         for mid, spec in METHOD_SPEC.items()}
+METHOD_PARAM_SPEC = {mid: spec["params"] for mid, spec in METHOD_SPEC.items()}
 
 
 class RunIn(BaseModel):
@@ -69,7 +162,16 @@ def _get_ds(db: Session, user: User, project_id: uuid.UUID, dataset_id: uuid.UUI
 def method_spec(method_id: str) -> dict:
     if method_id not in METHOD_IDS:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Method tidak dikenal. Valid: {METHOD_IDS}")
-    return {"id": method_id, "name": METHOD_NAMES[method_id], "variables": METHOD_VARIABLES_SPEC[method_id], "params": {"alpha": "float 0..1, default 0.05"}}
+    # `variables` (kolom dataset) dan `params` (angka/opsi metode) dikirim
+    # terpisah & bertipe agar frontend tidak perlu menebak dari string.
+    return {
+        "id": method_id,
+        "name": METHOD_NAMES[method_id],
+        "variables": METHOD_SPEC[method_id]["variables"],
+        "params": {**METHOD_SPEC[method_id]["params"],
+                   "alpha": {"kind": "number", "label": "Tingkat signifikansi (α)",
+                             "min": 0.0001, "max": 0.5, "default": 0.05}},
+    }
 
 
 @router.post("/analyses/run", response_model=RunOut, status_code=status.HTTP_201_CREATED)

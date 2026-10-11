@@ -17,7 +17,7 @@ const AUDIENCE: Audience[] = [
     role: "Mahasiswa S2 dan S3",
     need: "Tabel dan grafik yang formatnya sudah benar untuk naskah.",
     answer:
-      "Ekspor DOCX, TEX, dan PDF sudah membawa tabel, figure, dan lampiran. Tidak perlu merapikan hasil ekspor sebelum dikirim ke pembimbing.",
+      "Ekspor DOCX dan TEX sudah membawa tabel, figure, dan lampiran; PDF dan CSV/JSON membawa hasil intinya. Tidak perlu merapikan hasil ekspor sebelum dikirim ke pembimbing.",
   },
   {
     role: "Peneliti independen",
