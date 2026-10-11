@@ -39,9 +39,9 @@ services:
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
     volumes:
       - miniodata:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+    # Tidak ada `ports:` — S3/MinIO hanya dipakai di jaringan internal compose.
+    # Memaparkannya ke host membuka konsol object storage ke internet; saat ini
+    # backend memakai filesystem, jadi tidak butuh akses dari luar.
 
   backend:
     build: ./backend

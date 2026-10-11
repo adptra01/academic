@@ -23,7 +23,7 @@ const AUDIENCE: Audience[] = [
     role: "Peneliti independen",
     need: "Memastikan hitungannya setara dengan R atau SPSS.",
     answer:
-      "Uji pembanding berjalan di CI dengan toleransi 1e-6 untuk statistik. Kalau angkanya menyimpang, rilisnya gagal — bukan meloloskan.",
+      "Sudah diadu dengan base R pada 32 perbandingan numerik mencakup 15 metode, dan tidak ada satu pun yang gagal. SPSS dan persetujuan metodolog masih berjalan — jadi bagian itu belum kami janjikan sebagai bukti. Kalau angkanya menyimpang, rilisnya gagal, bukan meloloskan.",
   },
   {
     role: "Konsultan data",

@@ -75,8 +75,9 @@ export default function ClosingCta() {
                 ))}
               </dl>
               <p className="mt-5 text-[12px] leading-relaxed text-brand-foreground/55">
-                Beta terbuka untuk 20–50 peneliti pertama. Validasi lintas R dan
-                SPSS masih berjalan.
+                Beta terbuka untuk 20–50 peneliti pertama. Validasi silang base R
+                sudah dijalankan dan lolos; SPSS serta persetujuan metodolog
+                masih menunggu.
               </p>
             </Reveal>
           </div>

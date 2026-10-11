@@ -121,10 +121,13 @@ export default function Provenance() {
 
             <Reveal variant="left" index={2}>
               <p className="mt-5 max-w-[46ch] text-[12.5px] leading-[1.7] text-strong-foreground/45">
-                Uji pembanding dijalankan terhadap R dan SPSS dengan toleransi{" "}
+                Toleransi yang berlaku{" "}
                 <span className="tnum text-strong-foreground/70">1e-6</span> untuk statistik dan{" "}
-                <span className="tnum text-strong-foreground/70">1e-4</span> untuk effect size. Rilis
-                gagal bila salah satu uji tidak lolos.
+                <span className="tnum text-strong-foreground/70">1e-4</span> untuk effect size.
+                Validasi silang dengan base R sudah dijalankan:{" "}
+                <span className="tnum text-strong-foreground/70">32</span> perbandingan,{" "}
+                <span className="tnum text-strong-foreground/70">0</span> gagal. SPSS dan
+                persetujuan metodolog masih menunggu, jadi belum kami klaim.
               </p>
             </Reveal>
           </div>

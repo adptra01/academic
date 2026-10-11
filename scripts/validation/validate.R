@@ -1,7 +1,13 @@
 # Validasi R (BASE R ONLY — no extra packages). Run: Rscript validate.R
 # Reads bench_*.csv from this dir, writes r_outputs.csv (method, metric, value).
-ev <- dirname(sys.frame(1)$ofile)
-if (is.null(ev) || ev == "") ev <- getwd()
+# `sys.frame(1)$ofile` hanya ada saat di-source(); lewat Rscript selalu NULL,
+# jadi pakai getwd() sebagai fallback (dokumentasi: jalankan dari direktori
+# docs/validation-evidence).
+ev <- tryCatch({
+  f <- sys.frame(1)$ofile
+  if (is.null(f)) NULL else dirname(f)
+}, error = function(e) NULL)
+if (is.null(ev) || is.na(ev) || ev == "") ev <- getwd()
 out <- data.frame(method=character(), metric=character(), value=numeric(), stringsAsFactors=FALSE)
 emit <- function(method, metric, value) {
   out <<- rbind(out, data.frame(method=method, metric=metric, value=as.numeric(value)))

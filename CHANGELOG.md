@@ -377,3 +377,57 @@ lewat kolom `p_value`.
 
 Verified: 61 pytest pass, `tsc` bersih, `eslint` 0, `next build` 11/11, dan
 analisis baru `ANL-20261011-XH9NGL` menampilkan seluruh perbaikan di browser.
+
+## [2026-10-11] — Kririk koreksi klaim ilmiah, validasi R dijalankan, evidence registry
+
+Temuan utama (audit kredibilitas): **situs publik mengklaim engine "ditulis
+ulang dari rumus aslinya — bukan panggilan SciPy"**, padahal seluruh engine
+memanggil `ss.*`/`sm.OLS` (SciPy/StatsModels). Klaim R/SPSS "sudah dipakai
+sebagai acuan" juga tanpa bukti: `r_outputs.csv` tidak ada, tabel SPSS kosong.
+Yang ditulis manual adalah orkestrasi (asumsi, pemilihan metode, interpretasi),
+bukan rumusnya — dan itu nilai nyata, tapi harus dinyatakan jujur.
+
+### 1. Klaim publik dikoreksi (7 halaman)
+`validation-evidence.tsx` (intro + catatan kaki + blok baru), `hero.tsx`,
+`site-footer.tsx`, `closing-cta.tsx`, `audience.tsx`, `provenance.tsx`,
+`reproduksi/page.tsx` — semua sekarang: menyebut SciPy/StatsModels secara
+terbuka, dan **menyatakan R/SPSS/presetujuan metodolog apa adanya yang sudah
+belum ada**. Blok "Cakupan validasi" baru memisahkan 5 lapisan (unit CI / vs
+SciPy / vs R / vs SPSS / persetujuan manusia) dengan status per lapisan, agar
+tidak ada lapisan yang disamakan.
+
+### 2. Validasi silang R — benar-benar dijalankan, LOLOS
+- R base dijalankan di container `rocker/r-base` (tanpa install global).
+- `scripts/validation/validate.R` diperbaiki agar jalan via Rscript (dulu
+  `sys.frame(1)$ofile` gagal → "not that many frames").
+- `r_outputs.csv` **dibuat** (54 baris), lalu `compare.py` → **0 FAIL dari 32
+  checks, mencakup 15 metode MVP** (exit 0). Selisih Mann-Whitney p (0.00064)
+  = continuity correction, sesuai toleransi rank-test 1e-3 yang didokumentasikan.
+- Output compare.py ditempel ke `docs/scientific-validation.md` (ganti
+  placeholder), dengan catatan eksplisit apa yang **belum** terbukti (SPSS +
+  tanda tangan metodolog).
+
+### 3. Evidence registry (sumber kebenaran tunggal)
+`docs/claims-registry.md` — 22 klaim bernomor, tiap klaim punya bukti, cakupan,
+dan status (`tested` / `human_review_pending` / `not_run` / `unsupported`).
+Aturan: halaman publik **tidak boleh** memuat klaim `unsupported`/`not_run`.
+Termasuk riwayat koreksi klaim (yang lama → yang baru + alasan).
+
+### 4. Keamanan & tata kelola (P0/P1)
+- **Kredensial demo dihapus dari README** (repo publik) + `seed_demo.sh` kini
+  membangkitkan password acak, tidak hardcode `Demo12345`.
+- **File vendor dihapus** dari repo: `hire-us.html`, `documentation.html`,
+  `layout/Download.tsx` (redirect themewagon, tidak dipakai — yang dipakai
+  `ProjectView` adalah `DownloadIcon` dari lucide).
+- **Port MinIO (9000/9001) tidak lagi dipetakan ke host** di compose.yml.
+- **`scripts/backup.sh` ditulis ulang** — sebelumnya hanya jalan di ddev
+  (`ddev exec`), gagal di VPS. Sekarang auto-deteksi ddev/compose, pakai
+  `BACKUP_DIR` untuk prod, validasi dump tidak kosong.
+  **Diverifikasi: backup berhasil (dump 41 KB + storage 4.1 MB), lalu direstore
+  ke Postgres kosong → 17 user + 14 analysis pulih.**
+- **Rate limit pada endpoint mahal** (`analyses/run`, `analyses/{uid}/export`,
+  30/menit) — sebelumnya hanya auth. Diverifikasi: 30 request → 200, 5
+  berikutnya → 429 dengan pesan ramah.
+
+Verified: 61 pytest pass, tsc bersih, eslint 0, next build 11/11, halaman
+/reproduksi menampilkan blok cakupan validasi 5 lapisan dengan benar.

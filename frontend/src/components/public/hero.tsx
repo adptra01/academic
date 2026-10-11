@@ -97,8 +97,8 @@ export default function Hero() {
                 </span>
                 <span>
                   Tidak ada model bahasa yang menyentuh angka. Seluruh statistik
-                  dihitung engine Python deterministik yang lulus uji pembanding
-                  R dan SPSS.
+                  dihitung engine Python deterministik, diadu langsung dengan
+                  base R pada 32 perbandingan numerik tanpa satu pun gagal.
                 </span>
               </p>
             </Reveal>

@@ -8,7 +8,7 @@ import ClosingCta from "@/components/public/closing-cta";
 export const metadata: Metadata = {
   title: "Reproduksi — Academic Research Platform",
   description:
-    "Analysis ID, log immutable, dan result_hash sebagai cap integritas. Uji pembanding terhadap R dan SPSS dengan toleransi 1e-6.",
+    "Analysis ID, log immutable, dan result_hash sebagai cap integritas. Diadu dengan base R pada 32 perbandingan numerik, 0 gagal, mencakup 15 metode.",
 };
 
 export default function ReproduksiPage() {
@@ -22,7 +22,7 @@ export default function ReproduksiPage() {
           { k: "Cap integritas", v: "sha256" },
           { k: "Toleransi statistik", v: "1e-6" },
           { k: "Toleransi effect size", v: "1e-4" },
-          { k: "Pembanding", v: "R + SPSS" },
+          { k: "Pembanding", v: "base R — 32 cek, 0 gagal" },
         ]}
       />
       <Provenance />

@@ -73,7 +73,7 @@ export default function SiteFooter() {
             Academic Research Platform — build MVP
           </p>
           <p className="text-[11px] text-ink-4">
-            Beta terbatas · engine terverifikasi terhadap R dan SPSS
+            Beta terbatas · engine deterministik, 32 perbandingan vs base R, 0 gagal
           </p>
         </div>
       </div>

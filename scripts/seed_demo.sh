@@ -3,8 +3,10 @@
 # Idempoten: email sudah ada → login saja.
 set -euo pipefail
 B="${1:-http://localhost:8100}"
-EMAIL="demo@kampus.ac.id"
-PASS="Demo12345"
+EMAIL="${DEMO_EMAIL:-demo@kampus.ac.id}"
+# Password demo dibangkitkan acak agar tidak menjadi kredensial default yang
+# sudah tercetak di repo publik. Repo ini publik — jangan hardcode kredensial.
+PASS="${DEMO_PASSWORD:-$(head -c 18 /dev/urandom | base64 | tr -d '/+=' | cut -c1-12)D7x}"; export DEMO_PASSWORD="$PASS"
 
 login() { curl -s -X POST "$B/api/v1/auth/login" -H 'Content-Type: application/json' -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}"; }
 TOKEN=$(login | python3 -c "import json,sys; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null || true)

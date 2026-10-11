@@ -14,8 +14,9 @@ NEXT_PUBLIC_API_URL=http://localhost:8100 npm run dev -- -p 3100
 # backend docs: http://localhost:8100/docs
 ```
 
-Login dev: `peneliti1@kampus.ac.id` / `Rahasia123`, atau seed demo:
-`./scripts/seed_demo.sh` → `demo@kampus.ac.id` / `Demo12345`.
+Buat akun dev sendiri lewat `POST /api/v1/auth/register`, atau seed akun demo
+lokal: `./scripts/seed_demo.sh` (akun & kata sandinya dicetak ke stdout — tidak
+pernah ditulis di dokumen ini, karena repo ini publik).
 
 ## Quickstart prod (VPS, ringkas — detail: `docs/runbook-prod.md`)
 

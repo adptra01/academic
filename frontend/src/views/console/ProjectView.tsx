@@ -23,6 +23,7 @@ import {
 
 // Component Imports
 import StepNav, { type StepStatus } from '@/components/academic/step-nav'
+import VariablePicker from '@/components/academic/variable-picker'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -141,6 +142,26 @@ const ProjectView = () => {
   const [method, setMethod] = useState('pearson')
   const [methodSpec, setMethodSpec] = useState<{ variables?: Record<string, string> } | null>(null)
   const [varsJson, setVarsJson] = useState('{"x": "service_quality", "y": "satisfaction"}')
+
+  // Pemilih kolom (UX): menyimpan pilihan kolom per kunci spec. changes
+  // disinkronkan ke `varsJson` supaya endpoint & cara lama tetap kompatibel.
+  const [picked, setPicked] = useState<Record<string, string[]>>({})
+
+  const syncPicked = (next: Record<string, string[]>) => {
+    setPicked(next)
+
+    const out: Record<string, string[] | string> = { ...next }
+
+    // Kunci numerik skalar harus dikirim sebagai string, bukan array.
+    const spec = methodSpec?.variables ?? {}
+
+    for (const [k, v] of Object.entries(out)) {
+      if (!spec[k]?.includes('list[') && Array.isArray(v)) out[k] = v[0] ?? ''
+    }
+
+    setVarsJson(JSON.stringify(out))
+  }
+
   const [op, setOp] = useState('scale_standard')
   const [opCol, setOpCol] = useState('')
   const [opParams, setOpParams] = useState('{}')
@@ -1169,20 +1190,45 @@ const ProjectView = () => {
                         )}
                       </Field>
                       <Field className='gap-2'>
-                        <FieldLabel htmlFor='m-vars'>2. Tentukan kolom yang dipakai</FieldLabel>
-                        <Textarea
-                          id='m-vars'
-                          rows={4}
-                          value={varsJson}
-                          onChange={e => setVarsJson(e.target.value)}
-                          className='rounded-lg font-mono'
-                          aria-describedby='m-vars-help'
+                        <FieldLabel>2. Tentukan kolom yang dipakai</FieldLabel>
+                        <VariablePicker
+                          spec={methodSpec?.variables}
+                          variables={variables}
+                          value={picked}
+                          onChange={syncPicked}
                         />
-                        <p id='m-vars-help' className='text-muted-foreground text-xs leading-relaxed'>
-                          Tulis nama kolom persis seperti di file Anda,{' '}
-                          <span className='font-mono text-foreground'>{'{kunci: "nama_kolom"}'}</span>. Contoh:{' '}
-                          <span className='font-mono text-foreground'>{'{"x": "service_quality", "y": "satisfaction"}'}</span>
-                        </p>
+                        <details className='mt-2'>
+                          <summary className='text-muted-foreground cursor-pointer text-xs hover:text-ink'>
+                            Advanced: edit JSON manual
+                          </summary>
+                          <Textarea
+                            id='m-vars'
+                            rows={4}
+                            value={varsJson}
+                            onChange={e => {
+                              setVarsJson(e.target.value)
+
+                              try {
+                                const parsed = JSON.parse(e.target.value) as Record<string, string[]>
+
+                                setPicked(
+                                  Object.fromEntries(
+                                    Object.entries(parsed).map(([k, v]) => [k, Array.isArray(v) ? v : [v]])
+                                  )
+                                )
+                              } catch {
+                                /* JSON belum valid — biarkan teks apa adanya */
+                              }
+                            }}
+                            className='mt-2 rounded-lg font-mono'
+                            aria-describedby='m-vars-help'
+                          />
+                          <p id='m-vars-help' className='text-muted-foreground mt-1 text-xs leading-relaxed'>
+                            Tulis nama kolom persis seperti di file Anda,{' '}
+                            <span className='font-mono text-foreground'>{'{kunci: "nama_kolom"}'}</span>. Contoh:{' '}
+                            <span className='font-mono text-foreground'>{'{"x": "service_quality", "y": "satisfaction"}'}</span>
+                          </p>
+                        </details>
                       </Field>
                       <Button type='submit' size='lg'>
                         <PlayIcon />

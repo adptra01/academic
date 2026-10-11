@@ -1,9 +1,10 @@
 """Results router: chart PNG + export CSV/XLSX/PDF/DOCX (tabel+grafik+appendix). US-019/020 (FR-22/23)."""
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.deps import get_current_user
+from app.core.rate import limiter
 from app.models import Analysis, AnalysisResult, Dataset, DatasetVersion, Export, Project, ResearchLog, User, Variable
 from app.services.charts import CHART_TYPES, DEFAULT_CHART, make_chart
 from app.services.export_service import build_csv, build_docx, build_latex, build_pdf, build_xlsx
@@ -45,7 +46,8 @@ def chart(uid: str, type: str | None = Query(default=None), dpi: int = Query(def
 
 
 @router.get("/analyses/{uid}/export")
-def export(uid: str, format: str = Query(...), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+@limiter.limit("30/minute")
+def export(uid: str, request: Request, format: str = Query(...), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     fmt = format.lower()
     if fmt not in ("csv", "xlsx", "pdf", "docx", "tex", "json"):
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="format harus csv|xlsx|pdf|docx|tex|json")

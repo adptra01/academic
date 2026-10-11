@@ -1,11 +1,12 @@
 """Analyses router: run 15 metode → Analysis ID + result + log immutable. US-010..017, US-018, US-021 (FR-12..25)."""
 import uuid
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.deps import get_current_user
+from app.core.rate import limiter
 from app.core.config import settings
 from app.models import Analysis, AnalysisResult, Dataset, DatasetVersion, Project, ResearchLog, User
 from app.services.stats import METHOD_IDS, METHOD_NAMES, new_uid as make_uid, result_hash, run_analysis
@@ -72,7 +73,8 @@ def method_spec(method_id: str) -> dict:
 
 
 @router.post("/analyses/run", response_model=RunOut, status_code=status.HTTP_201_CREATED)
-def run(body: RunIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> RunOut:
+@limiter.limit("30/minute")
+def run(request: Request, body: RunIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> RunOut:
     if body.method not in METHOD_IDS:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Method '{body.method}' tidak dikenal")
     _, ds, vs = _get_ds(db, user, body.project_id, body.dataset_id)
