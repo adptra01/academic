@@ -128,4 +128,25 @@ def run_analysis(df: pd.DataFrame, method: str, variables: dict, params: dict) -
         "text_lda": text_mining.run_lda,
         "apriori": apriori.run,
     }
-    return table[method](df, variables, alpha, params)
+    result = table[method](df, variables, alpha, params)
+
+    # Transparansi n: banyak metode membuang baris (missing/pasangan tak lengkap)
+    # secara internal, sehingga n pada tabel hasil ≠ n dataset. Kedua angka itu
+    # wajib berdampingan; kalau tidak, paper menulis n=1250 sementara tabel
+    # n=1187 dan pembimbing langsung bertanya. (PR-04)
+    n_source = int(len(df))
+    n_used = int(result.get("n", n_source)) if isinstance(result.get("n"), (int, float)) else n_source
+    dropped = max(0, n_source - n_used)
+    result["n_source"] = n_source
+    result["n_rows_dropped"] = dropped
+    if dropped > 0:
+        note = (f"n analisis {n_used} dari {n_source} baris sumber "
+                f"({dropped} baris tidak ikut dihitung, mis. data kosong/pasangan tak lengkap).")
+        result.setdefault("notes", [])
+        result["notes"].append(note)
+        # kept as a warning so it surfaces at the top of the result view
+        result.setdefault("warnings", [])
+        if note not in result["warnings"]:
+            result["warnings"].append(note)
+
+    return result

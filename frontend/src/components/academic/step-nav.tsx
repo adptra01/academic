@@ -1,11 +1,17 @@
 // Third-party Imports
-import { CheckIcon, ChevronRightIcon, LockIcon } from 'lucide-react'
+import { CheckIcon, ChevronRightIcon, LockIcon, MinusIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 // Util Imports
 import { cn } from '@/lib/utils'
 
-export type StepStatus = 'done' | 'current' | 'todo' | 'locked'
+/**
+ * Status tahap. `done` dipisahkan dari `auto` dan `skip` dengan sengaja:
+ * centang hijau berarti pengguna benar-benar dikerjakan, sedangkan `auto`
+ * (dibuat sistem, belum ditinjau) dan `skip` (memang tidak perlu) tidak boleh
+ * memakai lambang yang sama — kalau tidak, checklist-nya berbohong.
+ */
+export type StepStatus = 'done' | 'auto' | 'skip' | 'current' | 'todo' | 'locked'
 
 export type StepItem = {
   key: string
@@ -27,7 +33,8 @@ type StepNavProps = {
 
 /**
  * Navigasi tahap vertikal untuk alur kerja project (tahap 02–07).
- * Status: done = ceklis, current = solid + aria-current, locked = gembok.
+ * Status: done = ceklis (pekerjaan pengguna), auto = dibuat sistem belum
+ * ditinjau, skip = tidak perlu, current = solid + aria-current, locked = gembok.
  */
 const StepNav = ({ steps, onSelect, className }: StepNavProps) => {
   return (
@@ -39,6 +46,13 @@ const StepNav = ({ steps, onSelect, className }: StepNavProps) => {
           const current = s.status === 'current'
           const done = s.status === 'done'
 
+          // `auto` & `skip` sengaja TIDAK memakai centang — keduanya belum
+          // merupakan pekerjaan pengguna.
+          const passive = s.status === 'auto' || s.status === 'skip'
+
+          const badgeLabel =
+            s.status === 'auto' ? 'otomatis, belum ditinjau' : s.status === 'skip' ? 'tidak perlu' : null
+
           const body = (
             <>
               <span
@@ -47,13 +61,16 @@ const StepNav = ({ steps, onSelect, className }: StepNavProps) => {
                   'flex size-8 shrink-0 items-center justify-center rounded-md transition-colors duration-200',
                   current && 'bg-primary text-primary-foreground',
                   done && 'bg-muted text-primary',
-                  !current && !done && 'bg-muted text-muted-foreground'
+                  passive && 'border border-dashed border-border bg-transparent text-muted-foreground',
+                  !current && !done && !passive && 'bg-muted text-muted-foreground'
                 )}
               >
                 {locked ? (
                   <LockIcon className='size-3.5' />
                 ) : done && !current ? (
                   <CheckIcon className='size-4' strokeWidth={2.25} />
+                ) : s.status === 'skip' && !current ? (
+                  <MinusIcon className='size-4' />
                 ) : (
                   <Icon className='size-3.5' />
                 )}
@@ -71,6 +88,7 @@ const StepNav = ({ steps, onSelect, className }: StepNavProps) => {
                 <span className='text-muted-foreground mt-0.5 block font-mono text-[11px] font-medium uppercase tracking-[0.2em]'>
                   Tahap {s.n}
                   {s.summary ? ` · ${s.summary}` : ''}
+                  {badgeLabel ? ` · ${badgeLabel}` : ''}
                 </span>
               </span>
               {current && <ChevronRightIcon className='size-3.5 shrink-0 text-primary' aria-hidden='true' />}
@@ -92,7 +110,7 @@ const StepNav = ({ steps, onSelect, className }: StepNavProps) => {
                   type='button'
                   onClick={() => onSelect(s.key)}
                   aria-current={current ? 'step' : undefined}
-                  title={`${s.label} — ${s.hint}`}
+                  title={`${s.label} — ${s.hint}${badgeLabel ? ` (${badgeLabel})` : ''}`}
                   className={cn(
                     'flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-colors',
                     current

@@ -40,7 +40,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { api, apiUrl, authHeaders, downloadExport, fetchWithContext } from '@/lib/api'
 import { STATUS_HELP, TAB_HINT, TAB_LABEL } from '@/lib/plain-terms'
 
-type Version = { version_number: number }
+// `transformation_log` sengaja ikut dibawa: tanpa itu pengguna tidak tahu apa
+// yang sebenarnya terjadi pada datanya (imputasi, filter, ubah tipe) sebelum
+// dianalisis — sumber paling umum kebetulan metodologis dibabkan data mentah.
+type Version = {
+  version_number: number
+  transformation_log?: { op?: string; [k: string]: unknown }[]
+}
 type ProjectMeta = {
   id: string
   title: string
@@ -582,23 +588,56 @@ const ProjectView = () => {
 
   const selDs = datasets.find(d => d.id === sel)
 
-  /* ---- Status tahap untuk StepNav ---- */
+  /* ---- Status tahap untuk StepNav ----
+     PENTING: `done` hanya untuk pekerjaan yang benar-benar dilakukan pengguna.
+     Dua keadaan lama ini berbohong dan sudah dibetulkan:
+       - `variables` selalu 'done' begitu ada kolom, padahal tipe kolom diisi
+         otomatis oleh deteksi pada saat unggah. Sekarang 'auto'.
+       - `preprocess` hanya 'done' bila ada >1 versi, sehingga data yang memang
+         sudah bersih tampak "belum". Sekarang 'skip' — memang tidak perlu. */
   const hasDatasets = datasets.length > 0
   const versionCount = selDs?.versions.length ?? 0
 
+  // Berapa variabel yang tipenya diganti manual dari hasil deteksi otomatis?
+  const reviewedVars = variables.filter(v => {
+    const detected = profile?.columns.find(c => c.name === v.name)?.detected_type
+
+    return detected != null && v.var_type !== detected
+  }).length
+
   const doneSignal: Record<StepKey, boolean> = {
     dataset: hasDatasets,
-    variables: variables.length > 0,
+    variables: reviewedVars > 0,
     preprocess: versionCount > 1,
     analysis: analyses.length > 0,
     log: analyses.length > 0,
     exports: exports.length > 0
   }
 
+  // Keadaan "ada isinya, tapi bukan hasil kerja pengguna".
+  const autoSignal: Record<StepKey, boolean> = {
+    dataset: false,
+    variables: variables.length > 0 && reviewedVars === 0,
+    preprocess: false,
+    analysis: false,
+    log: false,
+    exports: false
+  }
+
+  // Keadaan "memang tidak perlu dikerjakan".
+  const skipSignal: Record<StepKey, boolean> = {
+    dataset: false,
+    variables: false,
+    preprocess: versionCount === 1,
+    analysis: false,
+    log: false,
+    exports: false
+  }
+
   const stepSummary: Record<StepKey, string | undefined> = {
     dataset: hasDatasets ? `${datasets.length} file` : undefined,
     variables: variables.length > 0 ? `${variables.length} kolom` : undefined,
-    preprocess: versionCount > 1 ? `v${ver} aktif` : undefined,
+    preprocess: versionCount > 1 ? `v${ver} aktif` : versionCount === 1 ? 'data mentah' : undefined,
     analysis: analyses.length > 0 ? `${analyses.length} jalan` : undefined,
     log: analyses.length > 0 ? `${analyses.length} tercatat` : undefined,
     exports: exports.length > 0 ? `${exports.length} file` : undefined
@@ -608,6 +647,8 @@ const ProjectView = () => {
     if (!hasDatasets && key !== 'dataset') return 'locked'
     if (tab === key) return 'current'
     if (doneSignal[key]) return 'done'
+    if (autoSignal[key]) return 'auto'
+    if (skipSignal[key]) return 'skip'
 
     return 'todo'
   }
@@ -1186,6 +1227,64 @@ const ProjectView = () => {
                             : `Jalankan Pembersihan (${chain.length} langkah)`}
                         </Button>
                       </form>
+                    </CardContent>
+                  </Card>
+
+                  {/* Riwayat transformasi: apa yang SUDAH dilakukan pada versi ini.
+                      Tanpa ini, pengguna menganalisis data tanpa tahu bahwa
+                      baris sudah dihapus atau nilai sudah diisi — dan pembimbing
+                      bertanya "kenapa n-nya beda dari file asli?". */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className='font-semibold tracking-[-0.02em]'>
+                        Riwayat Transformasi — v{ver}
+                      </CardTitle>
+                      <CardDescription>
+                        Semua operasi yang membentuk versi data ini, dari file mentah
+                        sampai siap dianalisis. Ini yang menentukan angka n di hasil.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {(() => {
+                        const log = selDs?.versions.find(v => v.version_number === ver)?.transformation_log ?? []
+
+                        if (log.length === 0) {
+                          return (
+                            <p className='text-muted-foreground text-sm'>
+                              Belum ada transformasi — ini data mentah hasil unggahan.
+                            </p>
+                          )
+                        }
+
+                        return (
+                          <ol className='space-y-2'>
+                            {log.map((entry, i) => {
+                              const op = String(entry.op ?? '')
+
+                              const detail = Object.entries(entry)
+                                .filter(([k]) => k !== 'op')
+                                .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
+                                .join(' · ')
+
+                              return (
+                                <li key={i} className='flex items-start gap-3 text-sm'>
+                                  <span className='text-muted-foreground shrink-0 font-mono text-[10px]'>{i + 1}</span>
+                                  <span className='min-w-0'>
+                                    <span className='block text-xs font-medium'>
+                                      {OP_PLAIN[op]?.name ?? op}
+                                    </span>
+                                    {detail && (
+                                      <span className='text-muted-foreground block truncate font-mono text-[10px]'>
+                                        {detail}
+                                      </span>
+                                    )}
+                                  </span>
+                                </li>
+                              )
+                            })}
+                          </ol>
+                        )
+                      })()}
                     </CardContent>
                   </Card>
 
