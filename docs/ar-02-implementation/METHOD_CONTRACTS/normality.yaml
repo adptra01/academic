@@ -1,0 +1,51 @@
+method_id: normality
+display_name: "Uji Normalitas (Shapiro-Wilk / D'Agostino-Pearson)"
+purpose: "Menguji apakah data berasal dari distribusi normal"
+research_designs:
+  - test_assumption
+  - explore_structure
+required_variables:
+  - name: column
+    role: dependent
+    types: [Numerical]
+    levels: 1
+    description: "Variabel numerik yang diuji normalitasnya"
+parameters:
+  - name: alpha
+    type: float
+    default: 0.05
+    range: [0.001, 0.1]
+    description: "Tingkat signifikansi"
+  - name: method
+    type: string
+    default: "auto"
+    enum: ["auto", "shapiro", "dagostino"]
+    description: "auto = Shapiro-Wilk (n≤5000), D'Agostino-Pearson (n>5000)"
+assumptions:
+  - name: independence
+    check: "Desain penelitian — observasi harus independen"
+    note: "Tidak dapat diuji otomatis"
+  - name: sample_size
+    check: "Shapiro-Wilk: 3 ≤ n ≤ 5000; D'Agostino: n ≥ 20"
+    warning_if_failed: true
+limitations:
+  - "Shapiro-Wilk tidak valid untuk n > 5000 (otomatis beralih ke D'Agostino)"
+  - "Sangat sensitif pada n besar — kecenderungan menolak H0 meski deviasi kecil"
+  - "Tidak bisa membedakan normal dari 'hampir normal' secara praktis"
+alternatives:
+  - condition: "n > 5000"
+    switch_to: "normality (method=dagostino)"
+    reason: "D'Agostino-Pearson tidak memiliki batas n atas"
+  - condition: "data ordinal/rank"
+    switch_to: "spearman / mannwhitney / wilcoxon"
+    reason: "Non-parametrik tidak memerlukan normalitas"
+output_structure:
+  sections:
+    - summary
+    - warnings
+    - inferential
+    - methodology
+    - reproducibility
+export_requirements:
+  - all_6_formats
+  - appendix_with_raw_data_summary

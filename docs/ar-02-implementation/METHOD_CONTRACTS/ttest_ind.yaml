@@ -1,0 +1,67 @@
+method_id: ttest_ind
+display_name: "Uji t Dua Kelompok Independen (Independent Samples t-Test)"
+purpose: "Membandingkan rata-rata variabel numerik antara dua kelompok independen"
+research_designs:
+  - between_subjects
+  - two_groups
+required_variables:
+  - name: group
+    role: grouping
+    types: [Nominal, Binary, Ordinal]
+    levels: 2
+    description: "Variabel grouping (tepat 2 level/grup)"
+  - name: column
+    role: dependent
+    types: [Numerical]
+    levels: 1
+    description: "Variabel numerik outcome"
+parameters:
+  - name: alpha
+    type: float
+    default: 0.05
+    range: [0.001, 0.1]
+    description: "Tingkat signifikansi (juga dipakai untuk keputusan Levene → Welch)"
+  - name: equal_var
+    type: boolean
+    default: false
+    description: "False = Welch's t-test (direkomendasikan, otomatis via Levene), True = Student's t-test (paksa equal variance)"
+assumptions:
+  - name: independence
+    check: "Desain penelitian (between-subjects, tidak ada pasangan)"
+    note: "Tidak dapat diuji otomatis"
+  - name: normality_per_group
+    check: "Shapiro-Wilk per grup (n<50) / CLT (n≥30)"
+    warning_if_failed: true
+    fallback: "Mann-Whitney U Test"
+  - name: homogeneity_of_variance
+    check: "Levene's test (otomatis di engine, menentukan Welch vs Student)"
+    warning_if_failed: true
+    fallback: "Welch's t-test (equal_var=false) — default engine"
+limitations:
+  - "Tidak untuk data berpasangan (gunakan ttest_paired)"
+  - "Tidak untuk >2 kelompok (gunakan anova_oneway)"
+  - "Sensitif terhadap pencilan ekstrem"
+  - "Student's t-test (equal_var=true) tidak robust jika varians heterogen"
+alternatives:
+  - condition: "normality violated"
+    switch_to: "mannwhitney"
+    reason: "Non-parametrik, tidak memerlukan normalitas"
+  - condition: "variance heterogeneity"
+    switch_to: "ttest_ind (equal_var=false)"
+    reason: "Welch's t-test robust terhadap heterogenitas varians (default engine)"
+  - condition: "data berpasangan (pre/post)"
+    switch_to: "ttest_paired"
+    reason: "Paired t-test menghitung selisih dalam subjek"
+output_structure:
+  sections:
+    - summary
+    - warnings
+    - descriptive_per_group
+    - inferential
+    - effect_size
+    - interpretation
+    - methodology
+    - reproducibility
+export_requirements:
+  - all_6_formats
+  - appendix_with_raw_data_summary

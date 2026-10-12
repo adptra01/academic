@@ -1,0 +1,59 @@
+method_id: ttest_1samp
+display_name: "Uji t Satu Sampel (One-Sample t-Test)"
+purpose: "Membandingkan rata-rata satu sampel dengan nilai referensi populasi (μ₀)"
+research_designs:
+  - compare_groups
+  - test_assumption
+required_variables:
+  - name: column
+    role: dependent
+    types: [Numerical]
+    levels: 1
+    description: "Variabel numerik yang diuji rata-ratanya"
+  - name: mu
+    role: parameter
+    types: [Numerical]
+    levels: 1
+    description: "Nilai rata-rata populasi referensi (μ₀)"
+parameters:
+  - name: alpha
+    type: float
+    default: 0.05
+    range: [0.001, 0.1]
+    description: "Tingkat signifikansi"
+assumptions:
+  - name: independence
+    check: "Desain penelitian — observasi independen"
+    note: "Tidak dapat diuji otomatis"
+  - name: normality
+    check: "Shapiro-Wilk pada data (otomatis di engine)"
+    warning_if_failed: true
+    fallback: "Wilcoxon Signed-Rank Test"
+  - name: scale
+    check: "Variabel minimal interval/ratio"
+limitations:
+  - "Sensitif terhadap pencilan ekstrem"
+  - "Asumsi normalitas kritis pada n kecil (<30)"
+  - "Hanya untuk satu kelompok (bukan perbandingan 2 kelompok)"
+alternatives:
+  - condition: "normality violated"
+    switch_to: "wilcoxon"
+    reason: "Non-parametrik, tidak memerlukan normalitas data"
+  - condition: "perlu bandingkan 2 kelompok independen"
+    switch_to: "ttest_ind"
+    reason: "Independent t-test untuk desain between-subjects 2 grup"
+  - condition: "perlu bandingkan 2 pengukuran berpasangan"
+    switch_to: "ttest_paired"
+    reason: "Paired t-test untuk desain within-subjects"
+output_structure:
+  sections:
+    - summary
+    - warnings
+    - inferential
+    - effect_size
+    - interpretation
+    - methodology
+    - reproducibility
+export_requirements:
+  - all_6_formats
+  - appendix_with_raw_data_summary

@@ -1,0 +1,64 @@
+method_id: anova_oneway
+display_name: "ANOVA Satu Arah (One-Way ANOVA)"
+purpose: "Membandingkan rata-rata variabel numerik di ≥3 kelompok independen"
+research_designs:
+  - between_subjects
+  - three_plus_groups
+required_variables:
+  - name: group
+    role: grouping
+    types: [Nominal, Ordinal]
+    levels: "3+"
+    description: "Variabel grouping (minimal 3 level/grup)"
+  - name: column
+    role: dependent
+    types: [Numerical]
+    levels: 1
+    description: "Variabel numerik outcome"
+parameters:
+  - name: alpha
+    type: float
+    default: 0.05
+    range: [0.001, 0.1]
+    description: "Tingkat signifikansi (juga untuk Levene & Tukey HSD)"
+assumptions:
+  - name: independence
+    check: "Desain penelitian (between-subjects)"
+    note: "Tidak dapat diuji otomatis"
+  - name: normality_per_group
+    check: "Shapiro-Wilk per grup (n<50) / CLT (n≥30)"
+    warning_if_failed: true
+    fallback: "Kruskal-Wallis Test"
+  - name: homogeneity_of_variance
+    check: "Levene's test (otomatis di engine)"
+    warning_if_failed: true
+    note: "ANOVA cukup robust terhadap pelanggaran moderat"
+limitations:
+  - "Tidak untuk 2 kelompok (gunakan ttest_ind)"
+  - "Tidak untuk desain berpasangan/berulang (gunakan repeated measures ANOVA)"
+  - "Hanya memberitahu 'ada perbedaan' — butuh post-hoc untuk mana"
+  - "Sensitif terhadap pencilan ekstrem"
+  - "Levene p<α → interpretasi hati-hati (varians tidak homogen)"
+alternatives:
+  - condition: "normality violated"
+    switch_to: "kruskal"
+    reason: "Non-parametrik alternatif ANOVA untuk ≥3 grup independen"
+  - condition: "2 grup saja"
+    switch_to: "ttest_ind"
+    reason: "t-test lebih sederhana dan ekuivalen untuk 2 grup"
+  - condition: "variance heterogeneity parah"
+    switch_to: "welch_anova (di luar MVP) / kruskal"
+    reason: "Welch ANOVA tidak memerlukan homogenitas varians"
+output_structure:
+  sections:
+    - summary
+    - warnings
+    - descriptive_per_group
+    - inferential
+    - effect_size
+    - interpretation
+    - methodology
+    - reproducibility
+export_requirements:
+  - all_6_formats
+  - appendix_with_raw_data_summary

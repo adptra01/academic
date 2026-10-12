@@ -8,7 +8,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from starlette.responses import JSONResponse
 from app.core.config import settings
 from app.core.rate import limiter
-from app.routers import auth, projects, datasets, preprocess, variables, analyses, results, feedback, sources, sharing, social_auth
+from app.routers import auth, projects, datasets, preprocess, variables, analyses, results, feedback, sources, sharing, social_auth, guided
 
 if len(settings.jwt_secret) < 32:
     raise RuntimeError("JWT_SECRET terlalu pendek (min 32 char). Generate: openssl rand -hex 32")
@@ -49,6 +49,7 @@ app.include_router(datasets.router)
 app.include_router(preprocess.router)
 app.include_router(variables.router)
 app.include_router(analyses.router)
+app.include_router(guided.router)
 app.include_router(results.router)
 app.include_router(feedback.router)
 app.include_router(sources.router)

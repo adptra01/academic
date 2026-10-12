@@ -1,0 +1,63 @@
+method_id: ttest_paired
+display_name: "Uji t Dua Pengukuran Berpasangan (Paired Samples t-Test)"
+purpose: "Membandingkan rata-rata dua pengukuran berpasangan pada subjek yang sama (pre/post, matched pairs)"
+research_designs:
+  - within_subjects
+  - two_conditions
+  - paired_design
+required_variables:
+  - name: col1
+    role: dependent
+    types: [Numerical]
+    levels: 1
+    description: "Pengukuran pertama (mis. pre-test)"
+  - name: col2
+    role: dependent
+    types: [Numerical]
+    levels: 1
+    description: "Pengukuran kedua (mis. post-test)"
+parameters:
+  - name: alpha
+    type: float
+    default: 0.05
+    range: [0.001, 0.1]
+    description: "Tingkat signifikansi"
+assumptions:
+  - name: paired_observations
+    check: "Desain penelitian — pasangan harus logis (pre/post, matched)"
+    note: "Tidak dapat diuji otomatis; baris tidak berpasangan dibuang"
+  - name: normality_of_differences
+    check: "Shapiro-Wilk pada selisih (d = col1 - col2)"
+    warning_if_failed: true
+    fallback: "Wilcoxon Signed-Rank Test"
+  - name: independence_of_pairs
+    check: "Pasangan independen antar subjek"
+    note: "Tidak dapat diuji otomatis"
+limitations:
+  - "Hanya untuk 2 kondisi berpasangan (bukan >2 waktu — gunakan repeated measures ANOVA)"
+  - "Sensitif terhadap pencilan pada selisih"
+  - "Missing pada salah satu kolom → pasangan dibuang (listwise)"
+  - "Asumsi normalitas pada selisih, bukan data mentah"
+alternatives:
+  - condition: "normality of differences violated"
+    switch_to: "wilcoxon"
+    reason: "Non-parametrik untuk data berpasangan"
+  - condition: "2 kelompok independen"
+    switch_to: "ttest_ind"
+    reason: "Independent t-test untuk desain between-subjects"
+  - condition: ">2 pengukuran berulang"
+    switch_to: "repeated measures ANOVA (di luar MVP)"
+    reason: "Paired t-test hanya untuk 2 kondisi"
+output_structure:
+  sections:
+    - summary
+    - warnings
+    - descriptive_per_group
+    - inferential
+    - effect_size
+    - interpretation
+    - methodology
+    - reproducibility
+export_requirements:
+  - all_6_formats
+  - appendix_with_raw_data_summary

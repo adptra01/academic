@@ -1,0 +1,36 @@
+method_id: descriptive
+display_name: "Statistik Deskriptif"
+purpose: "Menyediakan ringkasan data (mean, SD, median, IQR, skewness, kurtosis, frekuensi) untuk variabel numerik dan kategorikal"
+research_designs:
+  - explore_structure
+  - describe_data
+required_variables:
+  - name: columns
+    role: dependent
+    types: [Numerical, Nominal, Ordinal, Binary]
+    levels: "1+"
+    description: "Daftar nama kolom yang akan diringkas"
+parameters:
+  - name: columns
+    type: array
+    items:
+      type: string
+    required: true
+    description: "Array nama kolom untuk dihitung statistiknya"
+assumptions:
+  - name: "tidak ada asumsi statistik inferensial"
+    check: "Deskriptif murni — tidak ada uji asumsi"
+limitations:
+  - "Tidak melakukan uji hipotesis atau inferensi populasi"
+  - "Mode hanya mengembalikan 5 nilai teratas"
+  - "Missing dihitung tapi dikecualikan dari perhitungan statistik"
+alternatives: []
+output_structure:
+  sections:
+    - summary
+    - descriptive_per_group
+    - methodology
+    - reproducibility
+export_requirements:
+  - all_6_formats
+  - appendix_with_raw_data_summary

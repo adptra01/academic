@@ -4,9 +4,12 @@ import hashlib
 import json
 import random
 import string
+import uuid
 from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
+
+from app.core.config import settings
 
 METHOD_IDS = [
     "descriptive", "normality", "pearson", "spearman",
@@ -17,6 +20,8 @@ METHOD_IDS = [
     "ml_classify", "ml_cluster", "text_tfidf", "text_lda",
     "apriori",
 ]
+
+PHASE2_METHODS = {"ml_classify", "ml_cluster", "text_tfidf", "text_lda", "apriori"}
 
 METHOD_NAMES = {
     "descriptive": "Descriptive Statistics",
@@ -40,6 +45,13 @@ METHOD_NAMES = {
     "text_lda": "Topic Modeling (LDA)",
     "apriori": "Association Rules (Apriori)",
 }
+
+
+def get_visible_methods() -> list[str]:
+    """Return method IDs visible under current feature flag."""
+    if not getattr(settings, "feature_phase2", False):
+        return [m for m in METHOD_IDS if m not in PHASE2_METHODS]
+    return list(METHOD_IDS)
 
 
 def new_uid() -> str:
@@ -74,6 +86,35 @@ def clean(v):
 
 def result_hash(result: dict) -> str:
     canon = json.dumps(result, sort_keys=True, ensure_ascii=False, default=str)
+    return hashlib.sha256(canon.encode("utf-8")).hexdigest()
+
+
+def compute_analysis_hash(
+    method: str,
+    variables: dict,
+    params: dict,
+    dataset_version_id: uuid.UUID,
+    project_id: uuid.UUID,
+    preprocessing_ops: list | None = None,
+    engine_version: str | None = None,
+    missing_policy: str | None = None,
+    random_seeds: dict | None = None,
+) -> str:
+    """Extended hash including preprocessing, engine_version, missing_policy, random_seeds.
+    Used for Analysis.analysis_hash to enable exact reproducibility tracking.
+    """
+    payload = {
+        "method": method,
+        "variables": variables,
+        "params": params,
+        "dataset_version_id": str(dataset_version_id),
+        "project_id": str(project_id),
+        "preprocessing_ops": preprocessing_ops or [],
+        "engine_version": engine_version,
+        "missing_policy": missing_policy,
+        "random_seeds": random_seeds or {},
+    }
+    canon = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
     return hashlib.sha256(canon.encode("utf-8")).hexdigest()
 
 

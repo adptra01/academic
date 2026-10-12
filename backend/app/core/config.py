@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     frontend_url: str = "http://localhost:3100"
     cookie_secure: bool = False  # WAJIB True di prod (HTTPS)
+    feature_phase2: bool = False  # Enable Phase 2 methods (ml_classify, ml_cluster, text_tfidf, text_lda, apriori)
 
     class Config:
         env_file = ".env"

@@ -1,0 +1,81 @@
+method_id: linreg_multiple
+display_name: "Regresi Linier Berganda (Multiple Linear Regression)"
+purpose: "Memodelkan hubungan linear beberapa prediktor (X₁...Xₖ) terhadap satu outcome (Y)"
+research_designs:
+  - predict_outcome
+  - test_association
+required_variables:
+  - name: xs
+    role: independent
+    types: [Numerical]
+    levels: "2+"
+    description: "Daftar variabel prediktor (minimal 2, numerik)"
+  - name: y
+    role: dependent
+    types: [Numerical]
+    levels: 1
+    description: "Variabel outcome (numerik)"
+parameters:
+  - name: alpha
+    type: float
+    default: 0.05
+    range: [0.001, 0.1]
+    description: "Tingkat signifikansi untuk CI koefisien dan uji F/model"
+  - name: fit_intercept
+    type: boolean
+    default: true
+    description: "Apakah menyertakan intercept (b₀). Default true. False = forced through origin."
+assumptions:
+  - name: linearity
+    check: "Scatter plot per X vs Y — pola linear"
+    warning_if_failed: true
+  - name: independence
+    check: "Desain penelitian — residual independen"
+    note: "Durbin-Watson di luar MVP"
+  - name: homoscedasticity
+    check: "Breusch-Pagan test (otomatis di engine) / residual vs fitted"
+    warning_if_failed: true
+    fallback: "Robust SE (HC3) — di luar MVP"
+  - name: normality_of_residuals
+    check: "Shapiro-Wilk pada residual (otomatis di engine)"
+    warning_if_failed: true
+    note: "Perlu untuk CI/p-value valid pada n kecil"
+  - name: no_multicollinearity
+    check: "VIF < 10 per prediktor (otomatis dihitung di engine)"
+    warning_if_failed: true
+    note: "VIF > 10 → multikolinearitas parah, koefisien tidak stabil"
+  - name: n_vs_k
+    check: "n ≥ k + 2 (minimal), ideal n ≥ 10-20 per prediktor"
+    warning_if_failed: true
+limitations:
+  - "Multikolinearitas (VIF>10) → koefisien tidak interpretabel, SE membesar"
+  - "Hanya hubungan linear aditif (interaksi/non-linear → manual/transformasi)"
+  - "Outlier & high leverage points sangat mempengaruhi"
+  - "Overfitting jika k besar relatif n (gunakan adjusted R², cross-val di luar MVP)"
+  - "Stepwise selection tidak disarankan (bias, p-value tidak valid)"
+  - "Kausalitas tidak terbukti dari regresi observasional"
+alternatives:
+  - condition: "hanya 1 prediktor"
+    switch_to: "linreg_simple"
+    reason: "Simple regression lebih parcimonious untuk 1 X"
+  - condition: "multikolinearitas parah"
+    switch_to: "ridge/lasso (di luar MVP) / drop/centering prediktor"
+    reason: "Regularisasi mengatasi multikolinearitas"
+  - condition: "outcome biner/kategori"
+    switch_to: "logistic/multinomial regression (di luar MVP)"
+    reason: "Linear regression tidak cocok untuk outcome non-kontinu"
+  - condition: "data hierarchical/clustered"
+    switch_to: "mixed models (di luar MVP)"
+    reason: "OLS butuh independensi residual"
+output_structure:
+  sections:
+    - summary
+    - warnings
+    - inferential
+    - effect_size
+    - interpretation
+    - methodology
+    - reproducibility
+export_requirements:
+  - all_6_formats
+  - appendix_with_raw_data_summary

@@ -1,0 +1,64 @@
+method_id: wilcoxon
+display_name: "Uji Wilcoxon Signed-Rank (Paired)"
+purpose: "Membandingkan dua pengukuran berpasangan (alternatif non-parametrik ttest_paired)"
+research_designs:
+  - within_subjects
+  - two_conditions
+  - paired_design
+  - nonparametric
+required_variables:
+  - name: col1
+    role: dependent
+    types: [Numerical, Ordinal]
+    levels: 1
+    description: "Pengukuran pertama (mis. pre-test)"
+  - name: col2
+    role: dependent
+    types: [Numerical, Ordinal]
+    levels: 1
+    description: "Pengukuran kedua (mis. post-test)"
+parameters:
+  - name: alpha
+    type: float
+    default: 0.05
+    range: [0.001, 0.1]
+    description: "Tingkat signifikansi"
+assumptions:
+  - name: paired_observations
+    check: "Desain penelitian — pasangan harus logis (pre/post, matched)"
+    note: "Tidak dapat diuji otomatis; nol-selisih dibuang otomatis"
+  - name: symmetry_of_differences
+    check: "Distribusi selisih (d = col1 - col2) harus simetris"
+    warning_if_failed: true
+    note: "Asumsi kritis Wilcoxon; jika gagal gunakan Sign Test (di luar MVP)"
+  - name: ordinal_or_continuous
+    check: "Variabel minimal ordinal"
+    note: "Nominal tidak cocok"
+limitations:
+  - "Hanya untuk 2 kondisi berpasangan (bukan >2 waktu)"
+  - "Nol-selisih dibuang → menurunkan n efektif"
+  - "Asumsi simetris selisih (lebih ketat dari t-test paired)"
+  - "Ties mengurangi daya uji"
+  - "Effect size (matched rank-biserial) interpretasi beda dari dz"
+alternatives:
+  - condition: "normality of differences OK"
+    switch_to: "ttest_paired"
+    reason: "Parametrik lebih powerful jika asumsi terpenuhi"
+  - condition: "2 kelompok independen"
+    switch_to: "mannwhitney"
+    reason: "Mann-Whitney untuk desain between-subjects"
+  - condition: "symmetry violated"
+    switch_to: "sign_test (di luar MVP)"
+    reason: "Sign test tidak butuh asumsi simetris"
+output_structure:
+  sections:
+    - summary
+    - warnings
+    - inferential
+    - effect_size
+    - interpretation
+    - methodology
+    - reproducibility
+export_requirements:
+  - all_6_formats
+  - appendix_with_raw_data_summary
