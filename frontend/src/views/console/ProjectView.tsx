@@ -268,6 +268,7 @@ const ProjectView = () => {
       /* abaikan — tetap guided */
     }
   }, [id])
+
   // Config passed from Guided mode to Manual mode
   const [guidedConfig, setGuidedConfig] = useState<{ method: string; variables: Record<string, unknown>; params: Record<string, unknown> } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -615,69 +616,105 @@ const ProjectView = () => {
     }
   }
 
-  async function fetchSource(e: React.FormEvent) {
-    e.preventDefault()
-    setErr('')
-    setMsg('')
+  type SourceJob = {
+    id: string
+    status: string
+    stage?: string
+    error?: string
+    failed_stage?: string
+    warnings?: string[]
+  }
 
-    // Validasi awal sebelum request: URL wajib untuk semua mode scrape.
+  const [srcJob, setSrcJob] = useState<SourceJob | null>(null)
+  const [srcJobBusy, setSrcJobBusy] = useState(false)
+
+  /** Bangun payload fetch dari state panel. Throw Error pesan-ID bila tak valid. */
+  function buildSourcePayload(accessMode: string): { kind: string; provider: string; config: Record<string, unknown>; access_mode: string } {
     if (srcProvider === 'html_table' && !advanced) {
       const urlErr = validHttpUrl(scrapeUrl, 'URL halaman')
 
-      if (urlErr) {
-        setErr(urlErr)
+      if (urlErr) throw new Error(urlErr)
 
-        return
+      return { kind: 'scraper', provider: srcProvider, config: { url: scrapeUrl, table_index: pickTable }, access_mode: 'public' }
+    }
+
+    let config: Record<string, unknown>
+
+    try {
+      config = JSON.parse(srcConfig) as Record<string, unknown>
+    } catch {
+      throw new Error('Config JSON tidak valid')
+    }
+
+    if (typeof config.storage_state === 'string') {
+      try {
+        config.storage_state = JSON.parse(config.storage_state)
+      } catch {
+        // keep as-is jika bukan JSON
       }
     }
 
+    if (['tiktok_comments', 'instagram_comments', 'youtube_comments', 'facebook_comments', 'x_comments'].includes(srcProvider)) {
+      const urlErr = validHttpUrl(String(config.url ?? ''), 'URL konten')
+
+      if (urlErr) throw new Error(`${urlErr} Isi dulu link di tab Sosmed.`)
+    }
+
+    const kind = srcProvider === 'html_table' || ['tiktok_comments', 'instagram_comments', 'youtube_comments', 'facebook_comments', 'x_comments'].includes(srcProvider) ? 'scraper' : 'api'
+
+    return { kind, provider: srcProvider, config, access_mode: accessMode }
+  }
+
+  /** Jalankan extraction job (202) lalu poll tahapnya sampai selesai/gagal. */
+  async function runSourceJob(accessMode: string) {
+    setErr('')
+    setMsg('')
+
+    let payload: { kind: string; provider: string; config: Record<string, unknown>; access_mode: string }
+
     try {
-      let config: any
-      if (srcProvider === 'html_table' && !advanced) {
-        config = { url: scrapeUrl, table_index: pickTable }
-      } else {
-        try {
-          config = JSON.parse(srcConfig)
-        } catch (e) {
-          throw new Error('Config JSON tidak valid')
-        }
-        // For browser-based scrapers, allow storage_state as string or object
-        if (typeof config.storage_state === 'string') {
-          try {
-            config.storage_state = JSON.parse(config.storage_state)
-          } catch {
-            // keep as-is if not JSON
-          }
-        }
+      payload = buildSourcePayload(accessMode)
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Konfigurasi tidak valid')
 
-        // Scraper browser butuh URL target di dalam config.
-        if (['tiktok_comments', 'instagram_comments', 'youtube_comments', 'facebook_comments', 'x_comments'].includes(srcProvider)) {
-          const urlErr = validHttpUrl(String(config.url ?? ''), 'URL konten')
+      return
+    }
 
-          if (urlErr) {
-            setErr(`${urlErr} Isi dulu link di tab Sosmed.`)
+    setSrcJobBusy(true)
 
-            return
-          }
-        }
-      }
-
-      let kind = 'api'
-      if (srcProvider === 'html_table' || srcProvider === 'tiktok_comments' || srcProvider === 'instagram_comments' || srcProvider === 'youtube_comments' || srcProvider === 'facebook_comments' || srcProvider === 'x_comments') {
-        kind = 'scraper'
-      } else {
-        kind = 'api'
-      }
-
-      const j = await api<{ dataset_id: string; profile: { rows: number; cols: number } }>(`/api/v1/projects/${id}/data-sources/fetch`, {
+    try {
+      const started = await api<{ job_id: string; status: string; warnings?: string[] }>(`/api/v1/projects/${id}/data-sources/fetch`, {
         method: 'POST',
-        body: JSON.stringify({ kind, provider: srcProvider, config })
+        body: JSON.stringify(payload),
+        headers: { 'Idempotency-Key': (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`) }
       })
 
-      setMsg(`Import OK: ${j.profile.rows} rows → dataset ${j.dataset_id.slice(0, 8)} (provenance tersimpan)`)
-      await load()
+      for (let i = 0; i < 150; i++) {
+        await new Promise(r => setTimeout(r, 2000))
+        const st = await api<{ status: string; stage?: string; error?: string; failed_stage?: string; warnings?: string[]; result?: { dataset_id: string; profile: { rows: number; cols: number }; warnings?: string[] } }>(`/api/v1/jobs/${started.job_id}`)
+
+        setSrcJob({ id: started.job_id, status: st.status, stage: st.stage, error: st.error, failed_stage: st.failed_stage, warnings: st.warnings ?? st.result?.warnings })
+
+        if (st.status === 'completed' || st.status === 'partial') {
+          const r = st.result
+          const warn = (st.warnings ?? r?.warnings ?? []).length > 0 ? ` (+${(st.warnings ?? r?.warnings ?? []).length} peringatan)` : ''
+
+          setMsg(st.status === 'partial'
+            ? `Import sebagian OK${warn} — cek peringatan di bawah.`
+            : `Import OK: ${r?.profile.rows ?? '?'} rows → dataset ${r?.dataset_id.slice(0, 8) ?? ''} (provenance tersimpan)${warn}`)
+          await load()
+          break
+        }
+
+        if (st.status === 'failed' || st.status === 'cancelled') {
+          setErr(st.status === 'cancelled' ? 'Job dibatalkan.' : `${st.failed_stage ? `[${st.failed_stage}] ` : ''}${st.error || 'Job gagal'}`)
+          break
+        }
+      }
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Fetch gagal')
+    } finally {
+      setSrcJobBusy(false)
     }
   }
 
@@ -880,7 +917,6 @@ const ProjectView = () => {
         <div className='grid gap-6 xl:grid-cols-12'>
           <div className='xl:col-span-7'>
             <DataSourcePanel
-              defaultTab='upload'
               showUploadTab
               uploadSlot={
                 <form onSubmit={upload} className='space-y-3'>
@@ -918,7 +954,10 @@ const ProjectView = () => {
               srcConfig={srcConfig}
               setSrcConfig={setSrcConfig}
               sources={sources}
-              fetchSource={fetchSource}
+              buildPayload={buildSourcePayload}
+              job={srcJob}
+              jobBusy={srcJobBusy}
+              onRun={runSourceJob}
               inspectTables={inspectTables}
               setMsg={setMsg}
               setErr={setErr}
@@ -945,6 +984,7 @@ const ProjectView = () => {
             onSwitchToManual={async (configId: string) => {
               try {
                 const config = await api<any>(`/api/v1/analysis-config/${configId}`)
+
                 setGuidedConfig({
                   method: config.method,
                   variables: config.variables,
@@ -1051,7 +1091,6 @@ const ProjectView = () => {
                   </Card>
 
                   <DataSourcePanel
-                    defaultTab='sosmed'
                     showUploadTab={false}
                     uploadSlot={null}
                     srcProvider={srcProvider}
@@ -1067,7 +1106,10 @@ const ProjectView = () => {
                     srcConfig={srcConfig}
                     setSrcConfig={setSrcConfig}
                     sources={sources}
-                    fetchSource={fetchSource}
+                    buildPayload={buildSourcePayload}
+                    job={srcJob}
+                    jobBusy={srcJobBusy}
+                    onRun={runSourceJob}
                     inspectTables={inspectTables}
                     setMsg={setMsg}
                     setErr={setErr}

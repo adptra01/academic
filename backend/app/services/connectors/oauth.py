@@ -1,24 +1,35 @@
 """OAuth: token terenkripsi per user, tak pernah masuk dataset/research log.
 Research Log hanya menyimpan metadata (provider, retrieved_at, scope hash).
-Butuh env OAUTH_ENCRYPTION_KEY (fernet, 32 byte urlsafe-base64); fallback
-JWT_SECRET hanya untuk DEV dan dicatat di metadata sebagai 'dev-fallback'.
+Kunci dari settings.oauth_encryption_key (env OAUTH_ENCRYPTION_KEY, fernet
+32 byte urlsafe-base64). Di PROD tanpa kunci valid → gagal cepat (spek §6C P0);
+di dev fallback JWT_SECRET hanya darurat dan dicatat 'dev-fallback'.
 """
 from __future__ import annotations
 import base64
 import hashlib
 import json
-import os
+import logging
 import urllib.parse
 import urllib.request
 from cryptography.fernet import Fernet, InvalidToken
 from requests_oauthlib import OAuth2Session
 
+from app.core.config import settings
+
+log = logging.getLogger("academic.oauth")
+
 
 def _fernet() -> tuple[Fernet, bool]:
-    key = os.getenv("OAUTH_ENCRYPTION_KEY", "")
+    key = settings.oauth_encryption_key.strip()
     if key:
-        return Fernet(key.encode()), False
-    raw = os.getenv("JWT_SECRET", "change_me").encode()
+        try:
+            return Fernet(key.encode()), False
+        except Exception as e:
+            raise RuntimeError(f"OAUTH_ENCRYPTION_KEY tidak valid (harus Fernet urlsafe-base64 32 byte): {e}") from e
+    if settings.is_prod:
+        raise RuntimeError("ENV=prod mewajibkan OAUTH_ENCRYPTION_KEY (tidak ada fallback). Generate: python3 -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\"")
+    log.warning("OAUTH_ENCRYPTION_KEY kosong — pakai turunan JWT_SECRET (DEV ONLY, metadata dev_key_fallback=true)")
+    raw = settings.jwt_secret.encode()
     digest = hashlib.sha256(b"oauth|" + raw).digest()
     return Fernet(base64.urlsafe_b64encode(digest)), True
 

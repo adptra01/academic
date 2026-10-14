@@ -1,5 +1,6 @@
 """Celery task preprocessing (rows > 10.000). Worker membaca ulang file agar request tidak timeout."""
 from app.core.queue import celery_app
+from app.tasks import fetch_source as _fetch_source  # noqa: F401 (registrasi task)
 
 
 @celery_app.task(name="preprocess_dataset", bind=True)

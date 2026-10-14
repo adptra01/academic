@@ -29,6 +29,7 @@ OAUTH_MARKER = "oauth:google:"
 class GoogleCallbackIn(BaseModel):
     code: str = Field(min_length=1)
     redirect_uri: str | None = None
+    state: str | None = None
 
 
 def _enabled() -> tuple[str, str]:
@@ -39,17 +40,26 @@ def _enabled() -> tuple[str, str]:
 
 @router.get("/google/url")
 def google_url(redirect_uri: str | None = None) -> dict:
+    from app.core.oauth_state import issue
+
     cid, _ = _enabled()
     redir = redirect_uri or f"{settings.frontend_url}/auth/callback"
-    q = {"response_type": "code", "client_id": cid, "redirect_uri": redir, "scope": "openid email profile", "access_type": "online", "prompt": "select_account"}
-    return {"url": GOOGLE_AUTH + "?" + urllib.parse.urlencode(q), "redirect_uri": redir}
+    state = issue("google", redir)
+    q = {"response_type": "code", "client_id": cid, "redirect_uri": redir, "scope": "openid email profile", "access_type": "online", "prompt": "select_account", "state": state}
+    return {"url": GOOGLE_AUTH + "?" + urllib.parse.urlencode(q), "redirect_uri": redir, "state": state}
 
 
 @router.post("/google/callback", response_model=TokenOut)
 @limiter.limit("10/minute")
 def google_callback(request: Request, body: GoogleCallbackIn, response: Response, db: Session = Depends(get_db)) -> TokenOut:
+    from app.core.oauth_state import consume
+
     cid, secret = _enabled()
     redir = body.redirect_uri or f"{settings.frontend_url}/auth/callback"
+    try:
+        consume("google", body.state or "", redir)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     data = urllib.parse.urlencode({"grant_type": "authorization_code", "code": body.code, "client_id": cid, "client_secret": secret, "redirect_uri": redir}).encode()
     req = urllib.request.Request(GOOGLE_TOKEN, data=data, method="POST", headers={"Content-Type": "application/x-www-form-urlencoded"})
     try:

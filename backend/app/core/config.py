@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3100"
     cookie_secure: bool = False  # WAJIB True di prod (HTTPS)
     feature_phase2: bool = False  # Enable Phase 2 methods (ml_classify, ml_cluster, text_tfidf, text_lda, apriori)
+    # Upload sesi browser (storage_state.json) sebagai kredensial scrape.
+    # "auto" = boleh di dev, DITOLAK di prod (spek §6C: P0). Set "true"/"false" eksplisit bila perlu.
+    allow_browser_storage_state: str = "auto"
+    oauth_encryption_key: str = ""  # Fernet urlsafe-base64 32 byte. WAJIB di prod.
 
     class Config:
         env_file = ".env"
@@ -31,6 +35,24 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return [o.strip() for o in self.backend_cors_origins.split(",") if o.strip()]
+
+    @property
+    def is_prod(self) -> bool:
+        return self.env == "prod"
+
+    @property
+    def lan_cors_allowed(self) -> bool:
+        """Regex LAN privat hanya untuk dev. Di prod: origin eksplisit saja (spek §6C P1)."""
+        return not self.is_prod
+
+    @property
+    def storage_state_allowed(self) -> bool:
+        v = self.allow_browser_storage_state.strip().lower()
+        if v in ("true", "1", "yes"):
+            return True
+        if v in ("false", "0", "no"):
+            return False
+        return not self.is_prod
 
 
 settings = Settings()

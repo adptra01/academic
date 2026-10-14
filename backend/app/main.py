@@ -14,6 +14,8 @@ if len(settings.jwt_secret) < 32:
     raise RuntimeError("JWT_SECRET terlalu pendek (min 32 char). Generate: openssl rand -hex 32")
 if settings.env == "prod" and not settings.cookie_secure:
     raise RuntimeError("ENV=prod mewajibkan COOKIE_SECURE=true (HTTPS)")
+if settings.is_prod and not settings.oauth_encryption_key.strip():
+    raise RuntimeError("ENV=prod mewajibkan OAUTH_ENCRYPTION_KEY (Fernet urlsafe-base64 32 byte)")
 
 app = FastAPI(title="Academic Research API (MVP)", version=settings.software_version)
 app.state.limiter = limiter
@@ -37,7 +39,9 @@ async def _security_headers(request: Request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_origin_regex=settings.backend_cors_regex or None,
+    # Regex LAN privat hanya aktif di dev (lan_cors_allowed=False di prod:
+    # origin eksplisit saja — spek §6C P1).
+    allow_origin_regex=settings.backend_cors_regex if settings.lan_cors_allowed else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

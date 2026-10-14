@@ -92,16 +92,45 @@ def preprocess(dataset_id: uuid.UUID, body: PreprocessIn, db: Session = Depends(
 
 @router.get("/jobs/{job_id}")
 def job_status(job_id: str, user: User = Depends(get_current_user)) -> dict:
+    """Status job terpadu (spek §5): queued → validating → running →
+    normalizing → completed/partial | failed | cancelled. Frontend TIDAK boleh
+    menyimpulkan selesai hanya dari request awal — poll state ini."""
     _ = user
     res = AsyncResult(job_id, app=celery_app)
-    out: dict = {"job_id": job_id, "state": res.state}
+    info: dict = {}
+    if isinstance(res.info, dict):
+        info = res.info
+    stage = str(info.get("stage") or "")
+    state = res.state
+    if state == "PENDING":
+        mapped = "queued"
+    elif state == "STARTED":
+        mapped = stage if stage in ("validating", "running", "normalizing") else "running"
+    elif state == "RETRY":
+        mapped = "running"
+    elif state == "REVOKED":
+        mapped = "cancelled"
+    elif state == "FAILURE":
+        mapped = "failed"
+    elif state == "SUCCESS":
+        mapped = "completed"
+    else:
+        mapped = state.lower()
+    out: dict = {"job_id": job_id, "state": res.state, "status": mapped}
+    if stage:
+        out["stage"] = stage
     if res.state == "SUCCESS":
+        result = res.result if isinstance(res.result, dict) else {}
         out["result"] = res.result
+        if isinstance(result, dict) and result.get("partial"):
+            out["status"] = "partial"
+            out["warnings"] = result.get("warnings", [])
     elif res.state == "FAILURE":
-        out["error"] = str(res.result)
-    elif res.info:
-        try:
-            out["info"] = dict(res.info) if isinstance(res.info, dict) else str(res.info)
-        except Exception:
-            out["info"] = str(res.info)
+        err = str(res.result)
+        # Ambil tahap gagal dari format "[tahap] pesan" bila ada.
+        out["error"] = err
+        if err.startswith("[") and "]" in err:
+            out["failed_stage"], out["error"] = err[1:].split("]", 1)[0], err.split("]", 1)[1].strip()
+    elif info:
+        out["info"] = info
     return out

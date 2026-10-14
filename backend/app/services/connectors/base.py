@@ -12,7 +12,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 
-SECRET_KEYS = ("token", "access_token", "refresh_token", "api_key", "apikey", "secret", "password", "authorization", "client_secret")
+SECRET_KEYS = ("token", "access_token", "refresh_token", "api_key", "apikey", "secret", "password", "authorization", "client_secret",
+               # Sesi browser (storage_state.json berisi cookie sesi aktif — P0 spek §6C):
+               # jangan pernah menyimpan isinya, cukup tandai keberadaannya.
+               "storage_state", "cookies", "cookie", "session")
 
 
 def utcnow() -> str:
