@@ -53,19 +53,14 @@ export const navItems: NavItem[] = [
         href: '/dashboard'
       },
       {
-        icon: 'FlaskConical',
-        label: 'Metode',
-        href: '/metode'
+        icon: 'CircleUserRound',
+        label: 'Akun',
+        href: '/akun'
       },
       {
-        icon: 'Route',
-        label: 'Alur Kerja',
-        href: '/alur'
-      },
-      {
-        icon: 'ShieldCheck',
-        label: 'Reproduksi',
-        href: '/reproduksi'
+        icon: 'IdCard',
+        label: 'Profil',
+        href: '/profil'
       }
     ]
   }
