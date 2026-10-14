@@ -23,6 +23,10 @@ const ProfileView = () => {
   const [name, setName] = useState('')
   const [savingName, setSavingName] = useState(false)
 
+  const [oldPw, setOldPw] = useState('')
+  const [newPw, setNewPw] = useState('')
+  const [pwBusy, setPwBusy] = useState(false)
+
   useEffect(() => {
     api<Me>(`/api/v1/auth/me`)
       .then(u => {
@@ -58,6 +62,34 @@ const ProfileView = () => {
       setErr(e instanceof Error ? e.message : 'Gagal memperbarui nama')
     } finally {
       setSavingName(false)
+    }
+  }
+
+  async function changePw(e: React.FormEvent) {
+    e.preventDefault()
+    setErr('')
+    setMsg('')
+
+    if (newPw.length < 8) {
+      setErr('Password baru minimal 8 karakter.')
+
+      return
+    }
+
+    setPwBusy(true)
+
+    try {
+      await api('/api/v1/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ old_password: oldPw, new_password: newPw })
+      })
+      setOldPw('')
+      setNewPw('')
+      setMsg('Password berhasil diganti.')
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Gagal ganti password')
+    } finally {
+      setPwBusy(false)
     }
   }
 
@@ -118,6 +150,44 @@ const ProfileView = () => {
               </Button>
             </form>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className='max-w-lg'>
+        <CardHeader>
+          <CardTitle className='font-semibold tracking-[-0.02em]'>Ganti password</CardTitle>
+          <CardDescription>
+            Akun yang masuk via Google tidak memiliki password — form ini hanya untuk akun email.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={changePw} className='space-y-3'>
+            <Field className='gap-2'>
+              <FieldLabel htmlFor='pf-old'>Password lama</FieldLabel>
+              <Input
+                id='pf-old'
+                type='password'
+                className='rounded-lg'
+                autoComplete='current-password'
+                value={oldPw}
+                onChange={e => setOldPw(e.target.value)}
+              />
+            </Field>
+            <Field className='gap-2'>
+              <FieldLabel htmlFor='pf-new'>Password baru (min 8 karakter)</FieldLabel>
+              <Input
+                id='pf-new'
+                type='password'
+                className='rounded-lg'
+                autoComplete='new-password'
+                value={newPw}
+                onChange={e => setNewPw(e.target.value)}
+              />
+            </Field>
+            <Button type='submit' disabled={pwBusy}>
+              {pwBusy ? 'Menyimpan…' : 'Simpan Password Baru'}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

@@ -58,11 +58,6 @@ export const navItems: NavItem[] = [
         href: '/projek'
       },
       {
-        icon: 'CircleUserRound',
-        label: 'Akun',
-        href: '/akun'
-      },
-      {
         icon: 'IdCard',
         label: 'Profil',
         href: '/profil'

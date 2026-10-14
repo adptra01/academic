@@ -12,7 +12,12 @@ class Settings(BaseSettings):
     jwt_expire_hours: int = 24
     max_upload_mb: int = 50
     backend_cors_origins: str = "http://localhost:3000"
-    backend_cors_regex: str = ""  # mis. http://127\.0\.0\.1:\d+ untuk port dinamis DDEV (mendukung credentials)
+    # Regex origin yang diizinkan (mendukung credentials). Mencakup localhost,
+    # loopback, dan IP LAN privat — karena browser sering dibuka lewat Network
+    # URL (mis. http://192.168.x.x:3100) yang Tampil di log `next dev`. Tanpa
+    # ini preflight OPTIONS gagal (400) dan browser melaporkan semua API fetch
+    # sebagai "Failed to fetch" yang tak bisa dibedakan dari server mati.
+    backend_cors_regex: str = r"https?://(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})(:\d+)?"
     google_client_id: str = ""
     google_client_secret: str = ""
     frontend_url: str = "http://localhost:3100"
