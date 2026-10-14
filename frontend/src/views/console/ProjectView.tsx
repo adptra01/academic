@@ -36,6 +36,7 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -746,24 +747,32 @@ const ProjectView = () => {
   return (
     <div className='space-y-5'>
       <div className='flex flex-wrap items-start justify-between gap-x-8 gap-y-3'>
-        <div className='min-w-0'>
+        <div className='min-w-0 flex-1'>
           <Button variant='link' className='h-auto p-0 text-xs' render={<Link href='/dashboard' />} nativeButton={false}>
             <ChevronLeftIcon />
             Dashboard
           </Button>
-          <h1 className='mt-2 truncate text-3xl leading-[1.05] font-bold tracking-[-0.03em]'>
-            {loading ? 'Memuat…' : (meta?.title ?? 'Project')}
-          </h1>
-          <div className='mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5'>
-            {meta && <Badge variant='secondary'>{meta.research_type}</Badge>}
-            <span className='text-muted-foreground font-mono text-[11px]'>
-              {loading
-                ? 'memuat…'
-                : `${datasets.length} dataset · ${analyses.length} analisis · ${exports.length} export`}
-            </span>
-          </div>
-          {meta?.description && (
-            <p className='text-muted-foreground mt-3 max-w-2xl text-[13px] leading-relaxed'>{meta.description}</p>
+          {loading ? (
+            <div className='mt-2 space-y-2.5' aria-busy='true' aria-label='Memuat project'>
+              <Skeleton className='h-9 w-2/3 max-w-md' />
+              <Skeleton className='h-3.5 w-64' />
+              <Skeleton className='h-3.5 w-48' />
+            </div>
+          ) : (
+            <>
+              <h1 className='mt-2 truncate text-3xl leading-[1.05] font-bold tracking-[-0.03em]'>
+                {meta?.title ?? 'Project'}
+              </h1>
+              <div className='mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5'>
+                {meta && <Badge variant='secondary'>{meta.research_type}</Badge>}
+                <span className='text-muted-foreground font-mono text-[11px]'>
+                  {`${datasets.length} dataset · ${analyses.length} analisis · ${exports.length} export`}
+                </span>
+              </div>
+              {meta?.description && (
+                <p className='text-muted-foreground mt-3 max-w-2xl text-[13px] leading-relaxed'>{meta.description}</p>
+              )}
+            </>
           )}
         </div>
         <div className='flex items-center gap-3'>
