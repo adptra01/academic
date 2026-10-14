@@ -30,7 +30,10 @@ def preprocess_dataset(self, dataset_id: str, base_version: int, operations: lis
         dest.parent.mkdir(parents=True, exist_ok=True)
         new_df.to_csv(dest, index=False, encoding="utf-8")
         prof = _prof(new_df)
-        new_v = _DatasetVersion(dataset_id=ds.id, version_number=max_v + 1, parent_version_id=base.id, transformation_log=(base.transformation_log or []) + details, active_columns=list(new_df.columns), storage_path=str(dest))
+        from app.services.manifest import version_manifest as _manifest
+        canonical = new_df.to_csv(index=False, encoding="utf-8").encode("utf-8")
+        new_v = _DatasetVersion(dataset_id=ds.id, version_number=max_v + 1, parent_version_id=base.id, transformation_log=(base.transformation_log or []) + details, active_columns=list(new_df.columns), storage_path=str(dest),
+                                **_manifest(canonical, prof, collector="preprocess"))
         db.add(new_v)
         db.flush()
         prev_vars = db.query(_Variable).filter(_Variable.dataset_version_id == base.id).all()

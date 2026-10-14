@@ -43,6 +43,12 @@ CREATE TABLE IF NOT EXISTS dataset_versions (
   transformation_log JSONB NOT NULL DEFAULT '[]',
   active_columns JSONB,
   storage_path TEXT, -- NULL = file asli dataset (v1); vN+ = CSV hasil transformasi
+  content_hash TEXT, -- sha256 CSV kanonis (manifest Tahap 4)
+  schema_version TEXT NOT NULL DEFAULT '1.0',
+  collector_version TEXT,
+  normalization_version TEXT NOT NULL DEFAULT '1.0',
+  record_count INTEGER,
+  validation_report JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(dataset_id, version_number)
 );

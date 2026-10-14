@@ -51,7 +51,10 @@ def _build_new_version(db: Session, ds: Dataset, base, new_df, details: list[dic
     dest.parent.mkdir(parents=True, exist_ok=True)
     new_df.to_csv(dest, index=False, encoding="utf-8")
     prof = profile_dataframe(new_df)
-    new_v = DatasetVersion(dataset_id=ds.id, version_number=max_v + 1, parent_version_id=base.id, transformation_log=(base.transformation_log or []) + details, active_columns=list(new_df.columns), storage_path=str(dest))
+    from app.services.manifest import version_manifest
+    canonical = new_df.to_csv(index=False, encoding="utf-8").encode("utf-8")
+    new_v = DatasetVersion(dataset_id=ds.id, version_number=max_v + 1, parent_version_id=base.id, transformation_log=(base.transformation_log or []) + details, active_columns=list(new_df.columns), storage_path=str(dest),
+                           **version_manifest(canonical, prof, collector="preprocess"))
     db.add(new_v)
     db.flush()
     prev_vars = db.query(Variable).filter(Variable.dataset_version_id == base.id).all()

@@ -43,6 +43,7 @@ class TikTokCommentsScraper(BaseBrowserScraper):
             collected = 0
             last_height = 0
             stable_count = 0
+            passes = 0
             max_stable = 5
 
             while collected < limit:
@@ -94,6 +95,10 @@ class TikTokCommentsScraper(BaseBrowserScraper):
                     }
                     """
                 )
+                passes += 1
+
+                if passes == 1 and not comments:
+                    raise BrowserScraperError(await self._detect_blockers("TikTok"))
 
                 if comments:
                     for c in comments:
@@ -134,6 +139,8 @@ class TikTokCommentsScraper(BaseBrowserScraper):
             # Trim if over limit
             records = records[:limit]
 
+        except BrowserScraperError:
+            raise
         except Exception as e:
             raise BrowserScraperError(f"Gagal scrape TikTok: {e}")
         finally:

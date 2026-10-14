@@ -43,12 +43,20 @@ def _get_project(project_id: uuid.UUID, user: User, db: Session) -> Project:
     return p
 
 
+def _version_out(v: DatasetVersion) -> VersionOut:
+    return VersionOut(id=v.id, version_number=v.version_number, parent_version_id=v.parent_version_id,
+                      transformation_log=v.transformation_log, created_at=v.created_at,
+                      content_hash=v.content_hash, schema_version=v.schema_version or "1.0",
+                      collector_version=v.collector_version, normalization_version=v.normalization_version or "1.0",
+                      record_count=v.record_count, validation_report=v.validation_report)
+
+
 def _dataset_out(ds: Dataset, versions: list[DatasetVersion]) -> DatasetOut:
     return DatasetOut(
         id=ds.id, project_id=ds.project_id, filename=ds.filename, file_type=ds.file_type,
         size_bytes=ds.size_bytes, rows_count=ds.rows_count, cols_count=ds.cols_count,
         created_at=ds.created_at,
-        versions=[VersionOut(id=v.id, version_number=v.version_number, parent_version_id=v.parent_version_id, transformation_log=v.transformation_log, created_at=v.created_at) for v in versions],
+        versions=[_version_out(v) for v in versions],
     )
 
 
@@ -78,7 +86,10 @@ async def upload_dataset(project_id: uuid.UUID, file: UploadFile = File(...), db
     ds = Dataset(project_id=project_id, filename=file.filename, storage_path=storage_path, file_type=ext, size_bytes=len(content), rows_count=prof["rows"], cols_count=prof["cols"])
     db.add(ds)
     db.flush()  # dapatkan ds.id
-    v1 = DatasetVersion(dataset_id=ds.id, version_number=1, parent_version_id=None, transformation_log=[{"op": "upload", "filename": file.filename, "file_type": ext}], active_columns=[c["name"] for c in prof["columns"]])
+    from app.services.manifest import version_manifest
+    canonical = df.to_csv(index=False, encoding="utf-8").encode("utf-8")
+    v1 = DatasetVersion(dataset_id=ds.id, version_number=1, parent_version_id=None, transformation_log=[{"op": "upload", "filename": file.filename, "file_type": ext}], active_columns=[c["name"] for c in prof["columns"]],
+                        **version_manifest(canonical, prof, collector=f"upload:{ext}"))
     db.add(v1)
     db.flush()
     # auto-suggest variables (US-007 awal; user dapat ubah di Fase 4)

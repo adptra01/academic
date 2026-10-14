@@ -19,6 +19,7 @@ def fetch_source_job(self, project_id: str, kind: str, provider: str, config: di
     from app.core.db import SessionLocal as _Session
     from app.models import Dataset as _Dataset, DatasetVersion as _DatasetVersion, DataSource as _DataSource, OAuthConnection as _OAuthConnection, Project as _Project, Variable as _Variable
     from app.services.dataset_service import profile_dataframe as _prof
+    from app.services.manifest import version_manifest as _manifest
     from app.core.storage import save_upload as _save
     from app.core.urlguard import guard_url as _guard
     from app.services.connectors.base import get_connector as _get, sanitize_config as _san
@@ -77,7 +78,8 @@ def fetch_source_job(self, project_id: str, kind: str, provider: str, config: di
             ds = _Dataset(project_id=_uuid.UUID(project_id), filename=f"{provider}_import.csv", storage_path=storage_path, file_type="csv", size_bytes=len(content), rows_count=prof["rows"], cols_count=prof["cols"], source_kind=f"{kind}:{provider}", source_meta=fetched.provenance)
             db.add(ds)
             db.flush()
-            v1 = _DatasetVersion(dataset_id=ds.id, version_number=1, parent_version_id=None, transformation_log=[{"op": "source_import", **fetched.provenance}], active_columns=[c["name"] for c in prof["columns"]])
+            v1 = _DatasetVersion(dataset_id=ds.id, version_number=1, parent_version_id=None, transformation_log=[{"op": "source_import", **fetched.provenance}], active_columns=[c["name"] for c in prof["columns"]],
+                                 **_manifest(content, prof, collector=f"{kind}:{provider}"))
             db.add(v1)
             db.flush()
             for c in prof["columns"]:

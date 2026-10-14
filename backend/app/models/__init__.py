@@ -51,6 +51,14 @@ class DatasetVersion(Base):
     transformation_log: Mapped[dict | list] = mapped_column(JSONB, nullable=False, default=list)
     active_columns: Mapped[dict | list | None] = mapped_column(JSONB, nullable=True)
     storage_path: Mapped[str | None] = mapped_column(Text, nullable=True)  # NULL = file asli dataset (v1)
+    # Manifest reproduksibilitas (spek Tahap 4): hash konten kanonis + versi
+    # skema/kolektor/normalisasi + hitungan rekaman + laporan validasi.
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    schema_version: Mapped[str] = mapped_column(String(16), nullable=False, default="1.0")
+    collector_version: Mapped[str | None] = mapped_column(Text, nullable=True)
+    normalization_version: Mapped[str] = mapped_column(String(16), nullable=False, default="1.0")
+    record_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    validation_report: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

@@ -32,6 +32,7 @@ class XCommentsScraper(BaseBrowserScraper):
             collected = 0
             last_count = 0
             stable = 0
+            passes = 0
 
             while collected < limit and stable < 5:
                 comments = await self.page.evaluate(
@@ -54,6 +55,11 @@ class XCommentsScraper(BaseBrowserScraper):
                     }
                     """
                 )
+                passes += 1
+
+                if passes == 1 and not comments:
+                    raise BrowserScraperError(await self._detect_blockers("X/Twitter"))
+
 
                 for c in comments:
                     records.append(
@@ -83,6 +89,8 @@ class XCommentsScraper(BaseBrowserScraper):
                 await asyncio.sleep(scroll_delay_ms / 1000)
 
             records = records[:limit]
+        except BrowserScraperError:
+            raise
         except Exception as e:
             raise BrowserScraperError(f"Gagal scrape X/Twitter: {e}")
         finally:

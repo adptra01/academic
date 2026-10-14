@@ -16,6 +16,45 @@ class BrowserScraperError(Exception):
     pass
 
 
+# Pola pemblokir umum saat pemindaian awal kosong: (kategori, penanda teks/url, saran).
+# Dicek terhadap innerText halaman — memberi pesan spesifik, bukan "coba lagi" buta.
+BLOCKER_PATTERNS: list[tuple[str, list[str], str]] = [
+    (
+        "login",
+        ["log in to continue", "sign in to continue", "log in", "sign in", "masuk untuk melanjutkan", "/login"],
+        "Halaman meminta LOGIN. Solusi: login sekali di browser → export storage_state.json → unggah di tab Sosmed "
+        "(mode Sesi browser). Konten privat/pengikut saja tidak bisa diambil tanpa login.",
+    ),
+    (
+        "captcha",
+        ["captcha", "verify you are", "unusual traffic", "trafik tidak biasa", "verify it's you", "i'm not a robot"],
+        "Platform menampilkan VERIFIKASI BOT. Jangan spam request — tunggu ±10–15 menit, gunakan sesi browser "
+        "yang sudah login (storage_state.json), lalu ulangi dengan limit kecil (20–50).",
+    ),
+    (
+        "consent",
+        ["before you continue", "cookie", "setuju", "accept all", "terima semua"],
+        "Dialog PERSETUJUAN/cookie menghalangi konten. Coba ulangi — bila berulang, gunakan storage_state dari sesi browser Anda.",
+    ),
+    (
+        "comments_off",
+        ["comments are turned off", "komentar dinonaktifkan", "comments disabled", "commenting is disabled"],
+        "KOMENTAR DIMATIKAN untuk konten ini — tidak ada yang bisa diambil. Pilih konten lain.",
+    ),
+    (
+        "unavailable",
+        ["video unavailable", "video tidak tersedia", "postingan tidak tersedia", "page not found", "halaman tidak ditemukan",
+         "tidak dapat diakses", "content isn't available", "sorry, this page", "private video", "video privat", "account suspended"],
+        "KONTEN TIDAK TERSEDIA (dihapus/privat/URL salah). Periksa link-nya dan pastikan publik.",
+    ),
+    (
+        "rate",
+        ["try again later", "coba lagi nanti", "something went wrong", "rate limit", "too many requests"],
+        "Platform MEMBATASI SEMENTARA. Tunggu ±10–15 menit lalu ulangi dengan limit kecil (20–50).",
+    ),
+]
+
+
 class BaseBrowserScraper(DataConnector):
     """Base class for browser-based social media scrapers using Playwright."""
 
@@ -101,6 +140,22 @@ class BaseBrowserScraper(DataConnector):
     def _now_iso(self) -> str:
         return datetime.now(timezone.utc).isoformat()
 
+    async def _detect_blockers(self, label: str) -> str:
+        """Pindai halaman saat ekstraksi awal kosong → pesan spesifik berbahasa Indonesia."""
+        try:
+            text = (await self.page.evaluate("() => (document.body ? document.body.innerText : '').slice(0, 4000)") or "").lower()
+            url = (self.page.url or "").lower()
+        except Exception:
+            return ""
+        for _cat, markers, hint in BLOCKER_PATTERNS:
+            if any(m in text or m in url for m in markers):
+                return f"{label}: {hint}"
+        return (
+            f"{label}: pemindaian awal tidak menemukan komentar. Kemungkinan: butuh login "
+            "(pakai mode Sesi browser + storage_state.json), konten privat/dibatasi, atau tampilan "
+            "platform berubah. Coba limit kecil (20–50) dulu."
+        )
+
     def _normalize_records(self, raw: list[dict]) -> list[dict]:
         normalized = []
         seen = set()
@@ -147,7 +202,14 @@ class BaseBrowserScraper(DataConnector):
 
         normalized = self._normalize_records(records)
         if not normalized:
-            raise BrowserScraperError("Tidak ada komentar valid yang berhasil diekstrak")
+            raise BrowserScraperError(
+                f"Tidak ada komentar valid yang berhasil diekstrak (platform={self.provider}, mentah={len(records)}). "
+                + (
+                    "Data mentah ada tapi kosong/tak valid — kemungkinan besar selektor platform berubah; laporkan URL-nya."
+                    if records
+                    else "Pemindaian awal tidak menemukan komentar (komentar dimatikan/privat/butuh login — lihat pesan tahap running)."
+                )
+            )
 
         raw_bytes = json.dumps(normalized, ensure_ascii=False).encode("utf-8")
         return FetchResult(
@@ -158,6 +220,7 @@ class BaseBrowserScraper(DataConnector):
                 "query": sanitize_config(dict(config or {})),
                 "raw_hash": raw_hash(raw_bytes),
                 "record_count": len(normalized),
+                "raw_count": len(records),
                 "robots": "user-session",
                 "deduped": True,
             },

@@ -36,6 +36,7 @@ class InstagramCommentsScraper(BaseBrowserScraper):
             collected = 0
             last_count = 0
             stable = 0
+            passes = 0
 
             while collected < limit and stable < 5:
                 comments = await self.page.evaluate(
@@ -61,6 +62,11 @@ class InstagramCommentsScraper(BaseBrowserScraper):
                     }
                     """
                 )
+                passes += 1
+
+                if passes == 1 and not comments:
+                    raise BrowserScraperError(await self._detect_blockers("Instagram"))
+
 
                 for c in comments:
                     if c.get("text"):
@@ -91,6 +97,8 @@ class InstagramCommentsScraper(BaseBrowserScraper):
                 await asyncio.sleep(scroll_delay_ms / 1000)
 
             records = records[:limit]
+        except BrowserScraperError:
+            raise
         except Exception as e:
             raise BrowserScraperError(f"Gagal scrape Instagram: {e}")
         finally:
