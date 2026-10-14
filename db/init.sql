@@ -57,18 +57,53 @@ CREATE TABLE IF NOT EXISTS variables (
   UNIQUE(dataset_version_id, name)
 );
 
+CREATE TABLE IF NOT EXISTS research_intents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  dataset_version_id UUID NOT NULL REFERENCES dataset_versions(id) ON DELETE CASCADE,
+  goal_category TEXT NOT NULL,
+  design_hints JSONB NOT NULL DEFAULT '{}',
+  user_question TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ix_research_intents_project_id ON research_intents(project_id);
+
+CREATE TABLE IF NOT EXISTS analysis_configs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  research_intent_id UUID REFERENCES research_intents(id) ON DELETE SET NULL,
+  dataset_version_id UUID NOT NULL REFERENCES dataset_versions(id) ON DELETE CASCADE,
+  method TEXT NOT NULL,
+  variables JSONB NOT NULL,
+  params JSONB NOT NULL DEFAULT '{}',
+  preprocessing_ops JSONB NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'draft',
+  source_mode TEXT NOT NULL,
+  wizard_step INTEGER NOT NULL DEFAULT 0,
+  preflight_result JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  confirmed_at TIMESTAMPTZ,
+  executed_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS ix_analysis_configs_project_id ON analysis_configs(project_id);
+
 CREATE TABLE IF NOT EXISTS analyses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   dataset_version_id UUID NOT NULL REFERENCES dataset_versions(id),
+  analysis_config_id UUID REFERENCES analysis_configs(id),
   analysis_uid TEXT UNIQUE NOT NULL, -- format ANL-YYYYMMDD-XXXXXX
   method TEXT NOT NULL,
   variables JSONB NOT NULL,
   params JSONB NOT NULL DEFAULT '{}',
   status TEXT NOT NULL DEFAULT 'done' CHECK (status IN ('queued','running','done','failed')),
+  analysis_hash TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_analyses_project ON analyses(project_id);
+CREATE INDEX IF NOT EXISTS ix_analyses_analysis_config_id ON analyses(analysis_config_id);
 
 CREATE TABLE IF NOT EXISTS analysis_results (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

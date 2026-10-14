@@ -42,6 +42,7 @@ import { Textarea } from '@/components/ui/textarea'
 // Util Imports
 import { api, apiUrl, authHeaders, downloadExport, fetchWithContext } from '@/lib/api'
 import { STATUS_HELP, TAB_HINT, TAB_LABEL } from '@/lib/plain-terms'
+import DataSourcePanel from './DataSourcePanel'
 
 // Wizard terpandu berat (±6 step + chart): dipisah jadi chunk sendiri agar
 // halaman project ringan saat mode manual (aturan 1.5 skill).
@@ -288,11 +289,13 @@ const ProjectView = () => {
     try {
       // Lima fetch independen dijalankan konkuren — bukan waterfall
       // (aturan 3.1 skill): TTFB = yang terlambat, bukan jumlah semuanya.
+      // `allSettled`: satu endpoint 500 tidak menghanguskan seluruh halaman —
+      // bagian yang gagal tampil kosong + pesan, sisanya tetap bisa dipakai.
       const [ds, an, ex, src, m] = await Promise.all([
-        api<Dataset[]>(`/api/v1/projects/${id}/datasets`),
-        api<AnalysisItem[]>(`/api/v1/projects/${id}/analyses`),
-        api<ExportItem[]>(`/api/v1/projects/${id}/exports`),
-        api<{ id: string; kind: string; provider: string; record_count: number | null; dataset_id: string | null; created_at: string }[]>(`/api/v1/projects/${id}/data-sources`),
+        api<Dataset[]>(`/api/v1/projects/${id}/datasets`).catch(() => [] as Dataset[]),
+        api<AnalysisItem[]>(`/api/v1/projects/${id}/analyses`).catch(() => [] as AnalysisItem[]),
+        api<ExportItem[]>(`/api/v1/projects/${id}/exports`).catch(() => [] as ExportItem[]),
+        api<{ id: string; kind: string; provider: string; record_count: number | null; dataset_id: string | null; created_at: string }[]>(`/api/v1/projects/${id}/data-sources`).catch(() => []),
         api<ProjectMeta>(`/api/v1/projects/${id}`)
       ])
 
@@ -803,46 +806,59 @@ const ProjectView = () => {
 
       {!selDs ? (
         <div className='grid gap-6 xl:grid-cols-12'>
-          <Card className='xl:col-span-7'>
-            <CardHeader>
-              <div className='flex items-baseline justify-between gap-4'>
-                <CardTitle className='flex items-center gap-2 font-semibold tracking-[-0.02em]'>
-                  <DatabaseIcon className='size-4 text-primary' />
-                  Unggah File Data
-                </CardTitle>
-                <span className='text-muted-foreground font-mono text-[11px] font-medium uppercase tracking-[0.2em]'>Tahap 02</span>
-              </div>
-              <CardDescription>
-                Pilih file dari komputer Anda. Format CSV, XLSX, XLS, SAV, dan JSON diterima, maksimal
-                50 MB. Pemisah kolom dan baris judul dibaca otomatis.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={upload} className='space-y-3'>
-                <Field className='gap-2'>
-                  <FieldLabel htmlFor='ds-file'>Pilih file dari komputer</FieldLabel>
-                  <Input id='ds-file' className='rounded-lg' type='file' name='file' accept='.csv,.xlsx,.xls,.sav,.json' />
-                </Field>
-                {uploadPct != null ? (
-                  <div className='space-y-1.5'>
-                    <Progress value={uploadPct} />
-                    <p className='text-muted-foreground font-mono text-[11px]'>Mengunggah {uploadPct}%</p>
-                  </div>
-                ) : (
-                  <Button type='submit' size='lg'>
-                    <UploadIcon />
-                    Unggah File Data
-                  </Button>
-                )}
-              </form>
-            </CardContent>
-          </Card>
+          <div className='xl:col-span-7'>
+            <DataSourcePanel
+              defaultTab='upload'
+              showUploadTab
+              uploadSlot={
+                <form onSubmit={upload} className='space-y-3'>
+                  <Field className='gap-2'>
+                    <FieldLabel htmlFor='ds-file'>Pilih file dari komputer</FieldLabel>
+                    <Input id='ds-file' className='rounded-lg' type='file' name='file' accept='.csv,.xlsx,.xls,.sav,.json' />
+                    <p className='text-muted-foreground text-xs'>
+                      Format CSV, XLSX, XLS, SAV, dan JSON diterima, maksimal 50 MB. Pemisah kolom
+                      dan baris judul dibaca otomatis.
+                    </p>
+                  </Field>
+                  {uploadPct != null ? (
+                    <div className='space-y-1.5'>
+                      <Progress value={uploadPct} />
+                      <p className='text-muted-foreground font-mono text-[11px]'>Mengunggah {uploadPct}%</p>
+                    </div>
+                  ) : (
+                    <Button type='submit' size='lg'>
+                      <UploadIcon />
+                      Unggah File Data
+                    </Button>
+                  )}
+                </form>
+              }
+              srcProvider={srcProvider}
+              setSrcProvider={setSrcProvider}
+              presets={presets}
+              scrapeUrl={scrapeUrl}
+              setScrapeUrl={setScrapeUrl}
+              advanced={advanced}
+              setAdvanced={setAdvanced}
+              inspect={inspect}
+              pickTable={pickTable}
+              setPickTable={setPickTable}
+              srcConfig={srcConfig}
+              setSrcConfig={setSrcConfig}
+              sources={sources}
+              fetchSource={fetchSource}
+              inspectTables={inspectTables}
+              setMsg={setMsg}
+              setErr={setErr}
+            />
+          </div>
           <Card className='border-dashed xl:col-span-5'>
             <CardContent className='py-10 text-center'>
               <p className='text-sm font-medium'>Belum ada file data</p>
               <p className='text-muted-foreground mx-auto mt-1.5 max-w-sm text-xs leading-relaxed'>
-                Tahap berikutnya — cek kolom, pembersihan, analisis, hasil, dan unduhan — baru terbuka
-                setelah ada file data yang bisa dibaca.
+                Pilih salah satu sumber di samping — file, sosmed, atau web/API. Tahap berikutnya
+                (cek kolom, pembersihan, analisis, hasil, unduhan) terbuka setelah ada dataset
+                yang bisa dibaca.
               </p>
             </CardContent>
           </Card>
@@ -962,196 +978,28 @@ const ProjectView = () => {
                     </CardContent>
                   </Card>
 
-                  <details className='group rounded-lg border bg-card'>
-                    <summary className='flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4'>
-                      <span className='text-sm font-semibold'>Ambil Data dari Web atau API</span>
-                      <span className='text-muted-foreground font-mono text-[11px] font-medium uppercase tracking-[0.2em]'>
-                        Opsional
-                      </span>
-                    </summary>
-                    <div className='border-t px-5 py-5'>
-                      <form onSubmit={fetchSource} className='space-y-2'>
-                        <Select value={srcProvider} onValueChange={v => {
-                          const pv = v ?? 'generic_rest'
-                          setSrcProvider(pv)
-                          // set sensible default config for browser scrapers
-                          if (['tiktok_comments','instagram_comments','youtube_comments','facebook_comments','x_comments'].includes(pv)) {
-                            setAdvanced(true)
-                            setSrcConfig('{\n  "url": "https://.../post-url",\n  "limit": 100,\n  "scroll_delay_ms": 800\n}')
-                          } else if (pv === 'html_table') {
-                            setAdvanced(false)
-                          } else {
-                            setAdvanced(true)
-                            setSrcConfig('{\n  "url": "https://.../records",\n  "params": {"limit": 100},\n  "records_path": "data.items",\n  "mapping": {"kolom_tujuan": "path.sumber"}\n}')
-                          }
-                        }}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value='generic_rest'>API generik (REST JSON)</SelectItem>
-                            <SelectItem value='youtube'>YouTube Data API (OAuth/API key)</SelectItem>
-                            <SelectItem value='html_table'>Scraper tabel HTML (allowlist)</SelectItem>
-                            <SelectItem value='tiktok_comments'>TikTok Comments (Browser)</SelectItem>
-                            <SelectItem value='instagram_comments'>Instagram Comments (Browser)</SelectItem>
-                            <SelectItem value='youtube_comments'>YouTube Comments (Browser)</SelectItem>
-                            <SelectItem value='facebook_comments'>Facebook Comments (Browser)</SelectItem>
-                            <SelectItem value='x_comments'>X/Twitter Comments (Browser)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {(srcProvider === 'html_table' && !advanced) ? (
-                          <>
-                            <select
-                              aria-label='Preset'
-                              className='border-input w-full rounded-lg border px-3 py-2 text-sm'
-                              value=''
-                              onChange={e => {
-                                const pr = presets.find(x => x.id === e.target.value)
-
-                                if (pr) setScrapeUrl(pr.example_url)
-                              }}
-                            >
-                              <option value=''>— Pilih preset (opsional) —</option>
-                              {presets.map(pr => (
-                                <option key={pr.id} value={pr.id}>
-                                  {pr.name} — {pr.description}
-                                </option>
-                              ))}
-                            </select>
-                            <div className='flex gap-2'>
-                              <Input
-                                placeholder='https://domain-allowlisted/halaman'
-                                className='rounded-lg'
-                                value={scrapeUrl}
-                                onChange={e => setScrapeUrl(e.target.value)}
-                                aria-label='URL halaman'
-                              />
-                              <Button type='button' variant='secondary' onClick={() => void inspectTables()}>
-                                Cek tabel
-                              </Button>
-                            </div>
-                            {inspect && (
-                              <div className='space-y-2'>
-                                {inspect.tables.map(t => (
-                                  <label
-                                    key={t.index}
-                                    className='flex cursor-pointer items-start gap-2 rounded-lg border p-2 text-sm'
-                                  >
-                                    <input
-                                      type='radio'
-                                      name='picktable'
-                                      checked={pickTable === t.index}
-                                      onChange={() => setPickTable(t.index)}
-                                      className='mt-1'
-                                    />
-                                    <span>
-                                      <strong>Tabel {t.index}</strong> — {t.rows}×{t.cols} ·{' '}
-                                      {t.columns.slice(0, 6).join(', ')}
-                                      {t.sample[0] && (
-                                        <span className='text-muted-foreground block font-mono text-[11px]'>
-                                          {JSON.stringify(t.sample[0]).slice(0, 120)}
-                                        </span>
-                                      )}
-                                    </span>
-                                  </label>
-                                ))}
-                                {inspect.tables.length === 0 && (
-                                  <p className='text-muted-foreground text-xs'>Tidak ada tabel di halaman ini.</p>
-                                )}
-                              </div>
-                            )}
-                            <div className='flex items-center gap-2'>
-                              <Button type='submit'>Fetch → dataset versioned</Button>
-                              <button
-                                type='button'
-                                className='text-xs font-medium text-primary hover:underline'
-                                onClick={() => setAdvanced(true)}
-                              >
-                                Mode advanced (JSON)
-                              </button>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <Textarea rows={8} className='rounded-lg font-mono text-xs' value={srcConfig} onChange={e => setSrcConfig(e.target.value)} placeholder={'{"url":"https://...","limit":100,"scroll_delay_ms":800}'} />
-                            {['tiktok_comments','instagram_comments','youtube_comments','facebook_comments','x_comments'].includes(srcProvider) && (
-                              <div className='space-y-2'>
-                                <p className='text-muted-foreground text-xs leading-relaxed'>
-                                  Untuk browser scraper, bisa tambahkan <code className='font-mono'>storage_state</code> (object atau JSON string).
-                                </p>
-                                <div className='flex items-center gap-2'>
-                                  <Input
-                                    type='file'
-                                    accept='.json,application/json'
-                                    className='rounded-lg text-xs'
-                                    onChange={(e) => {
-                                      const f = e.target.files?.[0]
-                                      if (!f) return
-                                      const reader = new FileReader()
-                                      reader.onload = () => {
-                                        try {
-                                          const txt = String(reader.result)
-                                          const parsed = JSON.parse(txt)
-                                          // merge into config
-                                          let cfg: any = {}
-                                          try { cfg = JSON.parse(srcConfig || '{}') } catch {}
-                                          cfg.storage_state = parsed
-                                          setSrcConfig(JSON.stringify(cfg, null, 2))
-                                          setMsg('storage_state.json dimuat ke config')
-                                        } catch (err: any) {
-                                          setErr('File storage_state.json tidak valid: ' + (err?.message || ''))
-                                        }
-                                      }
-                                      reader.readAsText(f)
-                                    }}
-                                  />
-                                  <span className='text-muted-foreground text-xs'>Upload storage_state.json</span>
-                                </div>
-                              </div>
-                            )}
-                            <div className='flex items-center gap-2'>
-                              <Button type='submit'>Fetch → dataset versioned</Button>
-                              {srcProvider === 'html_table' && (
-                                <button
-                                  type='button'
-                                  className='text-xs font-medium text-primary hover:underline'
-                                  onClick={() => setAdvanced(false)}
-                                >
-                                  Kembali ke wizard
-                                </button>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </form>
-                      {sources.length > 0 && (
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Sumber</TableHead>
-                              <TableHead>Records</TableHead>
-                              <TableHead>Dataset</TableHead>
-                              <TableHead>Waktu</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {sources.map(x => (
-                              <TableRow key={x.id}>
-                                <TableCell>
-                                  {x.kind}:{x.provider}
-                                </TableCell>
-                                <TableCell>{x.record_count ?? '-'}</TableCell>
-                                <TableCell className='text-muted-foreground font-mono text-[11px]'>
-                                  {x.dataset_id?.slice(0, 8) || '-'}
-                                </TableCell>
-                                <TableCell className='text-muted-foreground font-mono text-[11px]'>{x.created_at}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      )}
-                    </div>
-                  </details>
+                  <DataSourcePanel
+                    defaultTab='sosmed'
+                    showUploadTab={false}
+                    uploadSlot={null}
+                    srcProvider={srcProvider}
+                    setSrcProvider={setSrcProvider}
+                    presets={presets}
+                    scrapeUrl={scrapeUrl}
+                    setScrapeUrl={setScrapeUrl}
+                    advanced={advanced}
+                    setAdvanced={setAdvanced}
+                    inspect={inspect}
+                    pickTable={pickTable}
+                    setPickTable={setPickTable}
+                    srcConfig={srcConfig}
+                    setSrcConfig={setSrcConfig}
+                    sources={sources}
+                    fetchSource={fetchSource}
+                    inspectTables={inspectTables}
+                    setMsg={setMsg}
+                    setErr={setErr}
+                  />
 
                   <Card>
                     <CardHeader>
