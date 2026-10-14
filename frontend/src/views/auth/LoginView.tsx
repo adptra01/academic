@@ -21,6 +21,7 @@ import { Separator } from '@/components/ui/separator'
 
 // Util Imports
 import { apiUrl, fetchWithContext } from '@/lib/api'
+import { validEmail, validRequired } from '@/lib/validation'
 
 // SVG Import
 import AuthBackgroundShape from '@/assets/svg/auth-background-shape'
@@ -31,6 +32,8 @@ const LoginView = () => {
   const [apiUrlVal, setApiUrlVal] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [err, setErr] = useState('')
+  const [emailErr, setEmailErr] = useState('')
+  const [pwErr, setPwErr] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -57,7 +60,13 @@ const LoginView = () => {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    const em = validEmail(email)
+    const pw = validRequired(password, 'Password')
+
+    setEmailErr(em ?? '')
+    setPwErr(pw ?? '')
     setErr('')
+    if (em || pw) return
     setBusy(true)
 
     try {
@@ -126,7 +135,9 @@ const LoginView = () => {
                     placeholder='nama@kampus.ac.id'
                     value={email}
                     onChange={e => setEmail(e.target.value)}
+                    aria-invalid={!!emailErr}
                   />
+                  {emailErr && <p className='text-destructive text-xs'>{emailErr}</p>}
                 </Field>
                 <Field className='w-full gap-2'>
                   <FieldLabel htmlFor='password' className='leading-5'>
@@ -139,6 +150,7 @@ const LoginView = () => {
                       autoComplete='current-password'
                       value={password}
                       onChange={e => setPassword(e.target.value)}
+                      aria-invalid={!!pwErr}
                     />
                     <InputGroupAddon align='inline-end' className='pr-1.5'>
                       <Button
@@ -153,6 +165,7 @@ const LoginView = () => {
                       </Button>
                     </InputGroupAddon>
                   </InputGroup>
+                  {pwErr && <p className='text-destructive text-xs'>{pwErr}</p>}
                 </Field>
                 {err && (
                   <Alert variant='destructive'>

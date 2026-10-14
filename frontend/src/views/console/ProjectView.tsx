@@ -43,6 +43,7 @@ import { Textarea } from '@/components/ui/textarea'
 // Util Imports
 import { api, apiUrl, authHeaders, downloadExport, fetchWithContext } from '@/lib/api'
 import { STATUS_HELP, TAB_HINT, TAB_LABEL } from '@/lib/plain-terms'
+import { formFile, validHttpUrl, validPositiveInt } from '@/lib/validation'
 import DataSourcePanel from './DataSourcePanel'
 
 // Wizard terpandu berat (±6 step + chart): dipisah jadi chunk sendiri agar
@@ -370,6 +371,13 @@ const ProjectView = () => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
 
+    if (!formFile(fd, 'file')) {
+      setErr('Pilih file dulu — belum ada file yang dipilih.')
+      setMsg('')
+
+      return
+    }
+
     setErr('')
     setMsg('')
     setUploadPct(0)
@@ -439,6 +447,15 @@ const ProjectView = () => {
   function addOp(e: React.FormEvent) {
     e.preventDefault()
     setErr('')
+
+    // Hampir semua operasi bekerja pada SATU kolom (cek backend:
+    // preprocess_service.py menolak tanpa 'column'). Pengecualiannya hanya
+    // operasi se-dataset: drop_missing dan remove_duplicates.
+    if (!['drop_missing', 'remove_duplicates'].includes(op) && !opCol.trim()) {
+      setErr(`Operasi "${op}" butuh nama kolom — isi dulu kolomnya.`)
+
+      return
+    }
 
     try {
       const extra = opParams.trim() ? JSON.parse(opParams) : {}
@@ -515,6 +532,15 @@ const ProjectView = () => {
 
   async function showDiff(e: React.FormEvent) {
     e.preventDefault()
+    const vf = validPositiveInt(diffFrom, 'Versi lama')
+    const vt = validPositiveInt(diffTo, 'Versi baru')
+
+    if (vf || vt) {
+      setErr(vf ?? vt ?? 'Nomor versi tidak valid.')
+
+      return
+    }
+
     setErr('')
 
     try {
@@ -528,6 +554,12 @@ const ProjectView = () => {
     e.preventDefault()
     setErr('')
     setMsg('')
+
+    if (!sel && !datasets[0]) {
+      setErr('Pilih dataset dulu — belum ada data untuk dianalisis.')
+
+      return
+    }
 
     // Cegah terkirimnya JSON placeholder/kontoh milik metode lain.
     let variables: Record<string, unknown>
@@ -563,6 +595,15 @@ const ProjectView = () => {
   }
 
   async function inspectTables() {
+    const urlErr = validHttpUrl(scrapeUrl, 'URL halaman')
+
+    if (urlErr) {
+      setErr(urlErr)
+      setMsg('')
+
+      return
+    }
+
     setErr('')
     setMsg('')
     setInspect(null)
@@ -578,6 +619,17 @@ const ProjectView = () => {
     e.preventDefault()
     setErr('')
     setMsg('')
+
+    // Validasi awal sebelum request: URL wajib untuk semua mode scrape.
+    if (srcProvider === 'html_table' && !advanced) {
+      const urlErr = validHttpUrl(scrapeUrl, 'URL halaman')
+
+      if (urlErr) {
+        setErr(urlErr)
+
+        return
+      }
+    }
 
     try {
       let config: any
@@ -595,6 +647,17 @@ const ProjectView = () => {
             config.storage_state = JSON.parse(config.storage_state)
           } catch {
             // keep as-is if not JSON
+          }
+        }
+
+        // Scraper browser butuh URL target di dalam config.
+        if (['tiktok_comments', 'instagram_comments', 'youtube_comments', 'facebook_comments', 'x_comments'].includes(srcProvider)) {
+          const urlErr = validHttpUrl(String(config.url ?? ''), 'URL konten')
+
+          if (urlErr) {
+            setErr(`${urlErr} Isi dulu link di tab Sosmed.`)
+
+            return
           }
         }
       }

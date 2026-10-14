@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator'
 
 // Util Imports
 import { apiUrl, fetchWithContext } from '@/lib/api'
+import { validEmail, validMinLength, validRequired } from '@/lib/validation'
 
 // SVG Import
 import AuthBackgroundShape from '@/assets/svg/auth-background-shape'
@@ -26,6 +27,9 @@ const RegisterView = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState('')
+  const [nameErr, setNameErr] = useState('')
+  const [emailErr, setEmailErr] = useState('')
+  const [pwErr, setPwErr] = useState('')
   const [busy, setBusy] = useState(false)
 
   async function googleRegister() {
@@ -43,7 +47,15 @@ const RegisterView = () => {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    const nm = validRequired(name, 'Nama')
+    const em = validEmail(email)
+    const pw = validMinLength(password, 8, 'Password')
+
+    setNameErr(nm ?? '')
+    setEmailErr(em ?? '')
+    setPwErr(pw ?? '')
     setErr('')
+    if (nm || em || pw) return
     setBusy(true)
 
     try {
@@ -100,7 +112,9 @@ const RegisterView = () => {
                     placeholder='Nama lengkap'
                     value={name}
                     onChange={e => setName(e.target.value)}
+                    aria-invalid={!!nameErr}
                   />
+                  {nameErr && <p className='text-destructive text-xs'>{nameErr}</p>}
                 </Field>
                 <Field className='gap-2'>
                   <FieldLabel htmlFor='email' className='leading-5'>
@@ -114,7 +128,9 @@ const RegisterView = () => {
                     placeholder='nama@kampus.ac.id'
                     value={email}
                     onChange={e => setEmail(e.target.value)}
+                    aria-invalid={!!emailErr}
                   />
+                  {emailErr && <p className='text-destructive text-xs'>{emailErr}</p>}
                 </Field>
                 <Field className='gap-2'>
                   <FieldLabel htmlFor='password' className='leading-5'>
@@ -127,7 +143,9 @@ const RegisterView = () => {
                     autoComplete='new-password'
                     value={password}
                     onChange={e => setPassword(e.target.value)}
+                    aria-invalid={!!pwErr}
                   />
+                  {pwErr && <p className='text-destructive text-xs'>{pwErr}</p>}
                 </Field>
                 {err && (
                   <Alert variant='destructive'>

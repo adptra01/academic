@@ -23,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea'
 
 // Util Imports
 import { apaStyle, api, apiUrl, authHeaders, downloadExport, fetchWithContext } from '@/lib/api'
+import { validMinLength } from '@/lib/validation'
 import type { Viz } from '@/components/EChartView'
 import { ResultNarrative } from '@/components/ResultNarrative'
 import type { RunOut, MethodId } from '@/components/ResultNarrative/types'
@@ -67,6 +68,8 @@ const AnalysisView = () => {
   const [fbCat, setFbCat] = useState('statistical_result')
   const [fbDesc, setFbDesc] = useState('')
   const [fbMsg, setFbMsg] = useState('')
+  const [fbErr, setFbErr] = useState('')
+  const [fbBusy, setFbBusy] = useState(false)
   const [chartType, setChartType] = useState('default')
   const [chartCol, setChartCol] = useState('all')
   const [chartUrl, setChartUrl] = useState('')
@@ -157,14 +160,27 @@ const AnalysisView = () => {
 
   async function sendFeedback(e: React.FormEvent) {
     e.preventDefault()
+    const descErr = validMinLength(fbDesc.trim(), 10, 'Deskripsi masalah')
+
     setFbMsg('')
 
+    if (descErr) {
+      setFbErr(descErr)
+
+      return
+    }
+
+    setFbErr('')
+    setFbBusy(true)
+
     try {
-      await api(`/api/v1/feedback`, { method: 'POST', body: JSON.stringify({ analysis_uid: uid, category: fbCat, description: fbDesc }) })
+      await api(`/api/v1/feedback`, { method: 'POST', body: JSON.stringify({ analysis_uid: uid, category: fbCat, description: fbDesc.trim() }) })
       setFbDesc('')
       setFbMsg('Laporan terkirim — terima kasih. Tim dapat mereproduksi via Analysis ID + version di atas.')
     } catch (e: unknown) {
-      setFbMsg(e instanceof Error ? e.message : 'Gagal mengirim')
+      setFbErr(e instanceof Error ? e.message : 'Gagal mengirim')
+    } finally {
+      setFbBusy(false)
     }
   }
 
@@ -391,11 +407,17 @@ const AnalysisView = () => {
                   placeholder='Jelaskan masalahnya (min 10 karakter)...'
                   value={fbDesc}
                   onChange={e => setFbDesc(e.target.value)}
+                  aria-invalid={!!fbErr}
                 />
-                <Button type='submit' variant='secondary' size='sm'>
-                  Kirim laporan
+                <Button type='submit' variant='secondary' size='sm' disabled={fbBusy}>
+                  {fbBusy ? 'Mengirim…' : 'Kirim laporan'}
                 </Button>
               </form>
+              {fbErr && (
+                <Alert variant='destructive' className='mt-2'>
+                  <AlertDescription>{fbErr}</AlertDescription>
+                </Alert>
+              )}
               {fbMsg && <p className='text-muted-foreground mt-2 text-sm'>{fbMsg}</p>}
             </CardContent>
           </Card>
