@@ -34,6 +34,7 @@ services:
       - SOFTWARE_VERSION=0.1.0+mvp
       - MAX_UPLOAD_MB=50
       - STORAGE_DIR=/code/storage
+      - PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
     ports:
       - "8100:8000"
     volumes:
@@ -60,6 +61,7 @@ services:
       - DATABASE_URL=postgresql+psycopg://db:db@db:5432/db
       - REDIS_URL=redis://redis:6379/0
       - STORAGE_DIR=/code/storage
+      - PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
     external_links:
       - ddev-academic-db:db
       - ddev-academic-redis:redis

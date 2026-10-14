@@ -553,12 +553,31 @@ const ProjectView = () => {
     setMsg('')
 
     try {
-      const config =
-        srcProvider === 'html_table' && !advanced
-          ? { url: scrapeUrl, table_index: pickTable }
-          : JSON.parse(srcConfig)
+      let config: any
+      if (srcProvider === 'html_table' && !advanced) {
+        config = { url: scrapeUrl, table_index: pickTable }
+      } else {
+        try {
+          config = JSON.parse(srcConfig)
+        } catch (e) {
+          throw new Error('Config JSON tidak valid')
+        }
+        // For browser-based scrapers, allow storage_state as string or object
+        if (typeof config.storage_state === 'string') {
+          try {
+            config.storage_state = JSON.parse(config.storage_state)
+          } catch {
+            // keep as-is if not JSON
+          }
+        }
+      }
 
-      const kind = srcProvider === 'html_table' ? 'scraper' : 'api'
+      let kind = 'api'
+      if (srcProvider === 'html_table' || srcProvider === 'tiktok_comments' || srcProvider === 'instagram_comments' || srcProvider === 'youtube_comments' || srcProvider === 'facebook_comments' || srcProvider === 'x_comments') {
+        kind = 'scraper'
+      } else {
+        kind = 'api'
+      }
 
       const j = await api<{ dataset_id: string; profile: { rows: number; cols: number } }>(`/api/v1/projects/${id}/data-sources/fetch`, {
         method: 'POST',
@@ -929,7 +948,20 @@ const ProjectView = () => {
                     </summary>
                     <div className='border-t px-5 py-5'>
                       <form onSubmit={fetchSource} className='space-y-2'>
-                        <Select value={srcProvider} onValueChange={v => setSrcProvider(v ?? 'generic_rest')}>
+                        <Select value={srcProvider} onValueChange={v => {
+                          const pv = v ?? 'generic_rest'
+                          setSrcProvider(pv)
+                          // set sensible default config for browser scrapers
+                          if (['tiktok_comments','instagram_comments','youtube_comments','facebook_comments','x_comments'].includes(pv)) {
+                            setAdvanced(true)
+                            setSrcConfig('{\n  "url": "https://.../post-url",\n  "limit": 100,\n  "scroll_delay_ms": 800\n}')
+                          } else if (pv === 'html_table') {
+                            setAdvanced(false)
+                          } else {
+                            setAdvanced(true)
+                            setSrcConfig('{\n  "url": "https://.../records",\n  "params": {"limit": 100},\n  "records_path": "data.items",\n  "mapping": {"kolom_tujuan": "path.sumber"}\n}')
+                          }
+                        }}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -937,9 +969,14 @@ const ProjectView = () => {
                             <SelectItem value='generic_rest'>API generik (REST JSON)</SelectItem>
                             <SelectItem value='youtube'>YouTube Data API (OAuth/API key)</SelectItem>
                             <SelectItem value='html_table'>Scraper tabel HTML (allowlist)</SelectItem>
+                            <SelectItem value='tiktok_comments'>TikTok Comments (Browser)</SelectItem>
+                            <SelectItem value='instagram_comments'>Instagram Comments (Browser)</SelectItem>
+                            <SelectItem value='youtube_comments'>YouTube Comments (Browser)</SelectItem>
+                            <SelectItem value='facebook_comments'>Facebook Comments (Browser)</SelectItem>
+                            <SelectItem value='x_comments'>X/Twitter Comments (Browser)</SelectItem>
                           </SelectContent>
                         </Select>
-                        {srcProvider === 'html_table' && !advanced ? (
+                        {(srcProvider === 'html_table' && !advanced) ? (
                           <>
                             <select
                               aria-label='Preset'
@@ -1013,7 +1050,42 @@ const ProjectView = () => {
                           </>
                         ) : (
                           <>
-                            <Textarea rows={6} className='rounded-lg' value={srcConfig} onChange={e => setSrcConfig(e.target.value)} />
+                            <Textarea rows={8} className='rounded-lg font-mono text-xs' value={srcConfig} onChange={e => setSrcConfig(e.target.value)} placeholder={'{"url":"https://...","limit":100,"scroll_delay_ms":800}'} />
+                            {['tiktok_comments','instagram_comments','youtube_comments','facebook_comments','x_comments'].includes(srcProvider) && (
+                              <div className='space-y-2'>
+                                <p className='text-muted-foreground text-xs leading-relaxed'>
+                                  Untuk browser scraper, bisa tambahkan <code className='font-mono'>storage_state</code> (object atau JSON string).
+                                </p>
+                                <div className='flex items-center gap-2'>
+                                  <Input
+                                    type='file'
+                                    accept='.json,application/json'
+                                    className='rounded-lg text-xs'
+                                    onChange={(e) => {
+                                      const f = e.target.files?.[0]
+                                      if (!f) return
+                                      const reader = new FileReader()
+                                      reader.onload = () => {
+                                        try {
+                                          const txt = String(reader.result)
+                                          const parsed = JSON.parse(txt)
+                                          // merge into config
+                                          let cfg: any = {}
+                                          try { cfg = JSON.parse(srcConfig || '{}') } catch {}
+                                          cfg.storage_state = parsed
+                                          setSrcConfig(JSON.stringify(cfg, null, 2))
+                                          setMsg('storage_state.json dimuat ke config')
+                                        } catch (err: any) {
+                                          setErr('File storage_state.json tidak valid: ' + (err?.message || ''))
+                                        }
+                                      }
+                                      reader.readAsText(f)
+                                    }}
+                                  />
+                                  <span className='text-muted-foreground text-xs'>Upload storage_state.json</span>
+                                </div>
+                              </div>
+                            )}
                             <div className='flex items-center gap-2'>
                               <Button type='submit'>Fetch → dataset versioned</Button>
                               {srcProvider === 'html_table' && (
