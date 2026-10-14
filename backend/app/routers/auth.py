@@ -1,5 +1,6 @@
 """Auth router: register/login/logout/me. US-001 + US-002."""
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.core.db import get_db
@@ -68,4 +69,17 @@ def change_password(request: Request, body: ChangePasswordIn, db: Session = Depe
 
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)) -> UserOut:
+    return _user_out(user)
+
+
+class UpdateMeIn(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+
+
+@router.patch("/me", response_model=UserOut)
+@limiter.limit("10/minute")
+def update_me(request: Request, body: UpdateMeIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> UserOut:
+    user.name = body.name.strip()
+    db.commit()
+    db.refresh(user)
     return _user_out(user)

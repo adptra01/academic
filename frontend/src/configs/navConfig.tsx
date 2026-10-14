@@ -53,6 +53,11 @@ export const navItems: NavItem[] = [
         href: '/dashboard'
       },
       {
+        icon: 'FolderKanban',
+        label: 'Projek',
+        href: '/projek'
+      },
+      {
         icon: 'CircleUserRound',
         label: 'Akun',
         href: '/akun'
