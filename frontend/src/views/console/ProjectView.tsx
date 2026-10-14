@@ -4,11 +4,13 @@
 import { useEffect, useState } from 'react'
 
 // Next Imports
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 // Third-party Imports
 import {
+  BrainIcon,
   ChartBarIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -18,9 +20,8 @@ import {
   FlaskConicalIcon,
   HistoryIcon,
   PlayIcon,
-  UploadIcon,
   SettingsIcon,
-  ZapIcon
+  UploadIcon
 } from 'lucide-react'
 
 // Component Imports
@@ -41,8 +42,13 @@ import { Textarea } from '@/components/ui/textarea'
 // Util Imports
 import { api, apiUrl, authHeaders, downloadExport, fetchWithContext } from '@/lib/api'
 import { STATUS_HELP, TAB_HINT, TAB_LABEL } from '@/lib/plain-terms'
-import { GuidedWizard } from './GuidedWizard'
-import { Brain, Settings, Zap } from 'lucide-react'
+
+// Wizard terpandu berat (±6 step + chart): dipisah jadi chunk sendiri agar
+// halaman project ringan saat mode manual (aturan 1.5 skill).
+const GuidedWizard = dynamic(
+  () => import('./GuidedWizard').then(m => m.GuidedWizard),
+  { ssr: false, loading: () => <p className='text-muted-foreground text-sm'>Memuat panduan…</p> }
+)
 
 // `transformation_log` sengaja ikut dibawa: tanpa itu pengguna tidak tahu apa
 // yang sebenarnya terjadi pada datanya (imputasi, filter, ubah tipe) sebelum
@@ -243,13 +249,22 @@ const ProjectView = () => {
   const [meta, setMeta] = useState<ProjectMeta | null>(null)
   const [tab, setTab] = useState<string>('dataset')
   
-  // Mode persistence
-  const [mode, setMode] = useState<'guided' | 'manual'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem(`project_mode_${id}`) as 'guided' | 'manual') || 'guided'
+  // Mode persistence — init statis agar SSR dan render pertama client identik,
+  // nilai localStorage dibaca di effect (aturan 8.3: no localStorage di render).
+  const [mode, setMode] = useState<'guided' | 'manual'>('guided')
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(`project_mode_${id}`)
+
+      if (saved === 'guided' || saved === 'manual') {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Sinkronisasi preferensi tersimpan sekali setelah mount; init statis agar SSR identik.
+        setMode(saved)
+      }
+    } catch {
+      /* abaikan — tetap guided */
     }
-    return 'guided'
-  })
+  }, [id])
   // Config passed from Guided mode to Manual mode
   const [guidedConfig, setGuidedConfig] = useState<{ method: string; variables: Record<string, unknown>; params: Record<string, unknown> } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -271,14 +286,22 @@ const ProjectView = () => {
 
   async function load() {
     try {
-      const ds = await api<Dataset[]>(`/api/v1/projects/${id}/datasets`)
+      // Lima fetch independen dijalankan konkuren — bukan waterfall
+      // (aturan 3.1 skill): TTFB = yang terlambat, bukan jumlah semuanya.
+      const [ds, an, ex, src, m] = await Promise.all([
+        api<Dataset[]>(`/api/v1/projects/${id}/datasets`),
+        api<AnalysisItem[]>(`/api/v1/projects/${id}/analyses`),
+        api<ExportItem[]>(`/api/v1/projects/${id}/exports`),
+        api<{ id: string; kind: string; provider: string; record_count: number | null; dataset_id: string | null; created_at: string }[]>(`/api/v1/projects/${id}/data-sources`),
+        api<ProjectMeta>(`/api/v1/projects/${id}`)
+      ])
 
       setDatasets(ds)
       if (!sel && ds[0]) setSel(ds[0].id)
-      setAnalyses(await api<AnalysisItem[]>(`/api/v1/projects/${id}/analyses`))
-      setExports(await api<ExportItem[]>(`/api/v1/projects/${id}/exports`))
-      setSources(await api(`/api/v1/projects/${id}/data-sources`))
-      setMeta(await api<ProjectMeta>(`/api/v1/projects/${id}`))
+      setAnalyses(an)
+      setExports(ex)
+      setSources(src)
+      setMeta(m)
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Gagal memuat')
     } finally {
@@ -751,7 +774,7 @@ const ProjectView = () => {
               onClick={() => setMode('guided')}
               className='gap-1 rounded-md'
             >
-              <Brain className='size-3.5' />
+              <BrainIcon className='size-3.5' />
               Otomatis Terpandu
             </Button>
             <Button
@@ -760,7 +783,7 @@ const ProjectView = () => {
               onClick={() => setMode('manual')}
               className='gap-1 rounded-md'
             >
-              <Settings className='size-3.5' />
+              <SettingsIcon className='size-3.5' />
               Manual
             </Button>
           </div>

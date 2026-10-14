@@ -1,3 +1,8 @@
+// Header memakai `usePathname()` (hook client) sehingga wajib Client Component.
+// Sebelumnya ia lolos tanpa direktif hanya karena parent layout kebetulan
+// `'use client'` — rapuh dan melanggar koherensi boundary (aturan 9.4 skill).
+'use client'
+
 // Third-party Imports
 import { Fragment } from 'react'
 

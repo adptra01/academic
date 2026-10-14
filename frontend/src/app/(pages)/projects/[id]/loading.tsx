@@ -1,0 +1,15 @@
+import { Skeleton } from '@/components/ui/skeleton'
+
+/** Skeleton halaman detail project — dimensi mirip konten agar tidak CLS. */
+const ProjectLoading = () => {
+  return (
+    <div className='space-y-5' aria-busy='true'>
+      <Skeleton className='h-4 w-24' />
+      <Skeleton className='h-9 w-2/3' />
+      <Skeleton className='h-4 w-1/2' />
+      <Skeleton className='h-72 w-full' />
+    </div>
+  )
+}
+
+export default ProjectLoading
