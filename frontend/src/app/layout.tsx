@@ -10,6 +10,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app'
 
 // Component Imports
 import Providers from '@/components/Providers'
+import RouteProgress from '@/components/layout/RouteProgress'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 // Util Imports
@@ -58,6 +59,8 @@ const RootLayout = ({ children }: Readonly<{ children: ReactNode }>) => {
       suppressHydrationWarning
     >
       <body className='flex min-h-full w-full flex-auto flex-col'>
+        {/* Bar loading navigasi: satu mount di root = berlaku di semua halaman (publik + konsol + auth). */}
+        <RouteProgress />
         <NuqsAdapter>
           <Providers>
             <TooltipProvider>{children}</TooltipProvider>
