@@ -35,6 +35,11 @@ services:
       - MAX_UPLOAD_MB=50
       - STORAGE_DIR=/code/storage
       - PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
+      # Login Google (OAuth2): isi di .env / environment host (lihat .env.example).
+      # Kosong → endpoint /auth/google/* balas 501 yang jelas (tidak crash).
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3100}
     ports:
       - "8100:8000"
     volumes:

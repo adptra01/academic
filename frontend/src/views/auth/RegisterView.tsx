@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
 
 // Util Imports
 import { apiUrl, fetchWithContext } from '@/lib/api'
@@ -26,6 +27,19 @@ const RegisterView = () => {
   const [password, setPassword] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+
+  async function googleRegister() {
+    setErr('')
+
+    try {
+      const { api } = await import('@/lib/api')
+      const j = await api<{ url: string }>(`/api/v1/auth/google/url`)
+
+      window.location.href = j.url
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Daftar dengan Google gagal dimulai')
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -133,6 +147,19 @@ const RegisterView = () => {
               <Link href='/login' className='text-card-foreground hover:underline'>
                 Masuk
               </Link>
+            </p>
+
+            <div className='flex items-center gap-4'>
+              <Separator className='flex-1' />
+              <p className='text-base'>atau</p>
+              <Separator className='flex-1' />
+            </div>
+
+            <Button variant='outline' className='w-full' type='button' onClick={() => void googleRegister()}>
+              Daftar dengan Google
+            </Button>
+            <p className='text-muted-foreground text-center text-xs'>
+              Membutuhkan konfigurasi Google Cloud client di sisi server.
             </p>
           </div>
         </CardContent>
