@@ -69,10 +69,11 @@ def fetch_source(project_id: uuid.UUID, body: FetchIn, db: Session = Depends(get
         config["headers"] = headers
     from app.services.connectors.http_api import ConnectorError as _CE
     from app.services.connectors.scraper import ScraperError as _SE
+    from app.services.connectors.browser_base import BrowserScraperError as _BSE
 
     try:
         fetched = conn.fetch(config)
-    except (_CE, _SE, ValueError) as e:
+    except (_CE, _SE, _BSE, ValueError) as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
     if not fetched.records:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Sumber mengembalikan 0 records")
@@ -171,7 +172,18 @@ def scraper_presets(user: User = Depends(get_current_user)) -> list[dict]:
     from app.services.connectors.scraper import PRESETS
 
     _ = user
-    return PRESETS
+    try:
+        presets = list(PRESETS.values()) if hasattr(PRESETS, "values") else list(PRESETS)
+    except Exception:
+        presets = []
+    presets.extend([
+        {"id": "tiktok_comments", "name": "TikTok Comments", "description": "Scrape komentar video TikTok", "kind": "scraper", "provider": "tiktok_comments", "fields": [{"name": "url", "label": "TikTok Video URL", "type": "url", "required": True}, {"name": "limit", "label": "Limit", "type": "number", "default": 500}, {"name": "scroll_delay_ms", "label": "Scroll Delay (ms)", "type": "number", "default": 800}, {"name": "storage_state", "label": "Storage State (JSON, opsional)", "type": "textarea"}, {"name": "headless", "label": "Headless", "type": "checkbox", "default": True}]},
+        {"id": "instagram_comments", "name": "Instagram Comments", "description": "Scrape komentar IG Post/Reels", "kind": "scraper", "provider": "instagram_comments", "fields": [{"name": "url", "label": "Instagram URL", "type": "url", "required": True}, {"name": "limit", "label": "Limit", "type": "number", "default": 300}, {"name": "storage_state", "label": "Storage State (JSON, opsional)", "type": "textarea"}, {"name": "headless", "label": "Headless", "type": "checkbox", "default": True}]},
+        {"id": "youtube_comments", "name": "YouTube Comments", "description": "Scrape komentar YouTube", "kind": "scraper", "provider": "youtube_comments", "fields": [{"name": "url", "label": "YouTube Video URL", "type": "url", "required": True}, {"name": "limit", "label": "Limit", "type": "number", "default": 500}, {"name": "storage_state", "label": "Storage State (JSON, opsional)", "type": "textarea"}, {"name": "headless", "label": "Headless", "type": "checkbox", "default": True}]},
+        {"id": "facebook_comments", "name": "Facebook Comments", "description": "Scrape komentar Facebook Post", "kind": "scraper", "provider": "facebook_comments", "fields": [{"name": "url", "label": "Facebook Post URL", "type": "url", "required": True}, {"name": "limit", "label": "Limit", "type": "number", "default": 300}, {"name": "storage_state", "label": "Storage State (JSON, opsional)", "type": "textarea"}, {"name": "headless", "label": "Headless", "type": "checkbox", "default": True}]},
+        {"id": "x_comments", "name": "X (Twitter) Replies", "description": "Scrape replies X/Twitter", "kind": "scraper", "provider": "x_comments", "fields": [{"name": "url", "label": "X Post URL", "type": "url", "required": True}, {"name": "limit", "label": "Limit", "type": "number", "default": 300}, {"name": "storage_state", "label": "Storage State (JSON, opsional)", "type": "textarea"}, {"name": "headless", "label": "Headless", "type": "checkbox", "default": True}]},
+    ])
+    return presets
 
 
 @router.post("/scraper/inspect")

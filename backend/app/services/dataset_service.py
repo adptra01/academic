@@ -56,7 +56,14 @@ def suggest_type(series: pd.Series) -> str:
         return "Text"
     if nunique == 2:
         return "Binary"
-    if "id" in name.lower() and nunique == n and n > 0:
+    # Deteksi ID berdasarkan nama. Syarat `nunique == n` (unik sempurna) terlalu
+    # ketat justru di titik yang paling penting: kolom ID yang BERDUPLIKAT akan
+    # lolos sebagai "Nominal", sehingga pengguna tidak pernah diberi tahu
+    # subjeknya terdua. Karena itu diganti ambang rasio uniqueness: setidaknya
+    # separuh baris punya nilai berbeda, sehingga kode ber-kardinalitas rendah
+    # (mis. "id_pelaku" berisi 1/2/3) tetap tidak salah tandai. Jumlah
+    # duplikat dilaporkan terpisah lewat `duplicate_ids`.
+    if "id" in name.lower() and n > 0 and nunique / n >= 0.5:
         return "ID"
     if nunique <= 20:
         return "Nominal"
@@ -90,14 +97,27 @@ def profile_dataframe(df: pd.DataFrame) -> dict:
         except Exception:
             nunique = 0
         dtype = str(s.dtype)
+        detected = suggest_type(s)
         col_info: dict = {
             "name": str(col),
             "dtype": dtype,
-            "detected_type": suggest_type(s),
+            "detected_type": detected,
             "missing_count": missing,
             "missing_pct": round(missing / n_rows * 100, 2) if n_rows else 0.0,
             "unique_count": nunique,
         }
+        # Duplikat pada kolom pengenal merusak analisis berpasangan (satu
+        # subjek terdua) dan TIDAK tertangkap asumsi statistik apa pun — t-test
+        # berpasangan tetap "lolos" While hitungannya salah. Karena itu dihitung
+        # di sini, supaya UI bisa memperingatkan sebelum analisis dijalankan.
+        # `duplicate_values` = jumlah baris yang isinya mengulang nilai sebelumnya.
+        try:
+            duplicate_values = int(n_rows - missing - nunique)
+            col_info["duplicate_values"] = max(0, duplicate_values)
+            if detected == "ID":
+                col_info["duplicate_ids"] = max(0, duplicate_values)
+        except Exception:
+            pass
         if pd.api.types.is_numeric_dtype(s.dtype):
             desc = s.describe()
             col_info["stats"] = {

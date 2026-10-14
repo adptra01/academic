@@ -1,0 +1,57 @@
+method_id: chi2_gof
+display_name: "Uji Chi-Kuadrat Kesesuaian (Chi-Square Goodness-of-Fit)"
+purpose: "Menguji apakah distribusi frekuensi observasi sesuai dengan distribusi teoritis yang diharapkan"
+research_designs:
+  - test_assumption
+  - one_categorical
+required_variables:
+  - name: column
+    role: dependent
+    types: [Nominal, Ordinal, Binary]
+    levels: "2+"
+    description: "Variabel kategorikal yang diuji distribusinya"
+parameters:
+  - name: alpha
+    type: float
+    default: 0.05
+    range: [0.001, 0.1]
+    description: "Tingkat signifikansi"
+  - name: expected_proportions
+    type: array
+    items:
+      type: number
+    default: "uniform (1/k per kategori)"
+    description: "Array proporsi harapan per kategori (harus berjumlah 1, panjang = jumlah kategori)"
+assumptions:
+  - name: independence
+    check: "Desain penelitian — observasi independen"
+    note: "Tidak dapat diuji otomatis"
+  - name: expected_frequency
+    check: "Expected ≥ 5 per kategori"
+    warning_if_failed: true
+    note: "Otomatis diperiksa; kategori dengan expected <5 → warning"
+  - name: mutually_exclusive_categories
+    check: "Kategori saling eksklusif dan ekshaustif"
+limitations:
+  - "Expected <5 → uji tidak valid (gabungkan kategori atau perbesar sampel)"
+  - "Proporsi harapan harus dispesifikasikan a priori (bukan dari data)"
+  - "Kategori ordinal diurai sebagai nominal"
+  - "Hanya untuk 1 variabel kategorikal (bukan 2 variabel → chi2_independence)"
+alternatives:
+  - condition: "expected <5 & cannot combine categories"
+    switch_to: "exact_multinomial (di luar MVP)"
+    reason: "Exact test untuk goodness-of-fit sampel kecil"
+  - condition: "2 variabel kategorikal"
+    switch_to: "chi2_independence"
+    reason: "GOF hanya untuk 1 variabel vs distribusi teoritis"
+output_structure:
+  sections:
+    - summary
+    - warnings
+    - inferential
+    - interpretation
+    - methodology
+    - reproducibility
+export_requirements:
+  - all_6_formats
+  - appendix_with_raw_data_summary

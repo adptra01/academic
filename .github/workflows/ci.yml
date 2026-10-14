@@ -63,18 +63,19 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # Sumber skema = db/init.sql (baseline). Migrasi alembic TIDAK dijalankan
-      # pada DB fresh karena isinya sudah termasuk di init.sql — lihat catatan
-      # drift skema di CHANGELOG. `stamp head` menandai versi tanpa eksekusi.
+      # Sumber skema: db/init.sql (baseline c328765abd10) + alembic upgrade head
+      # Menjalankan migrasi secara riil di DB fresh (bukan stamp head semu).
       # Catatan: pakai flag -h/-p/-U/-d, BUKAN URI — psql (libpq) tidak mengenal
       # prefiks `postgresql+psycopg://` milik SQLAlchemy.
-      - name: Apply schema (init.sql baseline)
+      - name: Apply baseline schema (init.sql)
         run: psql -h localhost -p 5432 -U postgres -d academic_test -v ON_ERROR_STOP=1 -f ../db/init.sql
         env:
           PGPASSWORD: postgres
 
-      - name: Mark alembic at head
-        run: alembic stamp head
+      - name: Stamp baseline and run migrations to head
+        run: |
+          alembic stamp c328765abd10
+          alembic upgrade head
 
       - name: Run test suite
         run: python -m pytest -q

@@ -572,10 +572,14 @@ function SidebarMenuSkeleton({
 }: React.ComponentProps<'div'> & {
   showIcon?: boolean
 }) {
-  // Random width between 50 to 90%.
-  const [width] = React.useState(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
-  })
+  // Lebar acak hanya diisi setelah mount: Math.random() saat render bikin
+  // HTML server dan client beda (hydration mismatch).
+  const [width, setWidth] = React.useState('70%')
+
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Nilai acak client-only, diset sekali setelah mount agar SSR deterministik.
+    setWidth(`${Math.floor(Math.random() * 40) + 50}%`)
+  }, [])
 
   return (
     <div

@@ -1,0 +1,63 @@
+method_id: pearson
+display_name: "Korelasi Pearson (Linear)"
+purpose: "Mengukur kekuatan dan arah hubungan linear antara dua variabel numerik"
+research_designs:
+  - test_association
+  - explore_structure
+required_variables:
+  - name: x
+    role: independent
+    types: [Numerical]
+    levels: 1
+    description: "Variabel prediktor (numerik)"
+  - name: y
+    role: dependent
+    types: [Numerical]
+    levels: 1
+    description: "Variabel outcome (numerik)"
+parameters:
+  - name: alpha
+    type: float
+    default: 0.05
+    range: [0.001, 0.1]
+    description: "Tingkat signifikansi untuk CI dan uji hipotesis"
+assumptions:
+  - name: linearity
+    check: "Scatter plot X-Y — pola harus linear"
+    warning_if_failed: true
+  - name: bivariate_normality
+    check: "Shapiro-Wilk per variabel (otomatis di engine)"
+    warning_if_failed: true
+  - name: homoscedasticity
+    check: "Residual vs fitted plot — varians konstan"
+    warning_if_failed: true
+  - name: independence
+    check: "Desain penelitian — observasi independen"
+    note: "Tidak dapat diuji otomatis"
+  - name: no_outliers
+    check: "Scatter plot + IQR — outlier mempengaruhi r"
+    warning_if_failed: true
+limitations:
+  - "Hanya mengukur hubungan linear (bukan non-linear)"
+  - "Sensitif terhadap pencilan (outlier)"
+  - "Memerlukan bivariat normal untuk inferensi valid"
+  - "Korelasi ≠ kausalitas"
+alternatives:
+  - condition: "normality violated"
+    switch_to: "spearman"
+    reason: "Non-parametrik, tidak memerlukan normalitas, robust terhadap outlier"
+  - condition: "hubungan non-linear"
+    switch_to: "spearman / visualisasi scatter"
+    reason: "Spearman menangkap hubungan monotonik non-linear"
+output_structure:
+  sections:
+    - summary
+    - warnings
+    - inferential
+    - effect_size
+    - interpretation
+    - methodology
+    - reproducibility
+export_requirements:
+  - all_6_formats
+  - appendix_with_raw_data_summary

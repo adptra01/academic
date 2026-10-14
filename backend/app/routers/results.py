@@ -1,4 +1,5 @@
-"""Results router: chart PNG + export CSV/XLSX/PDF/DOCX (tabel+grafik+appendix). US-019/020 (FR-22/23)."""
+"""Results router: chart PNG + export CSV/XLSX/PDF/DOCX (tabel+grafik+lampiran). US-019/020 (FR-22/23)."""
+import re
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.orm import Session
@@ -25,6 +26,17 @@ def _load(uid: str, user: User, db: Session):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Data analysis tidak lengkap")
     df = load_version_df(ds, base)
     return a, res, ds, base, log, df
+
+
+def _safe_part(value: str, limit: int = 32) -> str:
+    """Karakter di luar [A-Za-z0-9-] jadi '-'; case asli uid tetap terjaga."""
+    return re.sub(r"[^A-Za-z0-9-]+", "-", value or "").strip("-")[:limit].strip("-")
+
+
+def _export_filename(uid: str, method: str, ext: str) -> str:
+    """`laporan_<uid>_<method>.<ext>` — deskriptif saat diserahkan ke pembimbing, uid tetap bisa ditelusuri."""
+    stem = "_".join([p for p in ("laporan", _safe_part(uid), _safe_part(method).lower()) if p])
+    return f"{stem}.{ext.lstrip('.').lower()}"
 
 
 @router.get("/analyses/{uid}/chart")
@@ -57,39 +69,35 @@ def export(uid: str, request: Request, format: str = Query(...), db: Session = D
     context = {
         "dataset": {"filename": ds.filename, "version": base.version_number, "rows": ds.rows_count, "cols": ds.cols_count},
         "variables": [{"name": v.name, "type": v.var_type, "role": v.var_role} for v in var_rows],
+        "parameters": {"requested": dict(a.params or {}), "resolved": dict(result.get("parameters") or {})},
+        "method": a.method, "method_name": result.get("method_name", ""),
         "analysis_uid": uid, "timestamp": log.timestamp.isoformat() if log and log.timestamp else "",
-        "software_version": res.software_version,
+        "software_version": res.software_version, "result_hash": res.result_hash,
     }
+    # satu nama file untuk semua format: ekstensi = format, karakter ASCII-safe
+    fname = _export_filename(uid, a.method, fmt)
     if fmt == "csv":
         content, media = build_csv(result), "text/csv"
-        fname = f"{uid}.csv"
     elif fmt == "json":
         import json as _json
 
         content, media = _json.dumps({"analysis_uid": uid, "method": a.method, "result": result, "result_hash": res.result_hash, "software_version": res.software_version}, ensure_ascii=False, indent=2).encode("utf-8"), "application/json"
-        fname = f"{uid}.json"
     elif fmt == "xlsx":
         content, media = build_xlsx(result), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        fname = f"{uid}.xlsx"
     elif fmt == "docx":
         try:
             chart_png, _ = make_chart(df, a.method, a.variables, result, None, dpi=200)
         except Exception:
             chart_png = None
         content, media = build_docx(result, context, chart_png), "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        fname = f"{uid}.docx"
     elif fmt == "tex":
-        content, media = build_latex(result, context, f"{uid}.png"), "application/x-latex"
-        fname = f"{uid}.tex"
+        content, media = build_latex(result, context, _export_filename(uid, a.method, "png")), "application/x-latex"
     else:
         try:
             chart_png, _ = make_chart(df, a.method, a.variables, result, None, dpi=300)
         except Exception:
             chart_png = None
-        # appendix: gabungkan context ke result copy agar PDF memuat info dataset
-        full = {**result, "_appendix": context}
-        content, media = build_pdf(full, context, chart_png), "application/pdf"
-        fname = f"{uid}.pdf"
+        content, media = build_pdf(result, context, chart_png), "application/pdf"
     # catat export (path logis; file disajikan langsung)
     storage_path = f"/code/storage/exports/{fname}"
     try:

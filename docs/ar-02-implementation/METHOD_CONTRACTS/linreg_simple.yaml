@@ -1,0 +1,69 @@
+method_id: linreg_simple
+display_name: "Regresi Linier Sederhana (Simple Linear Regression)"
+purpose: "Memodelkan hubungan linear satu prediktor (X) terhadap satu outcome (Y)"
+research_designs:
+  - predict_outcome
+  - test_association
+required_variables:
+  - name: x
+    role: independent
+    types: [Numerical]
+    levels: 1
+    description: "Variabel prediktor (numerik)"
+  - name: y
+    role: dependent
+    types: [Numerical]
+    levels: 1
+    description: "Variabel outcome (numerik)"
+parameters:
+  - name: alpha
+    type: float
+    default: 0.05
+    range: [0.001, 0.1]
+    description: "Tingkat signifikansi untuk CI koefisien dan uji F/model"
+assumptions:
+  - name: linearity
+    check: "Scatter plot X-Y — pola linear"
+    warning_if_failed: true
+  - name: independence
+    check: "Desain penelitian — residual independen (bukan time series/clustered)"
+    note: "Durbin-Watson di luar MVP"
+  - name: homoscedasticity
+    check: "Breusch-Pagan test (otomatis di engine) / residual vs fitted plot"
+    warning_if_failed: true
+    fallback: "Robust SE (HC3) — di luar MVP"
+  - name: normality_of_residuals
+    check: "Shapiro-Wilk pada residual (otomatis di engine)"
+    warning_if_failed: true
+    note: "Perlu untuk CI/p-value valid pada n kecil"
+  - name: no_multicollinearity
+    check: "N/A (hanya 1 prediktor)"
+    note: "Tidak relevan untuk regresi sederhana"
+limitations:
+  - "Hanya 1 prediktor (gunakan linreg_multiple untuk >1)"
+  - "Hanya hubungan linear (non-linear → transformasi/polinomial)"
+  - "Outlier X (leverage) & Y (residual) sangat mempengaruhi model"
+  - "Ekstrapolasi di luar range X berbahaya"
+  - "R² mudah naik tapi tidak berarti model bagus"
+alternatives:
+  - condition: "≥2 prediktor"
+    switch_to: "linreg_multiple"
+    reason: "Multiple regression untuk >1 prediktor"
+  - condition: "hubungan non-linear"
+    switch_to: "polynomial / spline (di luar MVP)"
+    reason: "Regresi linear tidak menangkap kurva"
+  - condition: "outcome biner"
+    switch_to: "logistic regression (di luar MVP)"
+    reason: "Linear regression tidak cocok untuk outcome biner"
+output_structure:
+  sections:
+    - summary
+    - warnings
+    - inferential
+    - effect_size
+    - interpretation
+    - methodology
+    - reproducibility
+export_requirements:
+  - all_6_formats
+  - appendix_with_raw_data_summary

@@ -1,0 +1,55 @@
+method_id: spearman
+display_name: "Korelasi Spearman (Rank/Monotonik)"
+purpose: "Mengukur kekuatan dan arah hubungan monotonik antara dua variabel (ordinal/numerik)"
+research_designs:
+  - test_association
+  - explore_structure
+required_variables:
+  - name: x
+    role: independent
+    types: [Numerical, Ordinal]
+    levels: 1
+    description: "Variabel prediktor (numerik atau ordinal)"
+  - name: y
+    role: dependent
+    types: [Numerical, Ordinal]
+    levels: 1
+    description: "Variabel outcome (numerik atau ordinal)"
+parameters:
+  - name: alpha
+    type: float
+    default: 0.05
+    range: [0.001, 0.1]
+    description: "Tingkat signifikansi untuk CI dan uji hipotesis"
+assumptions:
+  - name: monotonic_relationship
+    check: "Scatter plot — pola harus monotonik (naik atau turun konsisten)"
+    warning_if_failed: true
+  - name: independence
+    check: "Desain penelitian — observasi independen"
+    note: "Tidak dapat diuji otomatis"
+  - name: ordinal_or_continuous
+    check: "Variabel minimal ordinal"
+    note: "Nominal tidak cocok"
+limitations:
+  - "Hanya mengukur hubungan monotonik (bukan U-shape, dll)"
+  - "Kurang efisien dari Pearson jika data benar-benar normal linear"
+  - "Ties (nilai sama) mengurangi daya uji"
+alternatives:
+  - condition: "data normal linear + bivariat normal"
+    switch_to: "pearson"
+    reason: "Pearson lebih powerful untuk hubungan linear normal"
+  - condition: "variabel nominal"
+    switch_to: "chi2_independence"
+    reason: "Korelasi rank tidak cocok untuk nominal"
+output_structure:
+  sections:
+    - summary
+    - inferential
+    - effect_size
+    - interpretation
+    - methodology
+    - reproducibility
+export_requirements:
+  - all_6_formats
+  - appendix_with_raw_data_summary

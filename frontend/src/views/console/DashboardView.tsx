@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 
 // Next Imports
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 // Third-party Imports
 import { ArrowRightIcon, FolderOpenIcon, Trash2Icon } from 'lucide-react'
@@ -59,6 +60,7 @@ function fmtDate(iso: string) {
 }
 
 const DashboardView = () => {
+  const router = useRouter()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -115,10 +117,7 @@ const DashboardView = () => {
         body: JSON.stringify({ title: t, description: description.trim() || null, research_type: researchType })
       })
 
-      setTitle('')
-      setDescription('')
-      setMsg(`Project "${created.title}" dibuat.`)
-      await load()
+      router.push(`/projects/${created.id}`)
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Gagal membuat project')
     } finally {

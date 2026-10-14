@@ -4,9 +4,12 @@ import hashlib
 import json
 import random
 import string
+import uuid
 from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
+
+from app.core.config import settings
 
 METHOD_IDS = [
     "descriptive", "normality", "pearson", "spearman",
@@ -17,6 +20,8 @@ METHOD_IDS = [
     "ml_classify", "ml_cluster", "text_tfidf", "text_lda",
     "apriori",
 ]
+
+PHASE2_METHODS = {"ml_classify", "ml_cluster", "text_tfidf", "text_lda", "apriori"}
 
 METHOD_NAMES = {
     "descriptive": "Descriptive Statistics",
@@ -40,6 +45,13 @@ METHOD_NAMES = {
     "text_lda": "Topic Modeling (LDA)",
     "apriori": "Association Rules (Apriori)",
 }
+
+
+def get_visible_methods() -> list[str]:
+    """Return method IDs visible under current feature flag."""
+    if not getattr(settings, "feature_phase2", False):
+        return [m for m in METHOD_IDS if m not in PHASE2_METHODS]
+    return list(METHOD_IDS)
 
 
 def new_uid() -> str:
@@ -74,6 +86,49 @@ def clean(v):
 
 def result_hash(result: dict) -> str:
     canon = json.dumps(result, sort_keys=True, ensure_ascii=False, default=str)
+    return hashlib.sha256(canon.encode("utf-8")).hexdigest()
+
+
+def compute_analysis_hash(
+    method: str,
+    variables: dict,
+    params: dict,
+    dataset_version_id: uuid.UUID,
+    project_id: uuid.UUID,
+    preprocessing_ops: list | None = None,
+    engine_version: str | None = None,
+    missing_policy: str | None = None,
+    random_seeds: dict | None = None,
+) -> str:
+    """Extended hash including preprocessing, engine_version, missing_policy, random_seeds.
+    Used for Analysis.analysis_hash to enable exact reproducibility tracking.
+    """
+    payload = {
+        "method": method,
+        "variables": variables,
+        "params": params,
+        "dataset_version_id": str(dataset_version_id),
+        "project_id": str(project_id),
+        "preprocessing_ops": preprocessing_ops or [],
+        "engine_version": engine_version,
+        "missing_policy": missing_policy,
+        "random_seeds": random_seeds or {},
+    }
+    canon = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
+    return hashlib.sha256(canon.encode("utf-8")).hexdigest()
+
+
+def analysis_hash(context: dict, result: dict) -> str:
+    """Hash deterministik dari context + result untuk deteksi duplikat analisis.
+    context berisi: method, variables, params, dataset_version_id, project_id.
+    Duplikat = kombinasi context + result identik → hash sama.
+    """
+    payload = {
+        "context": {k: context.get(k) for k in
+                    ("method", "variables", "params", "dataset_version_id", "project_id")},
+        "result": result,
+    }
+    canon = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
     return hashlib.sha256(canon.encode("utf-8")).hexdigest()
 
 
@@ -128,4 +183,25 @@ def run_analysis(df: pd.DataFrame, method: str, variables: dict, params: dict) -
         "text_lda": text_mining.run_lda,
         "apriori": apriori.run,
     }
-    return table[method](df, variables, alpha, params)
+    result = table[method](df, variables, alpha, params)
+
+    # Transparansi n: banyak metode membuang baris (missing/pasangan tak lengkap)
+    # secara internal, sehingga n pada tabel hasil ≠ n dataset. Kedua angka itu
+    # wajib berdampingan; kalau tidak, paper menulis n=1250 sementara tabel
+    # n=1187 dan pembimbing langsung bertanya. (PR-04)
+    n_source = int(len(df))
+    n_used = int(result.get("n", n_source)) if isinstance(result.get("n"), (int, float)) else n_source
+    dropped = max(0, n_source - n_used)
+    result["n_source"] = n_source
+    result["n_rows_dropped"] = dropped
+    if dropped > 0:
+        note = (f"n analisis {n_used} dari {n_source} baris sumber "
+                f"({dropped} baris tidak ikut dihitung, mis. data kosong/pasangan tak lengkap).")
+        result.setdefault("notes", [])
+        result["notes"].append(note)
+        # kept as a warning so it surfaces at the top of the result view
+        result.setdefault("warnings", [])
+        if note not in result["warnings"]:
+            result["warnings"].append(note)
+
+    return result

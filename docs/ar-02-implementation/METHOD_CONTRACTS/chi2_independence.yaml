@@ -1,0 +1,65 @@
+method_id: chi2_independence
+display_name: "Uji Chi-Kuadrat Independensi (Chi-Square Test of Independence)"
+purpose: "Menguji apakah dua variabel kategorikal saling independen (tidak berhubungan)"
+research_designs:
+  - test_association
+  - categorical_categorical
+required_variables:
+  - name: col1
+    role: independent
+    types: [Nominal, Ordinal, Binary]
+    levels: "2+"
+    description: "Variabel kategorikal pertama (baris tabel kontingensi)"
+  - name: col2
+    role: dependent
+    types: [Nominal, Ordinal, Binary]
+    levels: "2+"
+    description: "Variabel kategorikal kedua (kolom tabel kontingensi)"
+parameters:
+  - name: alpha
+    type: float
+    default: 0.05
+    range: [0.001, 0.1]
+    description: "Tingkat signifikansi"
+  - name: correction
+    type: boolean
+    default: true
+    description: "Yates' continuity correction untuk tabel 2x2 (default true). Diabaikan untuk tabel >2x2."
+assumptions:
+  - name: independence
+    check: "Desain penelitian — observasi independen"
+    note: "Tidak dapat diuji otomatis"
+  - name: expected_frequency
+    check: "Frekuensi harapan (expected) ≥ 5 di ≥80% sel, tidak ada <1"
+    warning_if_failed: true
+    note: "Otomatis diperiksa di engine; low expected → warning"
+  - name: categorical_data
+    check: "Variabel minimal nominal (bukan numerik kontinu)"
+limitations:
+  - "Tidak menunjukkan arah/kekuatan hubungan (gunakan Cramér's V untuk effect size)"
+  - "Sensitif terhadap ukuran sampel besar (p signifikan meski effect kecil)"
+  - "Expected <5 → uji tidak valid (pertimbangkan Fisher's Exact, di luar MVP)"
+  - "Tidak untuk data berpasangan (gunakan McNemar, di luar MVP)"
+  - "Ordinal diurai sebagai nominal — kehilangan info urutan"
+alternatives:
+  - condition: "expected frequency <5 (2x2)"
+    switch_to: "fisher_exact (di luar MVP)"
+    reason: "Fisher's Exact valid untuk sampel kecil/expected rendah"
+  - condition: "variabel ordinal"
+    switch_to: "spearman / kendall_tau (di luar MVP)"
+    reason: "Korelasi rank memanfaatkan info urutan"
+  - condition: "data berpasangan (matched)"
+    switch_to: "mcnemar (di luar MVP)"
+    reason: "Chi-square independensi butuh observasi independen"
+output_structure:
+  sections:
+    - summary
+    - warnings
+    - inferential
+    - effect_size
+    - interpretation
+    - methodology
+    - reproducibility
+export_requirements:
+  - all_6_formats
+  - appendix_with_raw_data_summary

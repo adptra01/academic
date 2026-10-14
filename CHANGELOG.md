@@ -510,3 +510,60 @@ blok amber tampil sebelum "Keputusan", memuat
 "Asumsi normalitas 'diggCount' (D'Agostino-Pearson) tidak terpenuhi (p < .001)".
 
 Verified: 61 pytest pass, tsc bersih, eslint 0, next build 11/11.
+
+## [2026-10-11] — Batch 2: Transparansi data + Alur kerja jujur + Ekspor Indonesia + Mesin saran
+
+Perbaikan besar yang diselesaikan di sesi ini (semua diverifikasi test 107/107):
+
+### 1. Transparansi `n_awal` vs `n_analisis` (P0-4)
+- `backend/app/services/stats/__init__.py` dispatcher menyuntikkan `n_source` (baris dataset) dan `n_rows_dropped` ke **setiap** metode hasil.
+- Jika baris dibuang (missing/pasangan tak lengkap), warning otomatis muncul di blok "Perhatian sebelum membaca hasil" di atas angka.
+- Test baru: `backend/tests/test_transparency.py` (12 test) — paired t-test 50 vs 40 baris, tanpa false positive.
+
+### 2. Deteksi ID duplikat (P0-8)
+- `profile_dataframe()` sekarang melaporkan `duplicate_values` per kolom, dan `duplicate_ids` khusus kolom yang terdeteksi `ID`.
+- `suggest_type()` diperbaiki: kolom bernama `id_*` dengan rasio uniqueness ≥50% ditandai `ID` (bukan `Nominal`), sehingga duplikat tidak lolos tak terdeteksi.
+- Test: kolom `id_responden` duplikat 1 baris → terdeteksi; kolom `id_pelaku` kardinalitas rendah → bukan ID.
+
+### 3. Gate pre-flight + warnings di atas (P0-2, P0-3, P0-5) — sudah commit sebelumnya
+- Endpoint `POST /analyses/preflight` + modul `preflight.py` → isu blocking tampil inline di bawah field, tombol "Jalankan" nonaktif sampai bersih.
+- Blok amber "Perhatian sebelum membaca hasil" menggabungkan engine warnings + asumsi GAGAL, muncul sebelum keputusan & interpretasi.
+
+### 4. Riwayat transformasi di UI (P1-4)
+- Tab "Bersihkan Data" menampilkan kartu "Riwayat Transformasi — v{n}" yang mengambil `transformation_log` dari API (dihitung sejak upload + tiap preprocessing).
+- Pengguna & pembimbing tahu persis operasi apa yang membentuk versi data sebelum dianalisis.
+
+### 5. Checklist tahap jujur (P1-5)
+- `StepNav` status diperluas: `done` (pekerjaan pengguna), `auto` (dibuat sistem, belum ditinjau), `skip` (tidak perlu).
+- "Atur Kolom" → `auto` selama pengguna belum ganti tipe manual; "Bersihkan Data" → `skip` bila data mentah (v1).
+- Centang hijau **hanya** untuk `done` — checklist tidak lagi berbohong.
+
+### 6. Ekspor berbahasa Indonesia + nama file bermakna (P1-8)
+- `export_service.py`: `fmt_p()` dipakai di semua format (CSV/XLSX/PDF/DOCX/TeX) → `p < .001` bukan `1.2e-45`.
+- Judul dokumen: "Academic Research Analysis Report" → **"Laporan Analisis Penelitian"**.
+- Header tabel: "Key/Value" → "Kunci/Nilai"; label metadata diterjemahkan (Metode, Dataset, Lampiran, Waktu, Versi software).
+- `results.py`: nama file `laporan_<uid>_<method>.<ext>` (ASCII-safe) — deskriptif untuk pembimbing, uid tetap terlacak.
+
+### 7. PDF appendix (P0-7) — sudah diperbaiki subagent A
+- `build_pdf()` kini memakai `context` dan menyertakan lampiran lengkap (dataset info, versi, variabel, parameter, hash, timestamp).
+- Konsisten dengan DOCX/TeX yang sudah punya appendix.
+
+### 8. Mesin saran metodologi deterministik (P1-10) — subagent B
+- Modul baru `backend/app/services/advice/` dengan 6 aturan (MA-01..MA-06):
+  - ID duplikat, missing tinggi, kelompok >2 level untuk t-test, <2 level, outlier IQR, skala Likert terdeteksi.
+- Setiap aturan: pesan Bahasa Indonesia dengan **angka nyata** (mis. "6 baris duplikat", "11,8% kosong (147 baris)"), `switch_to` metode alternatif bila relevan.
+- 34 test lulus, JSON-serialisable, deterministik (tanpa LLM).
+
+## [2026-10-11] — Batch 3: Deteksi duplikat analisis + Perbaikan alembic drift
+
+### 9. Deteksi duplikat analisis (P1-3)
+- `backend/app/services/stats/__init__.py`: fungsi baru `analysis_hash(context, result)` menggabungkan method, variables, params, dataset_version_id, project_id + result.
+- `backend/app/routers/analyses.py` `run()`: query sebelumnya pada versi dataset yang sama dengan method+variables+params identik; jika ditemukan, tambahkan `dup_note` ke `result["notes"]` dan `result["warnings"]`.
+- `RunOut` diperluas dengan field `warnings` dan `notes` (default `[]`).
+- `backend/tests/test_transparency.py`: 2 test API (duplikat terdeteksi, beda params tidak duplikat).
+
+### 10. Perbaikan alembic drift (CI/CD)
+- `db/init.sql`: hapus `feedback_reports`, `oauth_connections`, `data_sources`, `shared_links`, dan `ALTER TABLE datasets` (sekarang hanya baseline c328765abd10).
+- `.github/workflows/ci.yml`: ganti `alembic stamp head` dengan `alembic stamp c328765abd10 && alembic upgrade head` — migrasi dijalankan secara riil di DB fresh, tanpa `DuplicateTable`.
+
+Verified: 107 pytest pass (61 original + 34 advice + 12 transparency), frontend tsc/eslint/build bersih.

@@ -1,0 +1,64 @@
+method_id: mannwhitney
+display_name: "Uji Mann-Whitney U (Wilcoxon Rank-Sum)"
+purpose: "Membandingkan distribusi dua kelompok independen (alternatif non-parametrik ttest_ind)"
+research_designs:
+  - between_subjects
+  - two_groups
+  - nonparametric
+required_variables:
+  - name: group
+    role: grouping
+    types: [Nominal, Binary, Ordinal]
+    levels: 2
+    description: "Variabel grouping (tepat 2 level/grup)"
+  - name: column
+    role: dependent
+    types: [Numerical, Ordinal]
+    levels: 1
+    description: "Variabel outcome (numerik atau ordinal)"
+parameters:
+  - name: alpha
+    type: float
+    default: 0.05
+    range: [0.001, 0.1]
+    description: "Tingkat signifikansi"
+assumptions:
+  - name: independence
+    check: "Desain penelitian (between-subjects, grup independen)"
+    note: "Tidak dapat diuji otomatis"
+  - name: ordinal_or_continuous
+    check: "Variabel minimal ordinal"
+    note: "Nominal tidak cocok"
+  - name: similar_shape
+    check: "Distribusi kedua grup bentuk serupa (untuk interpretasi median)"
+    warning_if_failed: true
+    note: "Jika bentuk beda, U menguji stokastik dominasi, bukan perbedaan median"
+limitations:
+  - "Tidak untuk data berpasangan (gunakan wilcoxon)"
+  - "Tidak untuk >2 kelompok (gunakan kruskal)"
+  - "Rank-biserial r bukan Cohen's d — interpretasi beda"
+  - "Ties (nilai sama) mengurangi daya uji"
+  - "Hanya memberitahu 'distribusi beda' — bukan spesifik mana"
+alternatives:
+  - condition: "normality OK + variance homogeneous"
+    switch_to: "ttest_ind"
+    reason: "Parametrik lebih powerful jika asumsi terpenuhi"
+  - condition: "data berpasangan"
+    switch_to: "wilcoxon"
+    reason: "Wilcoxon untuk desain within-subjects/paired"
+  - condition: "≥3 grup independen"
+    switch_to: "kruskal"
+    reason: "Kruskal-Wallis untuk ≥3 grup"
+output_structure:
+  sections:
+    - summary
+    - warnings
+    - descriptive_per_group
+    - inferential
+    - effect_size
+    - interpretation
+    - methodology
+    - reproducibility
+export_requirements:
+  - all_6_formats
+  - appendix_with_raw_data_summary

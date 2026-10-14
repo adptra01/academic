@@ -1,0 +1,1213 @@
+openapi: 3.0.3
+info:
+  title: AR-02 Dual-Mode Academic Research Platform API
+  version: 1.0.0
+  description: |
+    API specification for Guided (Automatic) and Manual analysis modes.
+    Extends existing `/api/v1` endpoints from AR-01 baseline.
+  contact:
+    name: AR-02 Team
+servers:
+  - url: http://localhost:8100/api/v1
+    description: Local development (DDEV)
+  - url: https://api.example.com/api/v1
+    description: Production
+
+tags:
+  - name: research-intent
+    description: Research intent capture & management
+  - name: method-recommendation
+    description: Deterministic method recommender based on methodology contracts
+  - name: analysis-config
+    description: Analysis configuration builder (guided flow)
+  - name: analyses
+    description: Analysis execution (guided + manual unified)
+  - name: preflight
+    description: Pre-flight validation v2 (unified)
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ProjectIdParam:
+      name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Project UUID
+    DatasetIdParam:
+      name: dataset_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Dataset UUID
+    AnalysisUidParam:
+      name: uid
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^ANL-\d{8}-[A-Z0-9]{6}$'
+      description: Analysis UID (format: ANL-YYYYMMDD-XXXXXX)
+    ConfigIdParam:
+      name: config_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: AnalysisConfig UUID
+    IntentIdParam:
+      name: intent_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: ResearchIntent UUID
+
+  schemas:
+    # ============================================================
+    # COMMON / REUSED SCHEMAS
+    # ============================================================
+    UUID:
+      type: string
+      format: uuid
+    DateTime:
+      type: string
+      format: date-time
+    MethodId:
+      type: string
+      enum:
+        - descriptive
+        - normality
+        - pearson
+        - spearman
+        - ttest_1samp
+        - ttest_ind
+        - ttest_paired
+        - anova_oneway
+        - chi2_independence
+        - chi2_gof
+        - mannwhitney
+        - wilcoxon
+        - kruskal
+        - linreg_simple
+        - linreg_multiple
+        # Phase-2 (hidden when FEATURE_PHASE2=false)
+        - ml_classify
+        - ml_cluster
+        - text_tfidf
+        - text_lda
+        - apriori
+      description: Statistical method identifier
+
+    ColumnKind:
+      type: string
+      enum: [any, numeric, categorical, group, text]
+      description: Column type constraint for variable selection
+
+    ColSpec:
+      type: object
+      required: [kind, label]
+      properties:
+        kind:
+          $ref: '#/components/schemas/ColumnKind'
+        label:
+          type: string
+        multi:
+          type: boolean
+          default: false
+        description:
+          type: string
+
+    ParamKind:
+      type: string
+      enum: [number, int, enum, number_list, boolean]
+    ParamSpec:
+      type: object
+      required: [kind, label]
+      properties:
+        kind:
+          $ref: '#/components/schemas/ParamKind'
+        label:
+          type: string
+        required:
+          type: boolean
+          default: false
+        default:
+          type: [string, number, boolean]
+        options:
+          type: array
+          items:
+            type: string
+        min:
+          type: number
+        max:
+          type: number
+        hint:
+          type: string
+
+    MethodSpec:
+      type: object
+      required: [variables, params]
+      properties:
+        variables:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ColSpec'
+        params:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ParamSpec'
+
+    PreflightIssue:
+      type: object
+      required: [level, code, key, message, fix]
+      properties:
+        level:
+          type: string
+          enum: [blocking, confirmation, warning]
+          description: |
+            blocking = hard stop (422 on run)
+            confirmation = requires explicit acknowledge
+            warning = informational only
+        code:
+          type: string
+          description: Machine-readable code (e.g., MISSING_GROUP_COLUMN)
+        key:
+          type: string
+          description: Field key related to issue (e.g., "group", "column")
+        message:
+          type: string
+          description: Human-readable message
+        fix:
+          type: string
+          description: Suggested remediation action
+        details:
+          type: object
+          description: Optional structured context
+
+    MARuleTriggered:
+      type: object
+      required: [rule, message]
+      properties:
+        rule:
+          type: string
+          pattern: '^MA-0[1-6]$'
+        message:
+          type: string
+        switch_to:
+          type: string
+          description: Alternative method if applicable
+
+    AssumptionCheck:
+      type: object
+      required: [name, check, status]
+      properties:
+        name:
+          type: string
+        check:
+          type: string
+        status:
+          type: string
+          enum: [pass, fail, unknown, not_applicable]
+        warning_if_failed:
+          type: boolean
+          default: false
+        fallback:
+          type: string
+
+    Limitation:
+      type: object
+      required: [description]
+      properties:
+        description:
+          type: string
+
+    AlternativeMethod:
+      type: object
+      required: [condition, switch_to, reason]
+      properties:
+        condition:
+          type: string
+        switch_to:
+          $ref: '#/components/schemas/MethodId'
+        reason:
+          type: string
+
+    MethodContractRef:
+      type: object
+      properties:
+        assumptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssumptionCheck'
+        limitations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Limitation'
+        alternatives:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlternativeMethod'
+
+    # ============================================================
+    # RESEARCH INTENT
+    # ============================================================
+    GoalCategory:
+      type: string
+      enum:
+        - compare_groups
+        - test_association
+        - predict_outcome
+        - explore_structure
+        - describe_data
+        - custom
+
+    DesignHints:
+      type: object
+      properties:
+        design:
+          type: string
+          enum: [between_subjects, within_subjects, mixed, observational, time_series]
+        groups:
+          type: integer
+          minimum: 1
+        paired:
+          type: boolean
+        outcome_type:
+          type: string
+          enum: [continuous, binary, ordinal, nominal, count, time_to_event]
+        predictors:
+          type: array
+          items:
+            type: string
+          description: Expected predictor variable roles
+        time_points:
+          type: integer
+          minimum: 2
+        clusters_expected:
+          type: integer
+          minimum: 2
+        topics_expected:
+          type: integer
+          minimum: 2
+
+    ResearchIntentCreate:
+      type: object
+      required: [project_id, dataset_version_id, goal_category]
+      properties:
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        dataset_version_id:
+          $ref: '#/components/schemas/UUID'
+        goal_category:
+          $ref: '#/components/schemas/GoalCategory'
+        design_hints:
+          $ref: '#/components/schemas/DesignHints'
+        user_question:
+          type: string
+          maxLength: 2000
+          description: Free-text research question
+
+    ResearchIntentUpdate:
+      type: object
+      properties:
+        goal_category:
+          $ref: '#/components/schemas/GoalCategory'
+        design_hints:
+          $ref: '#/components/schemas/DesignHints'
+        user_question:
+          type: string
+          maxLength: 2000
+
+    ResearchIntentResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResearchIntentCreate'
+        - type: object
+          required: [id, created_at, updated_at]
+          properties:
+            id:
+              $ref: '#/components/schemas/UUID'
+            created_at:
+              $ref: '#/components/schemas/DateTime'
+            updated_at:
+              $ref: '#/components/schemas/DateTime'
+
+    # ============================================================
+    # METHOD RECOMMENDATION
+    # ============================================================
+    VariableMapping:
+      type: object
+      description: Maps method variable roles to dataset columns
+      additionalProperties:
+        type: string
+
+    RecommendationItem:
+      type: object
+      required: [method_id, confidence, variable_mapping]
+      properties:
+        method_id:
+          $ref: '#/components/schemas/MethodId'
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Match confidence (0-1)
+        variable_mapping:
+          $ref: '#/components/schemas/VariableMapping'
+        assumptions_check:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [pass, fail, unknown, not_applicable]
+        warnings:
+          type: array
+          items:
+            type: string
+        alternatives:
+          type: array
+          items:
+            $ref: '#/components/schemas/MethodId'
+
+    MethodRecommendRequest:
+      type: object
+      required: [research_intent_id]
+      properties:
+        research_intent_id:
+          $ref: '#/components/schemas/UUID'
+        dataset_profile_id:
+          $ref: '#/components/schemas/UUID'
+          description: Optional: specific profile version (defaults to latest)
+
+    MethodRecommendResponse:
+      type: object
+      required: [recommendations, fallback]
+      properties:
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendationItem'
+          maxItems: 3
+        fallback:
+          $ref: '#/components/schemas/MethodId'
+          description: Safe fallback (always descriptive)
+
+    # ============================================================
+    # ANALYSIS CONFIG (Guided Flow)
+    # ============================================================
+    ConfigStatus:
+      type: string
+      enum: [draft, confirmed, executed, archived]
+
+    SourceMode:
+      type: string
+      enum: [guided, manual]
+
+    PreprocessingOp:
+      type: object
+      required: [op]
+      properties:
+        op:
+          type: string
+          enum:
+            - drop_missing
+            - fill_missing
+            - remove_outlier_iqr
+            - scale_standard
+            - scale_minmax
+            - transform_log
+            - transform_sqrt
+            - mapping
+            - onehot
+            - rename
+            - drop_columns
+            - text_lowercase
+            - text_remove_punct
+            - text_remove_stopwords
+            - remove_duplicates
+        column:
+          type: string
+        params:
+          type: object
+
+    AnalysisConfigCreateGuided:
+      type: object
+      required: [project_id, dataset_version_id, method, variables, params, research_intent_id]
+      properties:
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        dataset_version_id:
+          $ref: '#/components/schemas/UUID'
+        method:
+          $ref: '#/components/schemas/MethodId'
+        variables:
+          type: object
+          description: Column mappings per method spec
+        params:
+          type: object
+          description: Method parameters (alpha, mu, n_clusters, etc.)
+        preprocessing_ops:
+          type: array
+          items:
+            $ref: '#/components/schemas/PreprocessingOp'
+          default: []
+        research_intent_id:
+          $ref: '#/components/schemas/UUID'
+        wizard_step:
+          type: integer
+          minimum: 1
+          maximum: 5
+          default: 4
+
+    AnalysisConfigCreateManual:
+      type: object
+      required: [project_id, dataset_version_id, method, variables, params]
+      properties:
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        dataset_version_id:
+          $ref: '#/components/schemas/UUID'
+        method:
+          $ref: '#/components/schemas/MethodId'
+        variables:
+          type: object
+        params:
+          type: object
+        preprocessing_ops:
+          type: array
+          items:
+            $ref: '#/components/schemas/PreprocessingOp'
+          default: []
+
+    AnalysisConfigResponse:
+      type: object
+      required: [id, project_id, dataset_version_id, method, variables, params, status, source_mode, wizard_step, created_at, updated_at]
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        research_intent_id:
+          $ref: '#/components/schemas/UUID'
+        dataset_version_id:
+          $ref: '#/components/schemas/UUID'
+        method:
+          $ref: '#/components/schemas/MethodId'
+        variables:
+          type: object
+        params:
+          type: object
+        preprocessing_ops:
+          type: array
+          items:
+            $ref: '#/components/schemas/PreprocessingOp'
+        status:
+          $ref: '#/components/schemas/ConfigStatus'
+        source_mode:
+          $ref: '#/components/schemas/SourceMode'
+        wizard_step:
+          type: integer
+          minimum: 0
+          maximum: 5
+        preflight_result:
+          type: object
+          nullable: true
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+        confirmed_at:
+          $ref: '#/components/schemas/DateTime'
+          nullable: true
+        executed_at:
+          $ref: '#/components/schemas/DateTime'
+          nullable: true
+
+    ConfigConfirmRequest:
+      type: object
+      properties:
+        acknowledged_confirmations:
+          type: array
+          items:
+            type: string
+          description: Codes of confirmation-level issues user acknowledges
+
+    ConfigConfirmResponse:
+      type: object
+      required: [config, preflight]
+      properties:
+        config:
+          $ref: '#/components/schemas/AnalysisConfigResponse'
+        preflight:
+          type: object
+          required: [ok, issues]
+          properties:
+            ok:
+              type: boolean
+            issues:
+              type: array
+              items:
+                $ref: '#/components/schemas/PreflightIssue'
+            method_contract:
+              $ref: '#/components/schemas/MethodContractRef'
+            ma_rules_triggered:
+              type: array
+              items:
+                $ref: '#/components/schemas/MARuleTriggered'
+
+    # ============================================================
+    # ANALYSIS EXECUTION (Guided + Manual Unified)
+    # ============================================================
+    RunInBase:
+      type: object
+      required: [project_id, dataset_id, method, variables]
+      properties:
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        dataset_id:
+          $ref: '#/components/schemas/UUID'
+        base_version:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Deprecated - use dataset_version_id via config
+        method:
+          $ref: '#/components/schemas/MethodId'
+        variables:
+          type: object
+        params:
+          type: object
+          default: {}
+
+    RunInGuided:
+      allOf:
+        - $ref: '#/components/schemas/RunInBase'
+        - type: object
+          required: [analysis_config_id]
+          properties:
+            analysis_config_id:
+              $ref: '#/components/schemas/UUID'
+
+    RunInManual:
+      allOf:
+        - $ref: '#/components/schemas/RunInBase'
+        - type: object
+          properties:
+            dataset_version_id:
+              $ref: '#/components/schemas/UUID'
+              description: Preferred over base_version + dataset_id
+
+    RunOut:
+      type: object
+      required: [analysis_uid, method, result, result_hash]
+      properties:
+        analysis_uid:
+          type: string
+          description: Human-readable UID (ANL-YYYYMMDD-XXXXXX)
+        method:
+          $ref: '#/components/schemas/MethodId'
+        result:
+          type: object
+          description: Full analysis result payload (method-specific)
+        result_hash:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+          description: SHA-256 of canonical result JSON
+        warnings:
+          type: array
+          items:
+            type: string
+          default: []
+        notes:
+          type: array
+          items:
+            type: string
+          default: []
+
+    AnalysisDetail:
+      type: object
+      required: [analysis_uid, method, project_id, dataset_version_id, variables, params, status, created_at, result, result_hash]
+      properties:
+        analysis_uid:
+          type: string
+        method:
+          $ref: '#/components/schemas/MethodId'
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        dataset_version_id:
+          $ref: '#/components/schemas/UUID'
+        dataset_filename:
+          type: string
+          nullable: true
+        dataset_version_number:
+          type: integer
+          nullable: true
+        variables:
+          type: object
+        params:
+          type: object
+        status:
+          type: string
+          enum: [pending, running, done, failed]
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        result:
+          type: object
+          nullable: true
+        result_hash:
+          type: string
+          nullable: true
+        software_version:
+          type: string
+          nullable: true
+        timestamp:
+          $ref: '#/components/schemas/DateTime'
+          nullable: true
+        analysis_config_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+        analysis_hash:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+          nullable: true
+          description: Extended hash including preprocessing, engine_version, missing_policy, random_seeds
+
+    AnalysisListItem:
+      type: object
+      required: [analysis_uid, method, variables, params, status, created_at]
+      properties:
+        analysis_uid:
+          type: string
+        method:
+          $ref: '#/components/schemas/MethodId'
+        variables:
+          type: object
+        params:
+          type: object
+        status:
+          type: string
+        dataset_version_number:
+          type: integer
+          nullable: true
+        result_hash:
+          type: string
+          nullable: true
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+
+    # ============================================================
+    # PREFLIGHT V2
+    # ============================================================
+    PreflightRequest:
+      type: object
+      required: [dataset_version_id, method, variables]
+      properties:
+        dataset_version_id:
+          $ref: '#/components/schemas/UUID'
+        method:
+          $ref: '#/components/schemas/MethodId'
+        variables:
+          type: object
+        params:
+          type: object
+          default: {}
+        preprocessing_ops:
+          type: array
+          items:
+            $ref: '#/components/schemas/PreprocessingOp'
+          default: []
+          description: Optional: ops to apply before preflight (for config-aware validation)
+
+    PreflightResponse:
+      type: object
+      required: [ok, issues]
+      properties:
+        ok:
+          type: boolean
+          description: True if no blocking issues
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/PreflightIssue'
+        method_contract:
+          $ref: '#/components/schemas/MethodContractRef'
+        ma_rules_triggered:
+          type: array
+          items:
+            $ref: '#/components/schemas/MARuleTriggered'
+
+    # ============================================================
+    # ERROR RESPONSES
+    # ============================================================
+    HTTPValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  type: string
+              msg:
+                type: string
+              type:
+                type: string
+
+    HTTPError:
+      type: object
+      properties:
+        detail:
+          type: string
+
+    HTTPErrorWithIssues:
+      type: object
+      properties:
+        message:
+          type: string
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/PreflightIssue'
+
+paths:
+  # ============================================================
+  # RESEARCH INTENT
+  # ============================================================
+  /research-intent:
+    post:
+      tags: [research-intent]
+      summary: Create research intent
+      description: |
+        Capture user's research goal and design hints.
+        Used by method recommender to suggest appropriate statistical methods.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResearchIntentCreate'
+      responses:
+        '201':
+          description: Research intent created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResearchIntentResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPError'
+        '404':
+          description: Project or dataset version not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPError'
+        '422':
+          description: Validation error (e.g., dataset version not in project)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /research-intent/{intent_id}:
+    get:
+      tags: [research-intent]
+      summary: Get research intent
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IntentIdParam'
+      responses:
+        '200':
+          description: Research intent found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResearchIntentResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found or not owned by user
+
+    patch:
+      tags: [research-intent]
+      summary: Update research intent
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IntentIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResearchIntentUpdate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResearchIntentResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '422':
+          description: Validation error
+
+  # ============================================================
+  # METHOD RECOMMENDATION
+  # ============================================================
+  /methods/recommend:
+    post:
+      tags: [method-recommendation]
+      summary: Get method recommendations for a research intent
+      description: |
+        Deterministic recommender based on methodology contracts.
+        Returns up to 3 ranked recommendations with variable mappings.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MethodRecommendRequest'
+      responses:
+        '200':
+          description: Recommendations generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MethodRecommendResponse'
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Research intent not found
+
+  # ============================================================
+  # METHOD SPEC (Existing - Enhanced)
+  # ============================================================
+  /methods/{method_id}:
+    get:
+      tags: [analyses]
+      summary: Get method specification (variables + params)
+      description: |
+        Returns typed specification for a method.
+        Variables = dataset columns; Params = method options.
+        Phase-2 methods return 404 when FEATURE_PHASE2=false.
+      parameters:
+        - name: method_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/MethodId'
+      responses:
+        '200':
+          description: Method specification
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, name, variables, params]
+                properties:
+                  id:
+                    $ref: '#/components/schemas/MethodId'
+                  name:
+                    type: string
+                  variables:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/ColSpec'
+                  params:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/ParamSpec'
+        '404':
+          description: Method not found or hidden (Phase-2)
+
+  # ============================================================
+  # ANALYSIS CONFIG (Guided)
+  # ============================================================
+  /analysis-config/guided:
+    post:
+      tags: [analysis-config]
+      summary: Create analysis config from guided wizard
+      description: |
+        Called at Step 4 (PreflightGate) to persist the guided configuration.
+        Returns config with draft status.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalysisConfigCreateGuided'
+      responses:
+        '201':
+          description: Config created (draft)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisConfigResponse'
+        '400':
+          description: Invalid config
+        '401':
+          description: Unauthorized
+        '404':
+          description: Project, dataset version, or research intent not found
+        '422':
+          description: Validation error (method/variables mismatch)
+
+  /analysis-config/{config_id}:
+    get:
+      tags: [analysis-config]
+      summary: Get analysis config for review
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ConfigIdParam'
+      responses:
+        '200':
+          description: Config found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisConfigResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found or not owned by user
+
+  /analysis-config/{config_id}/confirm:
+    post:
+      tags: [analysis-config]
+      summary: Confirm config and run pre-flight v2
+      description: |
+        Validates the configuration against the dataset.
+        Returns pre-flight issues (blocking/confirmation/warning).
+        If no blockers and confirmations acknowledged, config.status becomes 'confirmed'.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ConfigIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigConfirmRequest'
+      responses:
+        '200':
+          description: Pre-flight completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigConfirmResponse'
+        '400':
+          description: Config already executed/archived
+        '401':
+          description: Unauthorized
+        '404':
+          description: Config not found
+        '422':
+          description: Blocking issues present (check issues array)
+
+  # ============================================================
+  # ANALYSIS EXECUTION
+  # ============================================================
+  /analyses/preflight:
+    post:
+      tags: [preflight]
+      summary: Run pre-flight validation (v2 unified)
+      description: |
+        Validates analysis configuration against dataset.
+        Used by both Guided (Step 4) and Manual (live validation).
+        Returns {ok, issues[], method_contract, ma_rules_triggered}.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreflightRequest'
+      responses:
+        '200':
+          description: Pre-flight result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreflightResponse'
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Dataset version not found
+
+  /analyses/run:
+    post:
+      tags: [analyses]
+      summary: Run analysis (Manual mode)
+      description: |
+        Executes statistical analysis with manual configuration.
+        Runs pre-flight internally; rejects on blocking issues (422).
+        Creates Analysis + AnalysisResult + ResearchLog.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunInManual'
+      responses:
+        '201':
+          description: Analysis completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunOut'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '404':
+          description: Project, dataset, or version not found
+        '422':
+          description: Pre-flight blocking issues or analysis error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorWithIssues'
+
+  /analyses/run-guided:
+    post:
+      tags: [analyses]
+      summary: Run analysis from guided config
+      description: |
+        Executes analysis using a confirmed AnalysisConfig.
+        Pre-flight already validated at confirm step; re-checked for safety.
+        Creates Analysis linked to AnalysisConfig.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunInGuided'
+      responses:
+        '201':
+          description: Analysis completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunOut'
+        '400':
+          description: Config not confirmed or already executed
+        '401':
+          description: Unauthorized
+        '404':
+          description: Config or dataset version not found
+        '422':
+          description: Analysis error (should not have blocking issues if confirmed)
+
+  /projects/{project_id}/analyses:
+    get:
+      tags: [analyses]
+      summary: List analyses for a project
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+      responses:
+        '200':
+          description: List of analyses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AnalysisListItem'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Project not found
+
+  /analyses/{uid}:
+    get:
+      tags: [analyses]
+      summary: Get analysis detail with full result
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnalysisUidParam'
+      responses:
+        '200':
+          description: Analysis detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisDetail'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Analysis not found or not owned by user
+
+  /analyses/{uid}/rerun:
+    post:
+      tags: [analyses]
+      summary: Re-run an existing analysis
+      description: |
+        Re-executes the same method/variables/params on the same dataset version.
+        Creates new Analysis row with rerun_of reference.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnalysisUidParam'
+      responses:
+        '201':
+          description: Re-run completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunOut'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Analysis not found
+        '422':
+          description: Dataset version missing or analysis error
+
+security:
+  - BearerAuth: []

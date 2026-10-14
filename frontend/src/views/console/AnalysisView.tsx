@@ -24,71 +24,21 @@ import { Textarea } from '@/components/ui/textarea'
 // Util Imports
 import { apaStyle, api, apiUrl, authHeaders, downloadExport, fetchWithContext } from '@/lib/api'
 import type { Viz } from '@/components/EChartView'
+import { ResultNarrative } from '@/components/ResultNarrative'
+import type { RunOut, MethodId } from '@/components/ResultNarrative/types'
 
 const EChartView = dynamic(() => import('@/components/EChartView'), { ssr: false })
 
 type Detail = {
   analysis_uid: string; method: string; variables: Record<string, unknown>; params: Record<string, unknown>;
   dataset_filename?: string | null; dataset_version_number?: number | null;
-  result: { method_name?: string; n?: number; statistics?: Record<string, unknown>; assumptions?: { name: string; passed?: boolean | null; p_value?: number; note?: string }[]; decision?: { text: string; p?: number; alpha?: number } | null; effect_size?: Record<string, unknown> | null; parameters?: Record<string, unknown>; formula_latex?: string; calculation?: string[]; interpretation?: string; warnings?: string[] };
+  result: RunOut;
   result_hash: string; software_version: string; timestamp: string;
 }
 
 const CHARTS = ['histogram', 'boxplot', 'scatter', 'bar', 'residual', 'qq', 'confusion', 'roc', 'cluster', 'dendrogram', 'topics', 'topterms', 'rules']
 const FBCATS = [['statistical_result', 'Hasil statistik'], ['assumption', 'Asumsi'], ['formula', 'Formula'], ['data_processing', 'Data processing'], ['export', 'Export'], ['ui', 'UI'], ['other', 'Lainnya']]
 const EXPORTS = ['csv', 'xlsx', 'pdf', 'docx', 'tex', 'json'] as const
-
-function flatten(obj: unknown, prefix = ''): [string, string][] {
-  if (obj == null) return [[prefix, '-']]
-  if (typeof obj !== 'object') return [[prefix, String(obj)]]
-  if (Array.isArray(obj)) return [[prefix, obj.slice(0, 10).map(String).join('; ')]]
-  const rows: [string, string][] = []
-
-  for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
-    const key = prefix ? `${prefix}.${k}` : k
-
-    if (v != null && typeof v === 'object') rows.push(...flatten(v, key))
-    else rows.push([key, String(v)])
-  }
-
-  return rows
-}
-
-/**
- * Format p-value gaya APA (PRD: "p < .001 jika sangat kecil").
- * `toFixed(4)` membuat p=1e-9 tampil "0.0000" yang menyesatkan secara ilmiah.
- */
-const fmtPValue = (v: unknown): string => {
-  const n = Number(v)
-
-  if (!Number.isFinite(n)) return String(v)
-  if (n < 0.001) return 'p < .001'
-
-  return `p = ${n.toFixed(3).replace(/^0/, '')}`
-}
-
-function StatTable({ data }: { data: unknown }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Key</TableHead>
-          <TableHead>Value</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {flatten(data).map(([k, v]) => (
-          <TableRow key={k}>
-            <TableCell>
-              <code>{k}</code>
-            </TableCell>
-            <TableCell>{/(^|\.)p_value$|_p$/.test(k) ? fmtPValue(v) : v}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
 
 function Formula({ latex }: { latex?: string }) {
   if (!latex) return null
@@ -101,7 +51,6 @@ function Formula({ latex }: { latex?: string }) {
     html = null
   }
 
-  // KaTeX gagal render → tampilkan sumber mentah, bukan halaman kosong.
   if (html === null) {
     return <pre className='bg-muted overflow-x-auto rounded p-3 font-mono text-xs'>{latex}</pre>
   }
@@ -146,7 +95,6 @@ const AnalysisView = () => {
     fetchWithContext(`${apiUrl()}/api/v1/analyses/${uid}/chart${q}`, { headers: { ...authHeaders() } })
       .then(res => {
         if (!res.ok) throw new Error(`Chart HTTP ${res.status}`)
-
         return res.blob()
       })
       .then(blob => {
@@ -162,7 +110,6 @@ const AnalysisView = () => {
 
   useEffect(() => {
     if (!uid || vizMode !== 'echarts') return
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Baca/fetch sistem eksternal (localStorage/API/CSS var) saat mount atau saat dependensi berubah; lazy state di render akan menyebabkan hydration mismatch.
     setVizErr('')
     const qs = new URLSearchParams()
 
@@ -250,132 +197,46 @@ const AnalysisView = () => {
         </p>
       </div>
 
-      {/* PERHATIAN — muncul SEBELUM angka & keputusan. Info paling kritis secara
-          metodologis (asumsi gagal, n berkurang) tidak boleh terkubur di tab
-          "Formula": itu seperti menaruh rem darurat di laci yang tidak diberi label. */}
-      {(() => {
-        const warns = r.warnings ?? []
-        const failed = (r.assumptions ?? []).filter(a => a.passed === false)
-
-        if (warns.length === 0 && failed.length === 0) return null
-
-        return (
-          <Card className='border-warn/45 bg-warn-wash/40'>
-            <CardContent>
-              <p className='font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-warn'>
-                Perhatian sebelum membaca hasil
-              </p>
-              {warns.length > 0 && (
-                <ul className='mt-2 space-y-1.5'>
-                  {warns.map((w, i) => (
-                    <li key={i} className='flex items-start gap-2 text-[13px] leading-relaxed text-ink'>
-                      <TriangleAlertIcon className='mt-0.5 size-3.5 shrink-0 text-warn' aria-hidden='true' />
-                      <span>{w}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {failed.length > 0 && (
-                <ul className='mt-2 space-y-1.5'>
-                  {failed.map((a, i) => (
-                    <li key={i} className='flex items-start gap-2 text-[13px] leading-relaxed text-ink'>
-                      <TriangleAlertIcon className='mt-0.5 size-3.5 shrink-0 text-warn' aria-hidden='true' />
-                      <span>
-                        Asumsi <strong className='font-semibold'>{a.name}</strong> tidak
-                        terpenuhi{a.p_value != null && <> ({fmtPValue(a.p_value)})</>} — pertimbangkan
-                        metode alternatif bila tersedia.
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        )
-      })()}
-
+      {/* Result Narrative - Using new ResultNarrative component */}
       <Card>
-        <CardContent>
-          <p className='text-sm'>
-            Keputusan: <Badge variant={reject ? 'destructive' : 'default'}>{r.decision?.text || '-'}</Badge>{' '}
-            <span className='text-muted-foreground text-xs'>(α = {r.decision?.alpha ?? '-'})</span>
-          </p>
-          <p className='mt-2 text-sm leading-6'>{r.interpretation}</p>
-          <Button
-            variant='secondary'
-            size='sm'
-            className='mt-2'
-            onClick={() => {
-              void navigator.clipboard.writeText(apaStyle(r as unknown as Record<string, unknown>))
-              setCopied(true)
+        <CardHeader>
+          <CardTitle className='flex items-center gap-2'>
+            Narasi Hasil Analisis
+          </CardTitle>
+        </CardHeader>
+        <CardContent className='p-0'>
+          <ResultNarrative
+            result={r}
+            method={d.method as MethodId}
+            config={{
+              variables: d.variables,
+              params: d.params,
+              datasetFilename: d.dataset_filename ?? undefined,
+              datasetVersionNumber: d.dataset_version_number ?? undefined,
+              preprocessingOps: [],
+              randomSeeds: {},
+              missingPolicy: 'listwise',
+              analysisId: d.analysis_uid,
+              analysisHash: d.result_hash,
             }}
-          >
-            {copied ? 'Tersalin!' : 'Copy APA-style'}
-          </Button>
+            detail={{
+              analysis_uid: d.analysis_uid,
+              result_hash: d.result_hash,
+              software_version: d.software_version,
+              timestamp: d.timestamp,
+            }}
+          />
         </CardContent>
       </Card>
 
-      <Tabs defaultValue='hasil'>
+      {/* Charts, Export, Repro, Feedback tabs kept for additional functionality */}
+      <Tabs defaultValue='grafik'>
         <TabsList>
-          <TabsTrigger value='hasil'>Hasil</TabsTrigger>
           <TabsTrigger value='grafik'>Grafik</TabsTrigger>
-          <TabsTrigger value='formula'>Formula</TabsTrigger>
           <TabsTrigger value='export'>Export</TabsTrigger>
           <TabsTrigger value='repro'>Repro</TabsTrigger>
           <TabsTrigger value='lapor'>Lapor</TabsTrigger>
         </TabsList>
-        <TabsContent value='hasil'>
-          <Card>
-            <CardHeader>
-              <CardTitle className='font-semibold tracking-[-0.02em]'>Tabel statistik (n = {String(r.n ?? '-')})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <StatTable data={r.statistics} />
-              {r.effect_size && (
-                <>
-                  <h3 className='mt-4 text-base font-semibold tracking-[-0.02em]'>Effect size</h3>
-                  <StatTable data={r.effect_size} />
-                </>
-              )}
-            </CardContent>
-          </Card>
-          {(r.assumptions || []).length > 0 && (
-            <Card className='mt-4'>
-              <CardHeader>
-                <CardTitle className='font-semibold tracking-[-0.02em]'>Asumsi</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Asumsi</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Catatan</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(r.assumptions || []).map((a, i) => (
-                      <TableRow key={i}>
-                        <TableCell>
-                          {a.name}
-                          {a.p_value != null ? ` (${fmtPValue(a.p_value)})` : ''}
-                        </TableCell>
-                        <TableCell>
-                          {a.passed == null ? (
-                            <span className='text-muted-foreground'>cek manual</span>
-                          ) : (
-                            <Badge variant={a.passed ? 'default' : 'destructive'}>{a.passed ? 'PASS' : 'FAIL'}</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className='text-muted-foreground text-xs'>{a.note || ''}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
         <TabsContent value='grafik'>
           <Card>
             <CardHeader>
@@ -437,28 +298,6 @@ const AnalysisView = () => {
                   Unduh PNG grafik
                 </a>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value='formula'>
-          <Card>
-            <CardHeader>
-              <CardTitle className='font-semibold tracking-[-0.02em]'>Formula</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Formula latex={r.formula_latex} />
-              <h3 className='mt-4 text-base font-semibold tracking-[-0.02em]'>Parameters & variables</h3>
-              <pre className='bg-muted mt-2 overflow-x-auto rounded p-3 font-mono text-xs'>
-                {JSON.stringify({ variables: d.variables, params: d.params }, null, 2)}
-              </pre>
-              <h3 className='mt-4 text-base font-semibold tracking-[-0.02em]'>Calculation</h3>
-              <ol className='mt-1 list-decimal space-y-1 pl-5 text-sm'>
-                {(r.calculation || []).map((c, i) => (
-                  <li key={i}>{c}</li>
-                ))}
-              </ol>
-              {/* Warnings sengaja TIDAK diulang di sini — sudah tampil di blok
-                  "PerAttention" di atas tab, jauh lebih terlihat. */}
             </CardContent>
           </Card>
         </TabsContent>

@@ -18,7 +18,9 @@ import {
   FlaskConicalIcon,
   HistoryIcon,
   PlayIcon,
-  UploadIcon
+  UploadIcon,
+  SettingsIcon,
+  ZapIcon
 } from 'lucide-react'
 
 // Component Imports
@@ -39,8 +41,16 @@ import { Textarea } from '@/components/ui/textarea'
 // Util Imports
 import { api, apiUrl, authHeaders, downloadExport, fetchWithContext } from '@/lib/api'
 import { STATUS_HELP, TAB_HINT, TAB_LABEL } from '@/lib/plain-terms'
+import { GuidedWizard } from './GuidedWizard'
+import { Brain, Settings, Zap } from 'lucide-react'
 
-type Version = { version_number: number }
+// `transformation_log` sengaja ikut dibawa: tanpa itu pengguna tidak tahu apa
+// yang sebenarnya terjadi pada datanya (imputasi, filter, ubah tipe) sebelum
+// dianalisis — sumber paling umum kebetulan metodologis dibabkan data mentah.
+type Version = {
+  version_number: number
+  transformation_log?: { op?: string; [k: string]: unknown }[]
+}
 type ProjectMeta = {
   id: string
   title: string
@@ -70,7 +80,9 @@ type ParamSpec = {
 type Profile = { rows: number; cols: number; missing_pct: number; duplicate_rows: number; columns: { name: string; detected_type: string; missing_count: number; unique_count: number }[] }
 type Diff = { from: number; to: number; rows_from: number; rows_to: number; rows_delta: number; columns_added: string[]; columns_removed: string[]; numeric_drift: { column: string; mean_from: number | null; mean_to: number | null; missing_from: number; missing_to: number }[] }
 
-const METHODS = ['descriptive', 'normality', 'pearson', 'spearman', 'ttest_1samp', 'ttest_ind', 'ttest_paired', 'anova_oneway', 'chi2_independence', 'chi2_gof', 'mannwhitney', 'wilcoxon', 'kruskal', 'linreg_simple', 'linreg_multiple', 'ml_classify', 'ml_cluster', 'text_tfidf', 'text_lda', 'apriori']
+// Phase-2 methods (hidden by default via FEATURE_PHASE2 flag)
+const PHASE2_METHODS = ['ml_classify', 'ml_cluster', 'text_tfidf', 'text_lda', 'apriori']
+const ALL_METHODS = ['descriptive', 'normality', 'pearson', 'spearman', 'ttest_1samp', 'ttest_ind', 'ttest_paired', 'anova_oneway', 'chi2_independence', 'chi2_gof', 'mannwhitney', 'wilcoxon', 'kruskal', 'linreg_simple', 'linreg_multiple', ...PHASE2_METHODS]
 const OPS = ['drop_missing', 'fill_missing', 'remove_outlier_iqr', 'scale_standard', 'scale_minmax', 'transform_log', 'transform_sqrt', 'mapping', 'onehot', 'rename', 'drop_columns', 'text_lowercase', 'text_remove_punct', 'text_remove_stopwords', 'remove_duplicates']
 const VTYPES = ['Numerical', 'Ordinal', 'Nominal', 'Binary', 'Text', 'Datetime', 'ID']
 const VROLES = ['Independent', 'Dependent', 'Control', 'Grouping', 'ID', 'Ignore']
@@ -142,6 +154,10 @@ const OP_PLAIN: Record<string, { name: string }> = {
 const ProjectView = () => {
   const params = useParams()
   const id = Array.isArray(params?.id) ? params.id[0] : (params?.id as string)
+
+  // Feature flag for Phase-2 methods
+  const featurePhase2 = typeof window !== 'undefined' ? (process.env.VITE_FEATURE_PHASE2 === 'true') : false
+  const METHODS = featurePhase2 ? ALL_METHODS : ALL_METHODS.filter(m => !PHASE2_METHODS.includes(m))
 
   const [datasets, setDatasets] = useState<Dataset[]>([])
   const [analyses, setAnalyses] = useState<AnalysisItem[]>([])
@@ -226,7 +242,32 @@ const ProjectView = () => {
   const [msg, setMsg] = useState('')
   const [meta, setMeta] = useState<ProjectMeta | null>(null)
   const [tab, setTab] = useState<string>('dataset')
+  
+  // Mode persistence
+  const [mode, setMode] = useState<'guided' | 'manual'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem(`project_mode_${id}`) as 'guided' | 'manual') || 'guided'
+    }
+    return 'guided'
+  })
+  // Config passed from Guided mode to Manual mode
+  const [guidedConfig, setGuidedConfig] = useState<{ method: string; variables: Record<string, unknown>; params: Record<string, unknown> } | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Persist mode preference
+  useEffect(() => {
+    if (id) localStorage.setItem(`project_mode_${id}`, mode)
+  }, [mode, id])
+
+  // Apply guided config to manual tabs when switching
+  useEffect(() => {
+    if (guidedConfig && mode === 'manual') {
+      setMethod(guidedConfig.method)
+      setPicked(guidedConfig.variables as Record<string, string[]>)
+      setPickedParams(guidedConfig.params as Record<string, string>)
+      setGuidedConfig(null) // Clear after applying
+    }
+  }, [guidedConfig, mode])
 
   async function load() {
     try {
@@ -512,12 +553,31 @@ const ProjectView = () => {
     setMsg('')
 
     try {
-      const config =
-        srcProvider === 'html_table' && !advanced
-          ? { url: scrapeUrl, table_index: pickTable }
-          : JSON.parse(srcConfig)
+      let config: any
+      if (srcProvider === 'html_table' && !advanced) {
+        config = { url: scrapeUrl, table_index: pickTable }
+      } else {
+        try {
+          config = JSON.parse(srcConfig)
+        } catch (e) {
+          throw new Error('Config JSON tidak valid')
+        }
+        // For browser-based scrapers, allow storage_state as string or object
+        if (typeof config.storage_state === 'string') {
+          try {
+            config.storage_state = JSON.parse(config.storage_state)
+          } catch {
+            // keep as-is if not JSON
+          }
+        }
+      }
 
-      const kind = srcProvider === 'html_table' ? 'scraper' : 'api'
+      let kind = 'api'
+      if (srcProvider === 'html_table' || srcProvider === 'tiktok_comments' || srcProvider === 'instagram_comments' || srcProvider === 'youtube_comments' || srcProvider === 'facebook_comments' || srcProvider === 'x_comments') {
+        kind = 'scraper'
+      } else {
+        kind = 'api'
+      }
 
       const j = await api<{ dataset_id: string; profile: { rows: number; cols: number } }>(`/api/v1/projects/${id}/data-sources/fetch`, {
         method: 'POST',
@@ -582,23 +642,56 @@ const ProjectView = () => {
 
   const selDs = datasets.find(d => d.id === sel)
 
-  /* ---- Status tahap untuk StepNav ---- */
+  /* ---- Status tahap untuk StepNav ----
+     PENTING: `done` hanya untuk pekerjaan yang benar-benar dilakukan pengguna.
+     Dua keadaan lama ini berbohong dan sudah dibetulkan:
+       - `variables` selalu 'done' begitu ada kolom, padahal tipe kolom diisi
+         otomatis oleh deteksi pada saat unggah. Sekarang 'auto'.
+       - `preprocess` hanya 'done' bila ada >1 versi, sehingga data yang memang
+         sudah bersih tampak "belum". Sekarang 'skip' — memang tidak perlu. */
   const hasDatasets = datasets.length > 0
   const versionCount = selDs?.versions.length ?? 0
 
+  // Berapa variabel yang tipenya diganti manual dari hasil deteksi otomatis?
+  const reviewedVars = variables.filter(v => {
+    const detected = profile?.columns.find(c => c.name === v.name)?.detected_type
+
+    return detected != null && v.var_type !== detected
+  }).length
+
   const doneSignal: Record<StepKey, boolean> = {
     dataset: hasDatasets,
-    variables: variables.length > 0,
+    variables: reviewedVars > 0,
     preprocess: versionCount > 1,
     analysis: analyses.length > 0,
     log: analyses.length > 0,
     exports: exports.length > 0
   }
 
+  // Keadaan "ada isinya, tapi bukan hasil kerja pengguna".
+  const autoSignal: Record<StepKey, boolean> = {
+    dataset: false,
+    variables: variables.length > 0 && reviewedVars === 0,
+    preprocess: false,
+    analysis: false,
+    log: false,
+    exports: false
+  }
+
+  // Keadaan "memang tidak perlu dikerjakan".
+  const skipSignal: Record<StepKey, boolean> = {
+    dataset: false,
+    variables: false,
+    preprocess: versionCount === 1,
+    analysis: false,
+    log: false,
+    exports: false
+  }
+
   const stepSummary: Record<StepKey, string | undefined> = {
     dataset: hasDatasets ? `${datasets.length} file` : undefined,
     variables: variables.length > 0 ? `${variables.length} kolom` : undefined,
-    preprocess: versionCount > 1 ? `v${ver} aktif` : undefined,
+    preprocess: versionCount > 1 ? `v${ver} aktif` : versionCount === 1 ? 'data mentah' : undefined,
     analysis: analyses.length > 0 ? `${analyses.length} jalan` : undefined,
     log: analyses.length > 0 ? `${analyses.length} tercatat` : undefined,
     exports: exports.length > 0 ? `${exports.length} file` : undefined
@@ -608,6 +701,8 @@ const ProjectView = () => {
     if (!hasDatasets && key !== 'dataset') return 'locked'
     if (tab === key) return 'current'
     if (doneSignal[key]) return 'done'
+    if (autoSignal[key]) return 'auto'
+    if (skipSignal[key]) return 'skip'
 
     return 'todo'
   }
@@ -645,9 +740,31 @@ const ProjectView = () => {
             <p className='text-muted-foreground mt-3 max-w-2xl text-[13px] leading-relaxed'>{meta.description}</p>
           )}
         </div>
-        <Button variant='outline' size='sm' render={<Link href='/alur' />} nativeButton={false}>
-          Panduan alur
-        </Button>
+        <div className='flex items-center gap-3'>
+          <Button variant='outline' size='sm' render={<Link href='/alur' />} nativeButton={false}>
+            Panduan alur
+          </Button>
+          <div className='flex items-center gap-1 rounded-lg border bg-muted/50 p-1'>
+            <Button
+              variant={mode === 'guided' ? 'default' : 'ghost'}
+              size='sm'
+              onClick={() => setMode('guided')}
+              className='gap-1 rounded-md'
+            >
+              <Brain className='size-3.5' />
+              Otomatis Terpandu
+            </Button>
+            <Button
+              variant={mode === 'manual' ? 'default' : 'ghost'}
+              size='sm'
+              onClick={() => setMode('manual')}
+              className='gap-1 rounded-md'
+            >
+              <Settings className='size-3.5' />
+              Manual
+            </Button>
+          </div>
+        </div>
       </div>
 
       {err && (
@@ -708,7 +825,30 @@ const ProjectView = () => {
           </Card>
         </div>
       ) : (
-        <div id='langkah-kerja' className='grid scroll-mt-24 gap-6 lg:grid-cols-[17.5rem_minmax(0,1fr)]'>
+        mode === 'guided' ? (
+          <GuidedWizard
+            projectId={id}
+            datasetId={sel}
+            datasetVersion={ver}
+            onClose={() => setMode('manual')}
+            onSwitchToManual={async (configId: string) => {
+              try {
+                const config = await api<any>(`/api/v1/analysis-config/${configId}`)
+                setGuidedConfig({
+                  method: config.method,
+                  variables: config.variables,
+                  params: config.params
+                })
+                setMode('manual')
+                setTab('variables') // Navigate to variables tab
+              } catch (e) {
+                console.error('Failed to fetch guided config:', e)
+                setMode('manual')
+              }
+            }}
+          />
+        ) : (
+          <div id='langkah-kerja' className='grid scroll-mt-24 gap-6 lg:grid-cols-[17.5rem_minmax(0,1fr)]'>
           <div className='bg-muted/40 min-w-0 rounded-lg border p-3 lg:sticky lg:top-20 lg:self-start'>
             <p className='text-muted-foreground px-2 pt-1 pb-2 font-mono text-[11px] font-medium uppercase tracking-[0.2em]'>
               Daftar tahap
@@ -808,7 +948,20 @@ const ProjectView = () => {
                     </summary>
                     <div className='border-t px-5 py-5'>
                       <form onSubmit={fetchSource} className='space-y-2'>
-                        <Select value={srcProvider} onValueChange={v => setSrcProvider(v ?? 'generic_rest')}>
+                        <Select value={srcProvider} onValueChange={v => {
+                          const pv = v ?? 'generic_rest'
+                          setSrcProvider(pv)
+                          // set sensible default config for browser scrapers
+                          if (['tiktok_comments','instagram_comments','youtube_comments','facebook_comments','x_comments'].includes(pv)) {
+                            setAdvanced(true)
+                            setSrcConfig('{\n  "url": "https://.../post-url",\n  "limit": 100,\n  "scroll_delay_ms": 800\n}')
+                          } else if (pv === 'html_table') {
+                            setAdvanced(false)
+                          } else {
+                            setAdvanced(true)
+                            setSrcConfig('{\n  "url": "https://.../records",\n  "params": {"limit": 100},\n  "records_path": "data.items",\n  "mapping": {"kolom_tujuan": "path.sumber"}\n}')
+                          }
+                        }}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -816,9 +969,14 @@ const ProjectView = () => {
                             <SelectItem value='generic_rest'>API generik (REST JSON)</SelectItem>
                             <SelectItem value='youtube'>YouTube Data API (OAuth/API key)</SelectItem>
                             <SelectItem value='html_table'>Scraper tabel HTML (allowlist)</SelectItem>
+                            <SelectItem value='tiktok_comments'>TikTok Comments (Browser)</SelectItem>
+                            <SelectItem value='instagram_comments'>Instagram Comments (Browser)</SelectItem>
+                            <SelectItem value='youtube_comments'>YouTube Comments (Browser)</SelectItem>
+                            <SelectItem value='facebook_comments'>Facebook Comments (Browser)</SelectItem>
+                            <SelectItem value='x_comments'>X/Twitter Comments (Browser)</SelectItem>
                           </SelectContent>
                         </Select>
-                        {srcProvider === 'html_table' && !advanced ? (
+                        {(srcProvider === 'html_table' && !advanced) ? (
                           <>
                             <select
                               aria-label='Preset'
@@ -892,7 +1050,42 @@ const ProjectView = () => {
                           </>
                         ) : (
                           <>
-                            <Textarea rows={6} className='rounded-lg' value={srcConfig} onChange={e => setSrcConfig(e.target.value)} />
+                            <Textarea rows={8} className='rounded-lg font-mono text-xs' value={srcConfig} onChange={e => setSrcConfig(e.target.value)} placeholder={'{"url":"https://...","limit":100,"scroll_delay_ms":800}'} />
+                            {['tiktok_comments','instagram_comments','youtube_comments','facebook_comments','x_comments'].includes(srcProvider) && (
+                              <div className='space-y-2'>
+                                <p className='text-muted-foreground text-xs leading-relaxed'>
+                                  Untuk browser scraper, bisa tambahkan <code className='font-mono'>storage_state</code> (object atau JSON string).
+                                </p>
+                                <div className='flex items-center gap-2'>
+                                  <Input
+                                    type='file'
+                                    accept='.json,application/json'
+                                    className='rounded-lg text-xs'
+                                    onChange={(e) => {
+                                      const f = e.target.files?.[0]
+                                      if (!f) return
+                                      const reader = new FileReader()
+                                      reader.onload = () => {
+                                        try {
+                                          const txt = String(reader.result)
+                                          const parsed = JSON.parse(txt)
+                                          // merge into config
+                                          let cfg: any = {}
+                                          try { cfg = JSON.parse(srcConfig || '{}') } catch {}
+                                          cfg.storage_state = parsed
+                                          setSrcConfig(JSON.stringify(cfg, null, 2))
+                                          setMsg('storage_state.json dimuat ke config')
+                                        } catch (err: any) {
+                                          setErr('File storage_state.json tidak valid: ' + (err?.message || ''))
+                                        }
+                                      }
+                                      reader.readAsText(f)
+                                    }}
+                                  />
+                                  <span className='text-muted-foreground text-xs'>Upload storage_state.json</span>
+                                </div>
+                              </div>
+                            )}
                             <div className='flex items-center gap-2'>
                               <Button type='submit'>Fetch → dataset versioned</Button>
                               {srcProvider === 'html_table' && (
@@ -1186,6 +1379,64 @@ const ProjectView = () => {
                             : `Jalankan Pembersihan (${chain.length} langkah)`}
                         </Button>
                       </form>
+                    </CardContent>
+                  </Card>
+
+                  {/* Riwayat transformasi: apa yang SUDAH dilakukan pada versi ini.
+                      Tanpa ini, pengguna menganalisis data tanpa tahu bahwa
+                      baris sudah dihapus atau nilai sudah diisi — dan pembimbing
+                      bertanya "kenapa n-nya beda dari file asli?". */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className='font-semibold tracking-[-0.02em]'>
+                        Riwayat Transformasi — v{ver}
+                      </CardTitle>
+                      <CardDescription>
+                        Semua operasi yang membentuk versi data ini, dari file mentah
+                        sampai siap dianalisis. Ini yang menentukan angka n di hasil.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {(() => {
+                        const log = selDs?.versions.find(v => v.version_number === ver)?.transformation_log ?? []
+
+                        if (log.length === 0) {
+                          return (
+                            <p className='text-muted-foreground text-sm'>
+                              Belum ada transformasi — ini data mentah hasil unggahan.
+                            </p>
+                          )
+                        }
+
+                        return (
+                          <ol className='space-y-2'>
+                            {log.map((entry, i) => {
+                              const op = String(entry.op ?? '')
+
+                              const detail = Object.entries(entry)
+                                .filter(([k]) => k !== 'op')
+                                .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
+                                .join(' · ')
+
+                              return (
+                                <li key={i} className='flex items-start gap-3 text-sm'>
+                                  <span className='text-muted-foreground shrink-0 font-mono text-[10px]'>{i + 1}</span>
+                                  <span className='min-w-0'>
+                                    <span className='block text-xs font-medium'>
+                                      {OP_PLAIN[op]?.name ?? op}
+                                    </span>
+                                    {detail && (
+                                      <span className='text-muted-foreground block truncate font-mono text-[10px]'>
+                                        {detail}
+                                      </span>
+                                    )}
+                                  </span>
+                                </li>
+                              )
+                            })}
+                          </ol>
+                        )
+                      })()}
                     </CardContent>
                   </Card>
 
@@ -1483,7 +1734,7 @@ const ProjectView = () => {
             </div>
           </div>
         </div>
-      )}
+      ) )}
 
       <Dialog open={!!delTarget} onOpenChange={o => !o && setDelTarget(null)}>
         <DialogContent>

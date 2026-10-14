@@ -7,10 +7,10 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.deps import get_current_user
 from app.core.rate import limiter
-from app.services.stats.preflight import preflight
+from app.services.stats.preflight import preflight, preflight_legacy
 from app.core.config import settings
 from app.models import Analysis, AnalysisResult, Dataset, DatasetVersion, Project, ResearchLog, User
-from app.services.stats import METHOD_IDS, METHOD_NAMES, new_uid as make_uid, result_hash, run_analysis
+from app.services.stats import METHOD_IDS, METHOD_NAMES, get_visible_methods, new_uid as make_uid, result_hash, run_analysis
 from app.services.version_io import load_version_df
 
 router = APIRouter(prefix="/api/v1", tags=["analyses"])
@@ -146,6 +146,8 @@ class RunOut(BaseModel):
     method: str
     result: dict
     result_hash: str
+    warnings: list[str] = []
+    notes: list[str] = []
 
 
 def _get_ds(db: Session, user: User, project_id: uuid.UUID, dataset_id: uuid.UUID):
@@ -161,8 +163,9 @@ def _get_ds(db: Session, user: User, project_id: uuid.UUID, dataset_id: uuid.UUI
 
 @router.get("/methods/{method_id}")
 def method_spec(method_id: str) -> dict:
-    if method_id not in METHOD_IDS:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Method tidak dikenal. Valid: {METHOD_IDS}")
+    visible = get_visible_methods()
+    if method_id not in visible:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Method tidak dikenal. Valid: {visible}")
     # `variables` (kolom dataset) dan `params` (angka/opsi metode) dikirim
     # terpisah & bertipe agar frontend tidak perlu menebak dari string.
     return {
@@ -177,8 +180,8 @@ def method_spec(method_id: str) -> dict:
 
 def _preflight_or_raise(df, method: str, variables: dict, params: dict) -> None:
     """Tolak lebih awal bila ada isu blocking — dengan pesan terstruktur."""
-    issues = preflight(df, METHOD_SPEC[method], variables, params)
-    blocking = [i for i in issues if i["level"] == "blocking"]
+    pf_result = preflight(df, METHOD_SPEC[method], variables, params)
+    blocking = pf_result["issues"]["blockers"]
     if blocking:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -197,14 +200,15 @@ def preflight_endpoint(request: Request, body: RunIn, db: Session = Depends(get_
     if not base:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Version v{body.base_version} tidak ditemukan")
     df = load_version_df(ds, base)
-    issues = preflight(df, METHOD_SPEC[body.method], body.variables, body.params)
+    issues = preflight_legacy(df, METHOD_SPEC[body.method], body.variables, body.params)
     return {"ok": not any(i["level"] == "blocking" for i in issues), "issues": issues}
 
 
 @router.post("/analyses/run", response_model=RunOut, status_code=status.HTTP_201_CREATED)
 @limiter.limit("30/minute")
 def run(request: Request, body: RunIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> RunOut:
-    if body.method not in METHOD_IDS:
+    visible = get_visible_methods()
+    if body.method not in visible:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Method '{body.method}' tidak dikenal")
     _, ds, vs = _get_ds(db, user, body.project_id, body.dataset_id)
     base = next((v for v in vs if v.version_number == body.base_version), None)
@@ -223,13 +227,29 @@ def run(request: Request, body: RunIn, db: Session = Depends(get_db), user: User
     uid = make_uid()
     h = result_hash(result)
     ts = datetime.now(timezone.utc)
+
+    # Deteksi analisis duplikat (konfigurasi & hasil identik pada dataset yang sama)
+    prev = db.query(Analysis).filter(
+        Analysis.project_id == body.project_id,
+        Analysis.dataset_version_id == base.id,
+        Analysis.method == body.method,
+    ).order_by(Analysis.created_at.desc()).first()
+    if prev and prev.variables == body.variables and (prev.params or {}) == (body.params or {}):
+        dup_note = f"Analisis dengan spesifikasi yang sama sudah pernah dijalankan sebelumnya ({prev.analysis_uid})."
+        result.setdefault("notes", [])
+        if dup_note not in result["notes"]:
+            result["notes"].append(dup_note)
+        result.setdefault("warnings", [])
+        if dup_note not in result["warnings"]:
+            result["warnings"].append(dup_note)
+
     analysis = Analysis(project_id=body.project_id, dataset_version_id=base.id, analysis_uid=uid, method=body.method, variables=body.variables, params=body.params or {}, status="done")
     db.add(analysis)
     db.flush()
     db.add(AnalysisResult(analysis_id=analysis.id, result=result, result_hash=h, software_version=settings.software_version))
     db.add(ResearchLog(analysis_id=analysis.id, dataset_version_id=base.id, method=body.method, variables=body.variables, params=body.params or {}, software_version=settings.software_version, timestamp=ts))
     db.commit()
-    return RunOut(analysis_uid=uid, method=body.method, result=result, result_hash=h)
+    return RunOut(analysis_uid=uid, method=body.method, result=result, result_hash=h, warnings=result.get("warnings", []), notes=result.get("notes", []))
 
 
 def _out_detail(analysis: Analysis, db: Session) -> dict:
@@ -247,6 +267,8 @@ def _out_detail(analysis: Analysis, db: Session) -> dict:
         "result": res.result if res else None, "result_hash": res.result_hash if res else None,
         "software_version": res.software_version if res else None,
         "timestamp": log.timestamp.isoformat() if log and log.timestamp else None,
+        "analysis_config_id": str(analysis.analysis_config_id) if analysis.analysis_config_id else None,
+        "analysis_hash": analysis.analysis_hash,
     }
 
 
